@@ -1,0 +1,204 @@
+{
+  "summary": {
+    "total_tables": 9,
+    "total_records": 66,
+    "projects": 5,
+    "users": 4,
+    "settings": 5,
+    "ai_config": 1,
+    "notification_settings": 4,
+    "schedules": 14,
+    "content_items": 6,
+    "script_scenes": 4,
+    "activity_logs": 15
+  },
+  "projects": [
+    {
+      "id": "1",
+      "name": "SUPER APP",
+      "color": "#3b82f6",
+      "description": "Multi-purpose super app platform",
+      "schedules": 3,
+      "content_items": 2
+    },
+    {
+      "id": "2",
+      "name": "HỆ THỐNG ECOOP",
+      "color": "#22c55e",
+      "description": "E-commerce cooperative system",
+      "schedules": 3,
+      "content_items": 2
+    },
+    {
+      "id": "3",
+      "name": "APEC BCI",
+      "color": "#eab308",
+      "description": "Business and Commerce Initiative",
+      "schedules": 2,
+      "content_items": 0
+    },
+    {
+      "id": "4",
+      "name": "APEC TECH",
+      "color": "#f97316",
+      "description": "Technology division",
+      "schedules": 3,
+      "content_items": 0
+    },
+    {
+      "id": "5",
+      "name": "LIFE CARE",
+      "color": "#8b5cf6",
+      "description": "Healthcare and wellness services",
+      "schedules": 3,
+      "content_items": 2
+    }
+  ],
+  "users": [
+    {
+      "id": "user_1",
+      "email": "admin@example.com",
+      "name": "Admin User",
+      "role": "admin",
+      "is_active": true
+    },
+    {
+      "id": "user_2",
+      "email": "editor1@example.com",
+      "name": "Content Editor 1",
+      "role": "editor",
+      "is_active": true
+    },
+    {
+      "id": "user_3",
+      "email": "editor2@example.com",
+      "name": "Content Editor 2",
+      "role": "editor",
+      "is_active": true
+    },
+    {
+      "id": "user_4",
+      "email": "viewer@example.com",
+      "name": "Content Viewer",
+      "role": "viewer",
+      "is_active": true
+    }
+  ],
+  "content_status_distribution": {
+    "cho_duyet": 4,
+    "da_dang_thanh_cong": 2,
+    "dang_xu_ly": 0,
+    "loi": 0
+  },
+  "platform_distribution": {
+    "Facebook Post": 1,
+    "Facebook Reels": 3,
+    "Youtube Shorts": 2
+  },
+  "schedules_by_frequency": {
+    "Ngày": 3,
+    "Tuần": 5,
+    "Tháng": 3,
+    "10 phút/lần": 2,
+    "3 ngày/lần": 1
+  },
+  "settings": {
+    "google_sheet_url": "https://docs.google.com/spreadsheets/d/example",
+    "google_api_key": "AIza...example",
+    "auto_sync_enabled": "true",
+    "sync_interval_minutes": "5",
+    "notification_email": "notifications@example.com"
+  },
+  "ai_config": {
+    "model_name": "gpt-4",
+    "max_tokens": 2000,
+    "temperature": 0.7,
+    "is_active": true
+  },
+  "sample_content_items": [
+    {
+      "id": "1",
+      "status": "cho_duyet",
+      "idea": "Nước uống",
+      "project": "LIFE CARE",
+      "platform": "Facebook Reels",
+      "has_script": true,
+      "has_caption": true
+    },
+    {
+      "id": "2",
+      "status": "cho_duyet",
+      "idea": "App thương mại điện tử",
+      "project": "SUPER APP",
+      "platform": "Facebook Reels",
+      "has_script": false,
+      "has_caption": false
+    },
+    {
+      "id": "3",
+      "status": "da_dang_thanh_cong",
+      "idea": "Xe bán hàng lưu động",
+      "project": "HỆ THỐNG ECOOP",
+      "platform": "Facebook Reels",
+      "has_script": true,
+      "has_caption": true,
+      "approved_by": "user_1"
+    },
+    {
+      "id": "4",
+      "status": "cho_duyet",
+      "idea": "Vật lý trị liệu",
+      "project": "LIFE CARE",
+      "platform": "Facebook Reels",
+      "has_script": false,
+      "has_caption": false
+    },
+    {
+      "id": "5",
+      "status": "da_dang_thanh_cong",
+      "idea": "Xe bán hàng lưu động",
+      "project": "HỆ THỐNG ECOOP",
+      "platform": "Youtube Shorts",
+      "has_script": true,
+      "has_caption": true,
+      "approved_by": "user_1"
+    },
+    {
+      "id": "6",
+      "status": "cho_duyet",
+      "idea": "App thương mại điện tử",
+      "project": "SUPER APP",
+      "platform": "Youtube Shorts",
+      "has_script": false,
+      "has_caption": false
+    }
+  ],
+  "activity_log_types": {
+    "create": 9,
+    "update": 2,
+    "approve": 2,
+    "publish": 2,
+    "delete": 0
+  },
+  "entity_activity": {
+    "project": 5,
+    "content": 8,
+    "settings": 1,
+    "schedule": 0,
+    "user": 0
+  },
+  "notification_settings": {
+    "notify_on_approve": {
+      "enabled": 3,
+      "disabled": 1
+    },
+    "notify_on_publish": {
+      "enabled": 4,
+      "disabled": 0
+    },
+    "notify_on_error": {
+      "enabled": 2,
+      "disabled": 2
+    }
+  }
+}
