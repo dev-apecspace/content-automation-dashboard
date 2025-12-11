@@ -1,73 +1,102 @@
-"use client"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Card } from "@/components/ui/card"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Eye, CheckCircle, Edit2, Trash2, Plus } from "lucide-react"
-import { cn } from "@/lib/utils"
-import type { ContentItem, ContentStatus, Platform } from "@/lib/types"
-import { projects } from "@/lib/mock-data"
+"use client";
+
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Eye, Edit2, Trash2, Plus, Image, ExternalLink, CheckCircle } from "lucide-react";
+import { cn } from "@/lib/utils";
+import type { ContentItem, Project } from "@/lib/types";
+import { platformColors, statusConfig, type Status } from "@/lib/types";
+import { useEffect, useState } from "react";
+import { getProjects } from "@/lib/api";
 
 interface ContentTableProps {
-  data: ContentItem[]
-  onViewDetails: (item: ContentItem) => void
-  onApprove: (item: ContentItem) => void
-  onEdit: (item: ContentItem) => void
-  onDelete: (id: string) => void
-  onAdd: () => void
-  filterStatus: ContentStatus | "all"
-  onFilterChange: (status: ContentStatus | "all") => void
-  filterProject: string
-  onProjectFilterChange: (projectId: string) => void
-}
-
-const statusConfig: Record<ContentStatus, { label: string; className: string }> = {
-  cho_duyet: { label: "Chờ duyệt", className: "bg-orange-100 text-orange-700 border-orange-300" },
-  da_dang_thanh_cong: { label: "Đã đăng thành công", className: "bg-green-100 text-green-700 border-green-300" },
-  dang_xu_ly: { label: "Đang xử lý", className: "bg-blue-100 text-blue-700 border-blue-300" },
-  loi: { label: "Lỗi", className: "bg-red-100 text-red-700 border-red-300" },
-}
-
-const platformColors: Record<Platform, string> = {
-  "Facebook Post": "bg-blue-100 text-blue-700 border-blue-300",
-  "Facebook Reels": "bg-pink-100 text-pink-700 border-pink-300",
-  "Youtube Shorts": "bg-red-100 text-red-700 border-red-300",
+  data: ContentItem[];
+  isLoading?: boolean
+  onViewDetails: (item: ContentItem) => void;
+  onEdit: (item: ContentItem) => void;
+  onDelete: (id: string) => void;
+  onAdd: () => void;
+  onApproveIdea?: (item: ContentItem) => void
+  onApproveContent?: (item: ContentItem) => void
+  onViewImage?: (item: ContentItem) => void;
+  onViewPost?: (item: ContentItem) => void;
+  filterStatus: Status | "all";
+  onFilterChange: (status: Status | "all") => void;
+  filterProject: string;
+  onProjectFilterChange: (projectId: string) => void;
 }
 
 export function ContentTable({
   data,
   onViewDetails,
-  onApprove,
   onEdit,
   onDelete,
   onAdd,
+  onApproveIdea,
+  onApproveContent,
+  onViewImage,
+  onViewPost,
   filterStatus,
   onFilterChange,
   filterProject,
   onProjectFilterChange,
 }: ContentTableProps) {
+  const allStatuses: Status[] = Object.keys(
+    statusConfig
+  ) as Status[];
+  const [projects, setProjects] = useState<Project[]>([]);
+
+  useEffect(() => {
+    async function fetchProjects() {
+      try {
+        const realProjects = await getProjects();
+        setProjects(realProjects);
+      } catch (error) {
+        console.error("Error loading projects:", error);
+      }
+    }
+    fetchProjects();
+    console.log("--------data: ", data);
+  }, []);
+
   return (
     <div className="space-y-4">
       {/* Filters */}
       <Card className="p-4">
         <div className="flex flex-wrap gap-4 items-center">
           <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-muted-foreground">Trạng thái:</span>
-            <Select value={filterStatus} onValueChange={(v) => onFilterChange(v as ContentStatus | "all")}>
-              <SelectTrigger className="w-[180px]">
+            <span className="text-sm font-medium text-muted-foreground">
+              Trạng thái:
+            </span>
+            <Select
+              value={filterStatus}
+              onValueChange={(v) => onFilterChange(v as Status | "all")}
+            >
+              <SelectTrigger className="w-[220px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Tất cả</SelectItem>
-                <SelectItem value="cho_duyet">Chờ duyệt</SelectItem>
-                <SelectItem value="da_dang_thanh_cong">Đã đăng thành công</SelectItem>
-                <SelectItem value="dang_xu_ly">Đang xử lý</SelectItem>
-                <SelectItem value="loi">Lỗi</SelectItem>
+                {allStatuses.map((s) => (
+                  <SelectItem key={s} value={s}>
+                    {statusConfig[s].label}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-muted-foreground">Dự án:</span>
+            <span className="text-sm font-medium text-muted-foreground">
+              Dự án:
+            </span>
             <Select value={filterProject} onValueChange={onProjectFilterChange}>
               <SelectTrigger className="w-[180px]">
                 <SelectValue />
@@ -82,9 +111,12 @@ export function ContentTable({
               </SelectContent>
             </Select>
           </div>
-          <Button onClick={onAdd} className="ml-auto bg-[#1a365d] hover:bg-[#2a4a7d]">
+          <Button
+            onClick={onAdd}
+            className="ml-auto bg-[#1a365d] hover:bg-[#2a4a7d]"
+          >
             <Plus className="h-4 w-4 mr-2" />
-            Thêm nội dung
+            Thêm ý tưởng
           </Button>
         </div>
       </Card>
@@ -95,79 +127,122 @@ export function ContentTable({
           <table className="w-full">
             <thead className="bg-muted/50">
               <tr>
-                <th className="text-left p-4 font-semibold text-sm">Trạng thái</th>
+                <th className="text-left p-4 font-semibold text-sm">
+                  Trạng thái
+                </th>
                 <th className="text-left p-4 font-semibold text-sm">Ý tưởng</th>
                 <th className="text-left p-4 font-semibold text-sm">Dự án</th>
-                <th className="text-left p-4 font-semibold text-sm">Nền tảng</th>
-                <th className="text-left p-4 font-semibold text-sm">Đối tượng tiếp cận</th>
-                <th className="text-left p-4 font-semibold text-sm">Ngày đăng dự kiến</th>
-                <th className="text-left p-4 font-semibold text-sm">Hành động</th>
+                <th className="text-left p-4 font-semibold text-sm">
+                  Nền tảng
+                </th>
+                <th className="text-left p-4 font-semibold text-sm">
+                  Thời gian đăng
+                </th>
+                <th className="text-left p-4 font-semibold text-sm">
+                  Hành động
+                </th>
               </tr>
             </thead>
             <tbody>
               {data.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="p-8 text-center text-muted-foreground">
+                  <td
+                    colSpan={6}
+                    className="p-8 text-center text-muted-foreground"
+                  >
                     Không có dữ liệu
                   </td>
                 </tr>
               ) : (
                 data.map((item) => (
-                  <tr key={item.id} className="border-t hover:bg-muted/30 transition-colors">
-                    <td className="p-4">
-                      <Badge variant="outline" className={cn("border", statusConfig[item.status].className)}>
-                        {statusConfig[item.status].label}
-                      </Badge>
-                    </td>
-                    <td className="p-4 font-medium max-w-[200px] truncate">{item.idea}</td>
+                  <tr
+                    key={item.id}
+                    className="border-t hover:bg-muted/30 transition-colors"
+                  >
                     <td className="p-4">
                       <Badge
                         variant="outline"
-                        style={{
-                          backgroundColor: `${projects.find((p) => p.id === item.projectId)?.color}20`,
-                          borderColor: projects.find((p) => p.id === item.projectId)?.color,
-                          color: projects.find((p) => p.id === item.projectId)?.color,
-                        }}
+                        className={cn(
+                          "border",
+                          statusConfig[item.status].className
+                        )}
                       >
-                        {item.projectName}
+                        {statusConfig[item.status].label}
+                      </Badge>
+                    </td>
+                    <td className="p-4 font-medium max-w-[200px] truncate">
+                      {item.idea}
+                    </td>
+                    <td className="p-4">
+                      <Badge
+                        variant="outline"
+                        
+                      >
+                        {item.projectName || "DỰ ÁN"}
                       </Badge>
                     </td>
                     <td className="p-4">
-                      <Badge variant="outline" className={cn("border", platformColors[item.platform])}>
+                      <Badge
+                        variant="outline"
+                        className={cn("border", platformColors[item.platform])}
+                      >
                         {item.platform}
                       </Badge>
                     </td>
-                    <td className="p-4 text-sm text-muted-foreground max-w-[200px] truncate">
-                      {item.targetAudience || "-"}
-                    </td>
                     <td className="p-4 text-sm">
-                      {item.expectedPostDate ? (
                         <span>
-                          {item.expectedPostDate} {item.postingTime}
+                          {item.postingTime || ""}
                         </span>
-                      ) : (
-                        <span className="text-muted-foreground">-</span>
-                      )}
                     </td>
                     <td className="p-4">
-                      <div className="flex gap-1">
+                      <div className="flex gap-1 flex-wrap">
                         <Button variant="ghost" size="icon" onClick={() => onViewDetails(item)} title="Xem chi tiết">
                           <Eye className="h-4 w-4" />
                         </Button>
                         <Button variant="ghost" size="icon" onClick={() => onEdit(item)} title="Chỉnh sửa">
                           <Edit2 className="h-4 w-4" />
                         </Button>
-                        {item.status === "cho_duyet" && (
+
+                        {/* Phê duyệt ý tưởng */}
+                        {item.status === "idea" && (
                           <Button
                             variant="ghost"
                             size="icon"
-                            onClick={() => onApprove(item)}
+                            onClick={() => onApproveIdea?.(item)}
                             className="text-green-600 hover:text-green-700"
-                            title="Phê duyệt"
+                            title="Phê duyệt ý tưởng"
                           >
                             <CheckCircle className="h-4 w-4" />
                           </Button>
                         )}
+
+                        {/* Phê duyệt nội dung */}
+                        {item.status === "awaiting_content_approval" && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => onApproveContent?.(item)}
+                            className="text-green-600 hover:text-green-700"
+                            title="Phê duyệt nội dung"
+                          >
+                            <CheckCircle className="h-4 w-4" />
+                          </Button>
+                        )}
+
+                        {/* Xem ảnh */}
+                        {item.status === "awaiting_content_approval" && onViewImage && (
+                          <Button variant="ghost" size="icon" onClick={() => onViewImage(item)} title="Xem ảnh">
+                            <Image className="h-4 w-4" />
+                          </Button>
+                        )}
+
+                        {/* Xem post */}
+                        {item.status === "posted_successfully" && onViewPost && (
+                          <Button variant="ghost" size="icon" onClick={() => onViewPost(item)} title="Xem post">
+                            <ExternalLink className="h-4 w-4" />
+                          </Button>
+                        )}
+
                         <Button
                           variant="ghost"
                           size="icon"
@@ -187,5 +262,5 @@ export function ContentTable({
         </div>
       </Card>
     </div>
-  )
+  );
 }

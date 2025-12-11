@@ -1,39 +1,39 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { ProjectsTab } from "@/components/projects-tab"
-import { getProjects, getContentItems, getSchedules } from "@/lib/api"
-import { toast } from "sonner"
-import type { Project, ContentItem, Schedule } from "@/lib/types"
+import { useState, useEffect } from "react";
+import { ProjectsTab } from "@/components/projects-tab";
+import { getProjects, getContentItems, getSchedules } from "@/lib/api";
+import { toast } from "sonner";
+import type { Project, ContentItem, Schedule } from "@/lib/types";
 
 export default function ProjectsPage() {
-  const [projects, setProjects] = useState<Project[]>([])
-  const [contentItems, setContentItems] = useState<ContentItem[]>([])
-  const [schedules, setSchedules] = useState<Schedule[]>([])
-  const [isLoading, setIsLoading] = useState(true)
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [contentItems, setContentItems] = useState<ContentItem[]>([]);
+  const [schedules, setSchedules] = useState<Schedule[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    loadData()
-  }, [])
+    loadData();
+  }, []);
 
   const loadData = async () => {
     try {
-      setIsLoading(true)
+      setIsLoading(true);
       const [projectsData, contentData, schedulesData] = await Promise.all([
         getProjects(),
         getContentItems(),
         getSchedules(),
-      ])
-      setProjects(projectsData)
-      setContentItems(contentData)
-      setSchedules(schedulesData)
+      ]);
+      setProjects(projectsData);
+      setContentItems(contentData);
+      setSchedules(schedulesData);
     } catch (error) {
-      toast.error("Failed to load data")
-      console.error(error)
+      toast.error("Failed to load data");
+      console.error(error);
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   return (
     <div className="space-y-6">
@@ -50,5 +50,5 @@ export default function ProjectsPage() {
         isLoading={isLoading}
       />
     </div>
-  )
+  );
 }

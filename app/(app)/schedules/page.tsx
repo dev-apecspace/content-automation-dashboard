@@ -1,42 +1,44 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { ScheduleTab } from "@/components/schedule-tab"
-import { getSchedules, getProjects } from "@/lib/api"
-import { toast } from "sonner"
-import type { Schedule, Project } from "@/lib/types"
+import { useState, useEffect } from "react";
+import { ScheduleTab } from "@/components/schedule-tab";
+import { getSchedules, getProjects } from "@/lib/api";
+import { toast } from "sonner";
+import type { Schedule, Project } from "@/lib/types";
 
 export default function SchedulesPage() {
-  const [schedules, setSchedules] = useState<Schedule[]>([])
-  const [projects, setProjects] = useState<Project[]>([])
-  const [isLoading, setIsLoading] = useState(true)
+  const [schedules, setSchedules] = useState<Schedule[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    loadData()
-  }, [])
+    loadData();
+  }, []);
 
   const loadData = async () => {
     try {
-      setIsLoading(true)
+      setIsLoading(true);
       const [schedulesData, projectsData] = await Promise.all([
         getSchedules(),
         getProjects(),
-      ])
-      setSchedules(schedulesData)
-      setProjects(projectsData)
+      ]);
+      setSchedules(schedulesData);
+      setProjects(projectsData);
     } catch (error) {
-      toast.error("Failed to load schedules")
-      console.error(error)
+      toast.error("Failed to load schedules");
+      console.error(error);
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold text-gray-900">Lịch Đăng</h1>
-        <p className="text-gray-600 mt-1">Quản lý lịch đăng nội dung trên các nền tảng</p>
+        <p className="text-gray-600 mt-1">
+          Quản lý lịch đăng nội dung trên các nền tảng
+        </p>
       </div>
 
       <ScheduleTab
@@ -46,5 +48,5 @@ export default function SchedulesPage() {
         onSchedulesChange={setSchedules}
       />
     </div>
-  )
+  );
 }

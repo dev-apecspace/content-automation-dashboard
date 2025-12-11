@@ -1,223 +1,337 @@
-"use client"
+"use client";
 
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Card, CardContent } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { CheckCircle, Edit2, Calendar, Clock, Users, FileText } from "lucide-react"
-import { cn } from "@/lib/utils"
-import type { ContentItem, ContentStatus, Platform } from "@/lib/types"
-import { projects } from "@/lib/mock-data"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  CheckCircle,
+  Edit2,
+  Clock,
+  Link,
+  User,
+  Calendar,
+  Globe,
+  MessageCircle,
+  Share2,
+  ThumbsUp,
+  BarChart3,
+  Target,
+  Notebook,
+  FileText,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+import { statusConfig, type ContentItem } from "@/lib/types";
+import { projects } from "@/lib/mock-data";
+import { format } from "date-fns";
 
 interface ContentDetailModalProps {
-  isOpen: boolean
-  onClose?: () => void
-  onOpenChange?: (open: boolean) => void
-  item?: ContentItem | null
-  content?: ContentItem | null
-  onApprove?: (item: ContentItem) => void
-  onEdit?: (item: ContentItem) => void
-  isLoading?: boolean
+  isOpen: boolean;
+  onClose?: () => void;
+  onOpenChange?: (open: boolean) => void;
+  item?: ContentItem | null;
+  content?: ContentItem | null;
+  onApprove?: (item: ContentItem) => void;
+  onEdit?: (item: ContentItem) => void;
+  isLoading?: boolean;
 }
 
-const statusConfig: Record<ContentStatus, { label: string; className: string }> = {
-  cho_duyet: { label: "Chờ duyệt", className: "bg-orange-100 text-orange-700 border-orange-300" },
-  da_dang_thanh_cong: { label: "Đã đăng thành công", className: "bg-green-100 text-green-700 border-green-300" },
-  dang_xu_ly: { label: "Đang xử lý", className: "bg-blue-100 text-blue-700 border-blue-300" },
-  loi: { label: "Lỗi", className: "bg-red-100 text-red-700 border-red-300" },
-}
-
-const platformColors: Record<Platform, string> = {
-  "Facebook Post": "bg-blue-100 text-blue-700 border-blue-300",
-  "Facebook Reels": "bg-pink-100 text-pink-700 border-pink-300",
-  "Youtube Shorts": "bg-red-100 text-red-700 border-red-300",
-}
-
-export function ContentDetailModal({ 
-  isOpen, 
-  onClose, 
+export function ContentDetailModal({
+  isOpen,
+  onClose,
   onOpenChange,
   item,
   content,
-  onApprove, 
-  onEdit, 
-  isLoading 
+  onApprove,
+  onEdit,
+  isLoading,
 }: ContentDetailModalProps) {
-  const currentItem = content || item
-  if (!currentItem) return null
+  const currentItem = content || item;
+  if (!currentItem) return null;
 
-  const project = projects.find((p) => p.id === currentItem.projectId)
+  const project = projects.find((p) => p.id === currentItem.projectId);
+
+  const formatDate = (dateStr?: string) => {
+    if (!dateStr) return "-";
+    try {
+      return format(new Date(dateStr), "dd/MM/yyyy HH:mm");
+    } catch {
+      return dateStr;
+    }
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange || onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <div className="flex items-start justify-between">
-            <div>
-              <DialogTitle className="text-2xl">{currentItem.idea}</DialogTitle>
-              <div className="flex flex-wrap items-center gap-2 mt-3">
-                <Badge variant="outline" className={cn("border", statusConfig[currentItem.status].className)}>
-                  {statusConfig[currentItem.status].label}
-                </Badge>
-                <Badge
-                  variant="outline"
-                  style={{
-                    backgroundColor: `${project?.color}20`,
-                    borderColor: project?.color,
-                    color: project?.color,
-                  }}
-                >
-                  {currentItem.projectName}
-                </Badge>
-                <Badge variant="outline" className={cn("border", platformColors[currentItem.platform])}>
-                  {currentItem.platform}
-                </Badge>
-              </div>
+      <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader className="space-y-4">
+          <div className="space-y-3">
+            <h4 className="font-bold leading-tight pr-8">
+              {currentItem.idea}
+            </h4>
+            {/* Các badge */}
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge
+                variant="outline"
+                className={cn(
+                  "border",
+                  statusConfig[currentItem.status].className
+                )}
+              >
+                {statusConfig[currentItem.status].label}
+              </Badge>
+              <Badge
+                variant="outline"
+                style={{
+                  backgroundColor: `${project?.color}20`,
+                  borderColor: project?.color,
+                  color: project?.color,
+                }}
+              >
+                {currentItem.projectName}
+              </Badge>
+              <Badge
+                variant="outline"
+                className="border-blue-300 text-blue-700"
+              >
+                {currentItem.platform}
+              </Badge>
             </div>
+   
+            
           </div>
         </DialogHeader>
-
-        {/* Info Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 my-4">
-          <Card>
-            <CardContent className="p-3 flex items-center gap-2">
-              <Calendar className="h-4 w-4 text-muted-foreground" />
-              <div>
-                <div className="text-xs text-muted-foreground">Ngày đăng</div>
-                <div className="text-sm font-medium">{currentItem.expectedPostDate || "-"}</div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-3 flex items-center gap-2">
-              <Clock className="h-4 w-4 text-muted-foreground" />
-              <div>
-                <div className="text-xs text-muted-foreground">Giờ đăng</div>
-                <div className="text-sm font-medium">{currentItem.postingTime || "-"}</div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-3 flex items-center gap-2">
-              <Users className="h-4 w-4 text-muted-foreground" />
-              <div>
-                <div className="text-xs text-muted-foreground">Thời lượng</div>
-                <div className="text-sm font-medium">{currentItem.videoDuration}s</div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-3 flex items-center gap-2">
-              <FileText className="h-4 w-4 text-muted-foreground" />
-              <div>
-                <div className="text-xs text-muted-foreground">Chủ đề</div>
-                <div className="text-sm font-medium truncate">{currentItem.topic || "-"}</div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
 
         <Tabs defaultValue="info" className="w-full">
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="info">Thông tin</TabsTrigger>
-            <TabsTrigger value="script">Kịch bản AI</TabsTrigger>
-            <TabsTrigger value="caption">Caption & CTA</TabsTrigger>
+            <TabsTrigger value="interaction">Lượt tương tác</TabsTrigger>
+            <TabsTrigger value="ai">AI phân tích</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="info" className="space-y-4 mt-4">
+          {/* Tab 1: Thông tin */}
+          <TabsContent value="info" className="space-y-6 mt-6">
             <Card>
-              <CardContent className="p-4 space-y-4">
+              <CardContent className="space-y-6">
+                <div className="flex items-center gap-4">
+  <Clock className="h-5 w-5 text-muted-foreground" />
+  <div>
+    <p className="text-xs text-muted-foreground">Thời gian đăng dự kiến</p>
+    <p className="text-base font-medium">{currentItem.postingTime || "-"}</p>
+  </div>
+</div>
+
                 <div>
-                  <h4 className="font-semibold text-sm text-muted-foreground mb-1">Đối tượng tiếp cận</h4>
-                  <p className="text-sm">{currentItem.targetAudience || "Chưa xác định"}</p>
+                  <h4 className="font-semibold mb-2">Caption</h4>
+                  <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                    {currentItem.caption || "Chưa có caption"}
+                  </p>
                 </div>
-                <div>
-                  <h4 className="font-semibold text-sm text-muted-foreground mb-1">Lưu ý nghiên cứu</h4>
-                  <p className="text-sm">{currentItem.researchNotes || "Chưa có ghi chú"}</p>
-                </div>
-                {currentItem.existingVideoLink && (
-                  <div>
-                    <h4 className="font-semibold text-sm text-muted-foreground mb-1">Link video có sẵn</h4>
-                    <a
-                      href={currentItem.existingVideoLink}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-sm text-blue-600 hover:underline"
-                    >
-                      {currentItem.existingVideoLink}
-                    </a>
+                {currentItem.imageLink && (
+                  <div className="flex items-start gap-3">
+                    <Link className="h-5 w-5 text-muted-foreground mt-1" />
+                    <div>
+                      <div className="text-sm text-muted-foreground mb-1">
+                        Ảnh
+                      </div>
+                      <a
+                        href={currentItem.imageLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm text-blue-600 hover:underline break-all"
+                      >
+                        {currentItem.imageLink}
+                      </a>
+                    </div>
                   </div>
                 )}
-                {currentItem.imageLink && (
-                  <div>
-                    <h4 className="font-semibold text-sm text-muted-foreground mb-1">Link ảnh</h4>
-                    <a
-                      href={currentItem.imageLink}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-sm text-blue-600 hover:underline"
-                    >
-                      {currentItem.imageLink}
-                    </a>
+
+                {currentItem.postUrl && (
+                  <div className="flex items-start gap-3">
+                    <Globe className="h-5 w-5 text-muted-foreground mt-1" />
+                    <div>
+                      <div className="text-sm text-muted-foreground mb-1">
+                        Link post
+                      </div>
+                      <a
+                        href={currentItem.postUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm text-blue-600 hover:underline"
+                      >
+                        Xem bài đăng
+                      </a>
+                    </div>
                   </div>
                 )}
               </CardContent>
             </Card>
-          </TabsContent>
 
-          <TabsContent value="script" className="space-y-4 mt-4">
-            {!currentItem.script || currentItem.script.length === 0 ? (
-              <Card>
-                <CardContent className="p-8 text-center text-muted-foreground">
-                  Kịch bản chưa được tạo bởi AI
-                </CardContent>
-              </Card>
-            ) : (
-              currentItem.script.map((scene) => (
-                <Card key={scene.scene}>
-                  <CardContent className="p-4 space-y-2">
-                    <Badge className="bg-[#1a365d]">Cảnh {scene.scene}</Badge>
-                    <div>
-                      <h4 className="font-semibold text-sm text-muted-foreground">Mô tả hình ảnh:</h4>
-                      <p className="text-sm mt-1">{scene.description}</p>
-                    </div>
-                    <div>
-                      <h4 className="font-semibold text-sm text-muted-foreground">Lời thoại:</h4>
-                      <p className="text-sm mt-1 italic">"{scene.dialogue}"</p>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))
-            )}
-          </TabsContent>
-
-          <TabsContent value="caption" className="space-y-4 mt-4">
             <Card>
-              <CardContent className="p-4 space-y-4">
-                <div>
-                  <h4 className="font-semibold mb-2">Caption:</h4>
-                  <p className="text-muted-foreground text-sm leading-relaxed">{currentItem.caption || "Chưa có caption"}</p>
+              <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="flex items-center gap-3">
+                  <User className="h-5 w-5 text-muted-foreground" />
+                  <div>
+                    <div className="text-sm text-muted-foreground">
+                      Người duyệt
+                    </div>
+                    <div className="font-medium">
+                      {currentItem.approvedBy || "-"}
+                    </div>
+                  </div>
                 </div>
-                <div className="border-t pt-4">
-                  <h4 className="font-semibold mb-2">Lời kêu gọi hành động (CTA):</h4>
-                  <p className="text-muted-foreground text-sm leading-relaxed">{currentItem.callToAction || "Chưa có CTA"}</p>
+                <div className="flex items-center gap-3">
+                  <Calendar className="h-5 w-5 text-muted-foreground" />
+                  <div>
+                    <div className="text-sm text-muted-foreground">
+                      Thời gian duyệt
+                    </div>
+                    <div className="font-medium">
+                      {formatDate(currentItem.approvedAt)}
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Calendar className="h-5 w-5 text-muted-foreground" />
+                  <div>
+                    <div className="text-sm text-muted-foreground">
+                      Thời gian tạo
+                    </div>
+                    <div className="font-medium">
+                      {formatDate(currentItem.createdAt)}
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Calendar className="h-5 w-5 text-muted-foreground" />
+                  <div>
+                    <div className="text-sm text-muted-foreground">
+                      Cập nhật cuối
+                    </div>
+                    <div className="font-medium">
+                      {formatDate(currentItem.updatedAt)}
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Tab 2: Lượt tương tác */}
+          <TabsContent value="interaction" className="mt-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <BarChart3 className="h-5 w-5" /> Lượt tương tác
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="grid grid-cols-3 gap-4 text-center">
+                  <div className="p-4 border rounded-lg">
+                    <ThumbsUp className="h-8 w-8 mx-auto text-blue-600 mb-2" />
+                    <div className="text-2xl font-bold">
+                      {currentItem.reactions ?? 0}
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      Reactions
+                    </div>
+                  </div>
+                  <div className="p-4 border rounded-lg">
+                    <MessageCircle className="h-8 w-8 mx-auto text-green-600 mb-2" />
+                    <div className="text-2xl font-bold">
+                      {currentItem.comments ?? 0}
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      Comments
+                    </div>
+                  </div>
+                  <div className="p-4 border rounded-lg">
+                    <Share2 className="h-8 w-8 mx-auto text-purple-600 mb-2" />
+                    <div className="text-2xl font-bold">
+                      {currentItem.shares ?? 0}
+                    </div>
+                    <div className="text-sm text-muted-foreground">Shares</div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 pt-4 border-t">
+                  <Calendar className="h-5 w-5 text-muted-foreground" />
+                  <div>
+                    <div className="text-sm text-muted-foreground">
+                      Thời gian thống kê
+                    </div>
+                    <div className="font-medium">
+                      {currentItem.statsAt
+                        ? formatDate(currentItem.statsAt)
+                        : "Chưa có dữ liệu"}
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Tab 3: AI phân tích */}
+          <TabsContent value="ai" className="space-y-6 mt-6">
+            <Card>
+              <CardContent className="space-y-6">
+                <div className="flex items-start gap-3">
+                  <FileText className="h-5 w-5 text-muted-foreground mt-1" />
+                  <div className="flex-1">
+                    <h4 className="font-semibold text-sm text-muted-foreground mb-1">
+                      Chủ đề
+                    </h4>
+                    <p className="text-sm">
+                      {currentItem.topic || "Chưa xác định"}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <Target className="h-5 w-5 text-muted-foreground mt-1" />
+                  <div className="flex-1">
+                    <h4 className="font-semibold text-sm text-muted-foreground mb-1">
+                      Đối tượng tiếp cận
+                    </h4>
+                    <p className="text-sm">
+                      {currentItem.targetAudience || "Chưa xác định"}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <Notebook className="h-5 w-5 text-muted-foreground mt-1" />
+                  <div className="flex-1">
+                    <h4 className="font-semibold text-sm text-muted-foreground mb-1">
+                      Lưu ý nghiên cứu
+                    </h4>
+                    <p className="text-sm">
+                      {currentItem.researchNotes || "Chưa có ghi chú"}
+                    </p>
+                  </div>
                 </div>
               </CardContent>
             </Card>
           </TabsContent>
         </Tabs>
 
-        <DialogFooter className="flex flex-col sm:flex-row gap-2 mt-6">
-          <Button variant="outline" onClick={() => onEdit?.(currentItem)} disabled={isLoading}>
+        <DialogFooter className="flex flex-col sm:flex-row gap-3 mt-8">
+          <Button
+            variant="outline"
+            onClick={() => onEdit?.(currentItem)}
+            disabled={isLoading}
+          >
             <Edit2 className="h-4 w-4 mr-2" />
             Chỉnh sửa
           </Button>
-          {currentItem.status === "cho_duyet" && (
-            <Button 
-              onClick={() => onApprove?.(currentItem)} 
+          {currentItem.status === "awaiting_content_approval" && (
+            <Button
+              onClick={() => onApprove?.(currentItem)}
               disabled={isLoading}
-              className="bg-green-600 hover:bg-green-700 text-white disabled:opacity-50"
+              className="bg-green-600 hover:bg-green-700 text-white"
             >
               <CheckCircle className="h-4 w-4 mr-2" />
               {isLoading ? "Đang phê duyệt..." : "Phê duyệt & Gửi đăng"}
@@ -226,5 +340,5 @@ export function ContentDetailModal({
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  )
+  );
 }

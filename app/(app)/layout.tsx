@@ -5,6 +5,8 @@ import { useState } from "react"
 import { Sidebar } from "@/components/sidebar"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "sonner"
+import { useFullscreen } from "@/stores/useFullscreenStore"
+import { ImageFullscreenViewer } from "@/components/ImageFullScreenViewer"
 
 export default function AppLayout({
   children,
@@ -12,6 +14,7 @@ export default function AppLayout({
   children: React.ReactNode
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const { imageSrc, close } = useFullscreen()
 
   return (
     <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
@@ -24,6 +27,13 @@ export default function AppLayout({
         </main>
       </div>
       <Toaster />
+
+      <ImageFullscreenViewer
+        src={imageSrc || ""}
+        alt="Ảnh fullscreen"
+        isOpen={!!imageSrc}
+        onClose={close}
+      />
     </ThemeProvider>
   )
 }
