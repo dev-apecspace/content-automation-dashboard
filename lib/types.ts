@@ -113,6 +113,7 @@ export interface ContentItem {
   platform: "Facebook Post";
   contentType: string;
   imageLink?: string;
+  editRequest?: string;  // Không lưu db
   topic?: string;
   targetAudience?: string;
   researchNotes?: string;

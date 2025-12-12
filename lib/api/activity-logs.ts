@@ -1,6 +1,6 @@
 import { supabase } from "@/lib/supabase"
 
-export type ActivityType = "create" | "update" | "delete" | "approve" | "publish"
+export type ActivityType = "create" | "update" | "delete" | "approve" | "publish" | "schedule"
 export type EntityType = "content" | "schedule" | "project" | "user" | "settings" | "video"
 
 export interface ActivityLog {

@@ -23,6 +23,7 @@ const activityTypeColors: Record<ActivityType, string> = {
   delete: "bg-red-100 text-red-700 border-red-300",
   approve: "bg-purple-100 text-purple-700 border-purple-300",
   publish: "bg-orange-100 text-orange-700 border-orange-300",
+  schedule: "bg-pink-100 text-pink-700 border-pink-300",
 };
 
 const entityTypeColors: Record<EntityType, string> = {
@@ -31,6 +32,7 @@ const entityTypeColors: Record<EntityType, string> = {
   project: "bg-teal-100 text-teal-700",
   user: "bg-amber-100 text-amber-700",
   settings: "bg-gray-100 text-gray-700",
+  video: "bg-rose-100 text-rose-700",
 };
 
 export function ActivityLogsTab() {
@@ -109,6 +111,7 @@ export function ActivityLogsTab() {
                   <SelectItem value="delete">Xóa</SelectItem>
                   <SelectItem value="approve">Phê duyệt</SelectItem>
                   <SelectItem value="publish">Đăng bài</SelectItem>
+                  <SelectItem value="schedule">Tạo lịch</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -129,6 +132,7 @@ export function ActivityLogsTab() {
                   <SelectItem value="project">Dự án</SelectItem>
                   <SelectItem value="user">Người dùng</SelectItem>
                   <SelectItem value="settings">Cài đặt</SelectItem>
+                  <SelectItem value="video">Video</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -174,6 +178,7 @@ export function ActivityLogsTab() {
                         {log.activity_type === "delete" && "Xóa"}
                         {log.activity_type === "approve" && "Phê duyệt"}
                         {log.activity_type === "publish" && "Đăng bài"}
+                        {log.activity_type === "schedule" && "Tạo lịch"}
                       </Badge>
                       <Badge
                         variant="outline"
@@ -184,6 +189,7 @@ export function ActivityLogsTab() {
                         {log.entity_type === "project" && "Dự án"}
                         {log.entity_type === "user" && "Người dùng"}
                         {log.entity_type === "settings" && "Cài đặt"}
+                        {log.entity_type === "video" && "Video"}
                       </Badge>
                       <span className="text-sm text-muted-foreground">
                         ID: {log.entity_id}

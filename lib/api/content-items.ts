@@ -167,7 +167,7 @@ export async function approveIdea(
   id: string,
   approvedBy: string,
   idea: string,
-  projectName: string,
+  projectId: string,
   contentType: string,
   imageLink: string,
 ): Promise<ContentItem> {
@@ -202,7 +202,7 @@ export async function approveIdea(
         data: {
           id,
           idea,
-          projectName,
+          projectId,
           contentType,
           imageLink,
         },

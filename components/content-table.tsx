@@ -10,7 +10,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Eye, Edit2, Trash2, Plus, Image, ExternalLink, CheckCircle } from "lucide-react";
+import {
+  Eye,
+  Edit2,
+  Trash2,
+  Plus,
+  Image,
+  ExternalLink,
+  CheckCircle,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ContentItem, Project } from "@/lib/types";
 import { platformColors, statusConfig, type Status } from "@/lib/types";
@@ -19,13 +27,13 @@ import { getProjects } from "@/lib/api";
 
 interface ContentTableProps {
   data: ContentItem[];
-  isLoading?: boolean
+  isLoading?: boolean;
   onViewDetails: (item: ContentItem) => void;
   onEdit: (item: ContentItem) => void;
   onDelete: (id: string) => void;
   onAdd: () => void;
-  onApproveIdea?: (item: ContentItem) => void
-  onApproveContent?: (item: ContentItem) => void
+  onApproveIdea?: (item: ContentItem) => void;
+  onApproveContent?: (item: ContentItem) => void;
   onViewImage?: (item: ContentItem) => void;
   onViewPost?: (item: ContentItem) => void;
   filterStatus: Status | "all";
@@ -49,9 +57,7 @@ export function ContentTable({
   filterProject,
   onProjectFilterChange,
 }: ContentTableProps) {
-  const allStatuses: Status[] = Object.keys(
-    statusConfig
-  ) as Status[];
+  const allStatuses: Status[] = Object.keys(statusConfig) as Status[];
   const [projects, setProjects] = useState<Project[]>([]);
 
   useEffect(() => {
@@ -64,7 +70,6 @@ export function ContentTable({
       }
     }
     fetchProjects();
-    console.log("--------data: ", data);
   }, []);
 
   return (
@@ -174,12 +179,7 @@ export function ContentTable({
                       {item.idea}
                     </td>
                     <td className="p-4">
-                      <Badge
-                        variant="outline"
-                        
-                      >
-                        {item.projectName || "DỰ ÁN"}
-                      </Badge>
+                      <Badge variant="outline">{item.projectName}</Badge>
                     </td>
                     <td className="p-4">
                       <Badge
@@ -190,18 +190,34 @@ export function ContentTable({
                       </Badge>
                     </td>
                     <td className="p-4 text-sm">
-                        <span>
-                          {item.postingTime || ""}
-                        </span>
+                      <span>{item.postingTime || ""}</span>
                     </td>
                     <td className="p-4">
                       <div className="flex gap-1 flex-wrap">
-                        <Button variant="ghost" size="icon" onClick={() => onViewDetails(item)} title="Xem chi tiết">
+                        {/* Xem chi tiết */}
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => onViewDetails(item)}
+                          title="Xem chi tiết"
+                        >
                           <Eye className="h-4 w-4" />
                         </Button>
-                        <Button variant="ghost" size="icon" onClick={() => onEdit(item)} title="Chỉnh sửa">
-                          <Edit2 className="h-4 w-4" />
-                        </Button>
+
+                        {/* Chỉnh sửa */}
+                        {(item.status === "idea" ||
+                          item.status === "awaiting_content_approval" ||
+                          item.status === "content_approved"
+                        ) && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => onEdit(item)}
+                            title="Chỉnh sửa"
+                          >
+                            <Edit2 className="h-4 w-4" />
+                          </Button>
+                        )}
 
                         {/* Phê duyệt ý tưởng */}
                         {item.status === "idea" && (
@@ -230,28 +246,41 @@ export function ContentTable({
                         )}
 
                         {/* Xem ảnh */}
-                        {item.status === "awaiting_content_approval" && onViewImage && (
-                          <Button variant="ghost" size="icon" onClick={() => onViewImage(item)} title="Xem ảnh">
+                        {item.imageLink && !item.postUrl && onViewImage && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => onViewImage(item)}
+                            title="Xem ảnh"
+                          >
                             <Image className="h-4 w-4" />
                           </Button>
                         )}
 
                         {/* Xem post */}
-                        {item.status === "posted_successfully" && onViewPost && (
-                          <Button variant="ghost" size="icon" onClick={() => onViewPost(item)} title="Xem post">
+                        {item.postUrl && onViewPost && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => onViewPost(item)}
+                            title="Xem post"
+                          >
                             <ExternalLink className="h-4 w-4" />
                           </Button>
                         )}
 
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => onDelete(item.id)}
-                          className="text-red-600 hover:text-red-700"
-                          title="Xóa"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        {/* Xóa */}
+                        {item.status === "idea" && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => onDelete(item.id)}
+                            className="text-red-600 hover:text-red-700"
+                            title="Xóa"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
                       </div>
                     </td>
                   </tr>

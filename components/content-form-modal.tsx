@@ -33,7 +33,7 @@ import {
   Maximize2,
 } from "lucide-react";
 import { getProjects } from "@/lib/api";
-import { ContentItem, contentTypes } from "@/lib/types";
+import { ContentItem, contentTypes, Project } from "@/lib/types";
 import { useFullscreen } from "@/stores/useFullscreenStore";
 import { uploadImageFile } from "@/app/api/cloudinary";
 
@@ -46,12 +46,6 @@ interface ContentFormModalProps {
   editItem?: ContentItem | null;
   isSaving?: boolean;
   isLoading?: boolean;
-}
-
-type Status = "idea" | "awaiting_content_approval" | string;
-interface Project {
-  id: string;
-  name: string;
 }
 
 // ==================== COMPONENT ====================
@@ -210,7 +204,7 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
   const currentStatus = editContent?.status || "idea";
   const canEditIdeaFields = currentStatus === "idea";
   const canEditContentApprovalFields =
-    currentStatus === "awaiting_content_approval";
+    currentStatus === "awaiting_content_approval" || currentStatus === "content_approved";
 
   const isIdeaValid =
     canEditIdeaFields &&
