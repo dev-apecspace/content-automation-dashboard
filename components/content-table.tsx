@@ -24,6 +24,7 @@ import type { ContentItem, Project } from "@/lib/types";
 import { platformColors, statusConfig, type Status } from "@/lib/types";
 import { useEffect, useState } from "react";
 import { getProjects } from "@/lib/api";
+import { toast } from "sonner";
 
 interface ContentTableProps {
   data: ContentItem[];
@@ -59,6 +60,7 @@ export function ContentTable({
 }: ContentTableProps) {
   const allStatuses: Status[] = Object.keys(statusConfig) as Status[];
   const [projects, setProjects] = useState<Project[]>([]);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     async function fetchProjects() {
@@ -71,6 +73,29 @@ export function ContentTable({
     }
     fetchProjects();
   }, []);
+
+  const triggerAiSearchIdeas = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/ai-search-ideas", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ postType: "content" }),
+      });
+
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || "Lỗi gọi AI tạo ý tưởng");
+      }
+
+      toast.success("AI đang tạo ý tưởng!");
+    } catch (error: any) {
+      console.error("Lỗi khi gọi AI:", error);
+      toast.error(error.message || "Không thể tạo ý tưởng bằng AI lúc này");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="space-y-4">
@@ -123,6 +148,18 @@ export function ContentTable({
             <Plus className="h-4 w-4 mr-2" />
             Thêm ý tưởng
           </Button>
+          <Button
+            onClick={triggerAiSearchIdeas}
+            disabled={loading}
+            className={`flex items-center gap-2 p-3 font-medium transition-all duration-200 cursor-pointer
+    ${
+      loading
+        ? "bg-gray-100 text-gray-400"
+        : "bg-amber-100 hover:bg-yellow-300 text-black border border-amber-300 shadow-md"
+    }`}
+          >
+            {loading ? <>✨ Đang tạo...</> : <>✨ AI tạo ý tưởng</>}
+          </Button>
         </div>
       </Card>
 
@@ -164,6 +201,7 @@ export function ContentTable({
                     key={item.id}
                     className="border-t hover:bg-muted/30 transition-colors"
                   >
+                    {/* Trạng thái */}
                     <td className="p-4">
                       <Badge
                         variant="outline"
@@ -175,12 +213,35 @@ export function ContentTable({
                         {statusConfig[item.status].label}
                       </Badge>
                     </td>
-                    <td className="p-4 font-medium max-w-[200px] truncate">
+                    {/* Ý tưởng */}
+                    <td
+                      className="p-4 font-medium max-w-[200px] truncate"
+                      title={item.idea}
+                    >
                       {item.idea}
                     </td>
+                    {/* Dự án */}
                     <td className="p-4">
-                      <Badge variant="outline">{item.projectName}</Badge>
+                      {(() => {
+                        const projectColor =
+                          projects.find((p) => p.id === item.projectId)
+                            ?.color || "#6B7280";
+
+                        return (
+                          <Badge
+                            variant="outline"
+                            style={{
+                              backgroundColor: `${projectColor}20`,
+                              color: projectColor,
+                              borderColor: projectColor,
+                            }}
+                          >
+                            {item.projectName}
+                          </Badge>
+                        );
+                      })()}
                     </td>
+                    {/* Nền tảng  */}
                     <td className="p-4">
                       <Badge
                         variant="outline"
@@ -189,6 +250,7 @@ export function ContentTable({
                         {item.platform}
                       </Badge>
                     </td>
+                    {/* Thời gian đăng */}
                     <td className="p-4 text-sm">
                       <span>{item.postingTime || ""}</span>
                     </td>
@@ -207,8 +269,7 @@ export function ContentTable({
                         {/* Chỉnh sửa */}
                         {(item.status === "idea" ||
                           item.status === "awaiting_content_approval" ||
-                          item.status === "content_approved"
-                        ) && (
+                          item.status === "content_approved") && (
                           <Button
                             variant="ghost"
                             size="icon"
@@ -263,6 +324,7 @@ export function ContentTable({
                             variant="ghost"
                             size="icon"
                             onClick={() => onViewPost(item)}
+                            className="text-blue-600 hover:text-blue-700"
                             title="Xem post"
                           >
                             <ExternalLink className="h-4 w-4" />

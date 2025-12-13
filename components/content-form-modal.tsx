@@ -338,11 +338,11 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
                 </Select>
               </div>
 
-              {/* Ảnh tham khảo (idea phase) */}
+              {/* Ảnh (idea phase) */}
               <div className="space-y-4 bg-gradient-to-br from-indigo-50 to-blue-50 p-5 rounded-xl border-2 border-indigo-200">
                 <Label className="flex items-center gap-2 text-base font-semibold text-gray-700">
                   <Image className="w-4 h-4 text-blue-500" />
-                  Ảnh tham khảo (tùy chọn)
+                  Ảnh (tùy chọn)
                 </Label>
 
                 {/* Input dán link */}

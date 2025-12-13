@@ -139,22 +139,23 @@ export default function ContentPage() {
         body: JSON.stringify({
           post_id: item.id,
           posting_time: item.postingTime,
+          platform: item.platform,
         }),
       });
 
       if (!response.ok) {
         toast.error("Lên lịch đăng bài thất bại");
+        throw new Error(await response.text());
       } else {
         toast.success(`Đã lên lịch đăng bài lúc ${item.postingTime}`);
-      }
 
-      // Tạo activity log cho việc schedule
-      await createActivityLog("schedule", "content", item.id, {
-        userId: "user_1",
-        description: `Lên lịch đăng bài: ${item.idea} vào ${item.postingTime}`,
-      });
+        // Tạo activity log cho việc schedule
+        await createActivityLog("schedule", "content", item.id, {
+          userId: "user_1",
+          description: `Lên lịch đăng bài: ${item.idea} vào ${item.postingTime}`,
+        });
+      }
     } catch (error) {
-      toast.error("Lên lịch đăng bài thất bại");
       console.error(error);
       throw error;
     }
@@ -165,19 +166,18 @@ export default function ContentPage() {
     if (!confirm("Bạn có chắc chắn muốn phê duyệt nội dung này?")) return;
 
     try {
+      // Gọi hàm tạo lịch đăng
+      await schedulePost(item);
+
       const updated = await approveContent(item.id, "user_1");
       setContentItems((prev) =>
         prev.map((c) => (c.id === item.id ? updated : c))
       );
-      toast.success("Đã phê duyệt nội dung!");
 
       await createActivityLog("approve", "content", item.id, {
         userId: "user_1",
         description: `Phê duyệt nội dung: ${item.idea}`,
       });
-
-      // Gọi hàm tạo lịch đăng
-      await schedulePost(item);
     } catch (error) {
       toast.error("Phê duyệt nội dung thất bại");
       console.error(error);

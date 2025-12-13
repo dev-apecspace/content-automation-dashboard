@@ -7,7 +7,7 @@ const supabase = createClient(
 );
 
 export async function POST(request: NextRequest) {
-  const { post_id, posting_time } = await request.json();
+  const { post_id, posting_time, platform } = await request.json();
 
   if (!post_id || !posting_time) {
     return Response.json(
@@ -27,6 +27,7 @@ export async function POST(request: NextRequest) {
   const { data, error } = await supabase.rpc("schedule_post_daily_vn", {
     p_post_id: post_id,
     p_posting_time: posting_time,
+    p_platform: platform,
   });
 
   if (error) {

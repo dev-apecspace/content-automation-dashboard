@@ -1,5 +1,5 @@
 import { supabase } from "@/lib/supabase";
-import camelcaseKeys from 'camelcase-keys';
+import camelcaseKeys from "camelcase-keys";
 import type { ContentItem, Status } from "@/lib/types";
 
 export async function getContentItems(filters?: {
@@ -49,7 +49,6 @@ export async function createContentItem(
   content: Omit<ContentItem, "id" | "createdAt" | "updatedAt">
 ): Promise<ContentItem> {
   const dbData = {
-    id: Date.now().toString(),
     status: content.status || "idea",
     idea: content.idea,
     project_id: content.projectId,
@@ -94,7 +93,8 @@ export async function updateContentItem(
   if (updates.projectName !== undefined)
     dbData.project_name = updates.projectName;
   if (updates.platform !== undefined) dbData.platform = updates.platform;
-  if (updates.contentType !== undefined) dbData.content_type = updates.contentType;
+  if (updates.contentType !== undefined)
+    dbData.content_type = updates.contentType;
   if (updates.imageLink !== undefined) dbData.image_link = updates.imageLink;
   if (updates.topic !== undefined) dbData.topic = updates.topic;
   if (updates.targetAudience !== undefined)
@@ -169,7 +169,7 @@ export async function approveIdea(
   idea: string,
   projectId: string,
   contentType: string,
-  imageLink: string,
+  imageLink: string
 ): Promise<ContentItem> {
   const { data, error } = await supabase
     .from("content_items")
@@ -188,7 +188,7 @@ export async function approveIdea(
     throw error;
   }
 
-  const webhookUrl = process.env.NEXT_PUBLIC_POST_TRIGGER_URL;
+  const webhookUrl = process.env.NEXT_PUBLIC_POST_TRIGGER_WEBHOOK;
 
   if (webhookUrl) {
     fetch(webhookUrl, {
@@ -241,28 +241,3 @@ export async function approveContent(
 
   return data;
 }
-
-// export async function approveContentItem(
-//   id: string,
-//   approvedBy: string
-// ): Promise<ContentItem> {
-//   const { data, error } = await supabase
-//     .from("content_items")
-//     .update({
-//       status: "posted_successfully",
-//       approved_by: approvedBy,
-//       approved_at: new Date().toISOString(),
-//       published_at: new Date().toISOString(),
-//       updated_at: new Date().toISOString(),
-//     })
-//     .eq("id", id)
-//     .select()
-//     .single()
-
-//   if (error) {
-//     console.error("Error approving content item:", error)
-//     throw error
-//   }
-
-//   return data
-// }

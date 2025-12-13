@@ -26,9 +26,10 @@ import {
   Target,
   Notebook,
   FileText,
+  Captions,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { statusConfig, type ContentItem } from "@/lib/types";
+import { contentTypes, statusConfig, type ContentItem } from "@/lib/types";
 import { projects } from "@/lib/mock-data";
 import { format } from "date-fns";
 
@@ -71,10 +72,10 @@ export function ContentDetailModal({
     <Dialog open={isOpen} onOpenChange={onOpenChange || onClose}>
       <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
         <DialogHeader className="space-y-4">
+          <DialogTitle className="font-bold leading-tight pr-8">
+            {currentItem.idea}
+          </DialogTitle>
           <div className="space-y-3">
-            <h4 className="font-bold leading-tight pr-8">
-              {currentItem.idea}
-            </h4>
             {/* Các badge */}
             <div className="flex flex-wrap items-center gap-2">
               <Badge
@@ -98,13 +99,19 @@ export function ContentDetailModal({
               </Badge>
               <Badge
                 variant="outline"
+                className="border-emerald-300 text-emerald-700"
+              >
+                {contentTypes.find(
+                  (type) => type.value === currentItem.contentType
+                )?.label || currentItem.contentType}
+              </Badge>
+              <Badge
+                variant="outline"
                 className="border-blue-300 text-blue-700"
               >
                 {currentItem.platform}
               </Badge>
             </div>
-   
-            
           </div>
         </DialogHeader>
 
@@ -120,15 +127,22 @@ export function ContentDetailModal({
             <Card>
               <CardContent className="space-y-6">
                 <div className="flex items-center gap-4">
-  <Clock className="h-5 w-5 text-muted-foreground" />
-  <div>
-    <p className="text-xs text-muted-foreground">Thời gian đăng dự kiến</p>
-    <p className="text-base font-medium">{currentItem.postingTime || "-"}</p>
-  </div>
-</div>
+                  <Clock className="h-5 w-5 text-muted-foreground" />
+                  <div>
+                    <p className="text-xs text-muted-foreground">
+                      Thời gian đăng
+                    </p>
+                    <p className="text-base font-medium">
+                      {currentItem.postingTime || "-"}
+                    </p>
+                  </div>
+                </div>
 
                 <div>
-                  <h4 className="font-semibold mb-2">Caption</h4>
+                  <div className="flex items-center gap-3 mb-2">
+                    <Captions className="h-5 w-5 text-muted-foreground" />
+                    <h4 className="font-semibold">Caption</h4>
+                  </div>
                   <p className="text-sm text-muted-foreground whitespace-pre-wrap">
                     {currentItem.caption || "Chưa có caption"}
                   </p>

@@ -47,15 +47,15 @@ export const statusConfig: Record<
 > = {
   idea: {
     label: "Ý tưởng",
-    className: "bg-gray-100 text-gray-700 border-gray-300",
+    className: "bg-yellow-100 text-yellow-700 border-yellow-300",
   },
   idea_approved: {
     label: "Đã duyệt ý tưởng",
-    className: "bg-blue-100 text-blue-700 border-blue-300",
+    className: "bg-green-100 text-green-700 border-green-300",
   },
   ai_generating_content: {
     label: "AI đang tạo nội dung",
-    className: "bg-purple-100 text-purple-700 border-purple-300",
+    className: "bg-sky-100 text-sky-700 border-sky-300",
   },
   awaiting_content_approval: {
     label: "Chờ duyệt nội dung",
@@ -63,19 +63,19 @@ export const statusConfig: Record<
   },
   content_approved: {
     label: "Đã duyệt nội dung",
-    className: "bg-indigo-100 text-indigo-700 border-indigo-300",
+    className: "bg-green-100 text-green-700 border-green-300",
   },
   posted_successfully: {
     label: "Đã đăng thành công",
-    className: "bg-green-100 text-green-700 border-green-300",
+    className: "bg-green-600 text-white border-green-700",
   },
   ai_editing_media: {
     label: "AI đang sửa media",
-    className: "bg-yellow-100 text-yellow-700 border-yellow-300",
+    className: "bg-sky-100 text-sky-700 border-sky-300",
   },
   media_edited: {
     label: "Đã sửa media",
-    className: "bg-teal-100 text-teal-700 border-teal-300",
+    className: "bg-green-100 text-green-700 border-green-300",
   },
   removing_post: {
     label: "Xóa post",
@@ -83,9 +83,12 @@ export const statusConfig: Record<
   },
   post_removed: {
     label: "Đã xóa post",
-    className: "bg-black-100 text-black-700 border-black-300",
+    className: "bg-gray-100 text-gray-700 border-gray-300",
   },
-  error: { label: "Lỗi", className: "bg-red-100 text-red-700 border-red-300" },
+  error: {
+    label: "Lỗi",
+    className: "bg-red-100 text-red-700 border-red-300",
+  },
 };
 
 export interface Project {
@@ -138,7 +141,7 @@ export interface VideoItem {
   idea: string;
   projectId: string;
   projectName: string;
-  platform: "Facebook Reels" | "Youtube Shorts";
+  platform: Platform
   existingVideoLink?: string;
   videoDuration?: number;
   imageLink?: string;
