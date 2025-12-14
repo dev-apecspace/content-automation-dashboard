@@ -27,11 +27,16 @@ import {
   Notebook,
   FileText,
   Captions,
+  RefreshCw,
+  Trash2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { contentTypes, statusConfig, type ContentItem } from "@/lib/types";
 import { projects } from "@/lib/mock-data";
-import { format } from "date-fns";
+import { format, set } from "date-fns";
+import { toast } from "sonner";
+import { useState, useEffect } from "react";
+import { getContentItemById } from "@/lib/api/content-items";
 
 interface ContentDetailModalProps {
   isOpen: boolean;
@@ -54,7 +59,15 @@ export function ContentDetailModal({
   onEdit,
   isLoading,
 }: ContentDetailModalProps) {
-  const currentItem = content || item;
+  const [isSpinning, setIsSpinning] = useState(false);
+  const [currentItem, setCurrentItem] = useState<ContentItem | null>(
+    content ?? item ?? null
+  );
+
+  useEffect(() => {
+    setCurrentItem(content ?? item ?? null);
+  }, [content, item]);
+
   if (!currentItem) return null;
 
   const project = projects.find((p) => p.id === currentItem.projectId);
@@ -65,6 +78,42 @@ export function ContentDetailModal({
       return format(new Date(dateStr), "dd/MM/yyyy HH:mm");
     } catch {
       return dateStr;
+    }
+  };
+
+  const updatedItem = async () => {
+    if (!content) return;
+
+    const item = await getContentItemById(content.id);
+    setCurrentItem(item);
+  };
+
+  const triggerEngagementTracker = async () => {
+    setIsSpinning(true);
+
+    setTimeout(() => {
+      setIsSpinning(false);
+    }, 1000);
+
+    try {
+      const res = await fetch("/api/webhook/engagement-tracker", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ postType: "content" }),
+      });
+
+      toast.success("Đang lấy tương tác...");
+
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || "Lỗi gọi AI lấy tương tác");
+      } else {
+        updatedItem();
+        toast.success("Tương tác đã được cập nhật!");
+      }
+    } catch (error: any) {
+      console.error("Lỗi khi gọi AI:", error);
+      toast.error(error.message);
     }
   };
 
@@ -241,8 +290,22 @@ export function ContentDetailModal({
           <TabsContent value="interaction" className="mt-6">
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <BarChart3 className="h-5 w-5" /> Lượt tương tác
+                <CardTitle className="text-lg flex justify-between">
+                  <div className="flex items-center gap-2">
+                    <BarChart3 className="h-5 w-5" /> Lượt tương tác
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={triggerEngagementTracker}
+                    className="cursor-pointer"
+                  >
+                    <RefreshCw
+                      className={`h-4 w-4 text-blue-500 transition-transform duration-500 ${
+                        isSpinning ? "rotate-180" : ""
+                      }`}
+                    />
+                  </Button>
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
@@ -333,14 +396,17 @@ export function ContentDetailModal({
         </Tabs>
 
         <DialogFooter className="flex flex-col sm:flex-row gap-3 mt-8">
-          <Button
-            variant="outline"
-            onClick={() => onEdit?.(currentItem)}
-            disabled={isLoading}
-          >
-            <Edit2 className="h-4 w-4 mr-2" />
-            Chỉnh sửa
-          </Button>
+          {currentItem.status === "posted_successfully" && (
+            <Button
+              variant="outline"
+              onClick={() => onEdit?.(currentItem)}
+              disabled={isLoading}
+              className="text-red-500 hover:text-red-600 hover:bg-red-100 border-red-400 cursor-pointer"
+            >
+              <Trash2 className="h-4 w-4 text-red-500" />
+              Xóa bài viết
+            </Button>
+          )}
           {currentItem.status === "awaiting_content_approval" && (
             <Button
               onClick={() => onApprove?.(currentItem)}
@@ -348,7 +414,7 @@ export function ContentDetailModal({
               className="bg-green-600 hover:bg-green-700 text-white"
             >
               <CheckCircle className="h-4 w-4 mr-2" />
-              {isLoading ? "Đang phê duyệt..." : "Phê duyệt & Gửi đăng"}
+              {isLoading ? "Đang duyệt..." : "Duyệt"}
             </Button>
           )}
         </DialogFooter>

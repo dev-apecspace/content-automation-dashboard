@@ -18,6 +18,7 @@ import {
   Image,
   ExternalLink,
   CheckCircle,
+  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ContentItem, Project } from "@/lib/types";
@@ -77,7 +78,7 @@ export function ContentTable({
   const triggerAiSearchIdeas = async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/ai-search-ideas", {
+      const res = await fetch("/api/webhook/ai-search-ideas", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ postType: "content" }),
@@ -331,16 +332,16 @@ export function ContentTable({
                           </Button>
                         )}
 
-                        {/* Xóa */}
+                        {/* Xóa ý tưởng */}
                         {item.status === "idea" && (
                           <Button
                             variant="ghost"
                             size="icon"
                             onClick={() => onDelete(item.id)}
                             className="text-red-600 hover:text-red-700"
-                            title="Xóa"
+                            title="Xóa ý tưởng"
                           >
-                            <Trash2 className="h-4 w-4" />
+                            <X className="h-4 w-4" />
                           </Button>
                         )}
                       </div>

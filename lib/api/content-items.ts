@@ -42,7 +42,7 @@ export async function getContentItemById(
     throw error;
   }
 
-  return data || null;
+  return camelcaseKeys(data || null, { deep: true }) as ContentItem;
 }
 
 export async function createContentItem(

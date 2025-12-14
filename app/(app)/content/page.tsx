@@ -85,19 +85,19 @@ export default function ContentPage() {
   };
 
   const handleDeleteContent = async (id: string) => {
-    if (!confirm("Bạn có chắc chắn muốn xóa bài viết này?")) return;
+    if (!confirm("Bạn có chắc chắn muốn xóa ý tưởng này?")) return;
 
     try {
       await deleteContentItem(id);
       setContentItems((prev) => prev.filter((c) => c.id !== id));
-      toast.success("Đã xóa bài viết thành công!");
+      toast.success("Đã xóa ý tưởng thành công!");
 
       await createActivityLog("delete", "content", id, {
         userId: "user_1",
-        description: "Đã xóa bài viết",
+        description: "Đã xóa ý tưởng",
       });
     } catch (error) {
-      toast.error("Xóa bài viết thất bại");
+      toast.error("Xóa ý tưởng thất bại");
       console.error(error);
     }
   };
@@ -133,7 +133,7 @@ export default function ContentPage() {
   // Tạo lịch đăng bài
   const schedulePost = async (item: ContentItem) => {
     try {
-      const response = await fetch("/api/schedule-post", {
+      const response = await fetch("/api/webhook/schedule-post", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -183,6 +183,31 @@ export default function ContentPage() {
       console.error(error);
     }
   };
+
+  // const handleRemovePost = async (item: ContentItem) => {
+  //   try {
+  //     const response = await fetch("/api/webhook/remove-post", {
+  //       method: "POST",
+  //       headers: { "Content-Type": "application/json" },
+  //       body: JSON.stringify({
+  //         postId: item.id,
+  //         platform: item.platform,
+  //       }),
+  //     }); 
+  //     if (!response.ok) {
+  //       toast.error("Xóa bài đăng thất bại");
+  //       throw new Error(await response.text());
+  //     } else {
+  //       toast.success("Đã xóa bài đăng thành công");        
+  //       await createActivityLog("remove-post", "content", item.id, {
+  //         userId: "user_1",
+  //         description: `Xóa bài đăng: ${item.idea}`,
+  //       });        
+  //     }
+  //   } catch (error) {
+  //     console.error(error);
+  //     throw error;
+  //   }
 
   const handleSaveContent = async (data: Partial<ContentItem>) => {
     try {
@@ -284,6 +309,7 @@ export default function ContentPage() {
         isOpen={isDetailModalOpen}
         onOpenChange={setIsDetailModalOpen}
         content={selectedContent}
+        // onRemovePost={handleRemovePost}
       />
     </div>
   );
