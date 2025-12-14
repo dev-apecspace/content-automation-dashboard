@@ -270,7 +270,8 @@ export function ContentTable({
                         {/* Chỉnh sửa */}
                         {(item.status === "idea" ||
                           item.status === "awaiting_content_approval" ||
-                          item.status === "content_approved") && (
+                          item.status === "content_approved" || 
+                          item.status === "post_removed") && (
                           <Button
                             variant="ghost"
                             size="icon"
@@ -320,13 +321,13 @@ export function ContentTable({
                         )}
 
                         {/* Xem post */}
-                        {item.postUrl && onViewPost && (
+                        {item.status === "posted_successfully" && item.postUrl && onViewPost && (
                           <Button
                             variant="ghost"
                             size="icon"
                             onClick={() => onViewPost(item)}
                             className="text-blue-600 hover:text-blue-700"
-                            title="Xem post"
+                            title={`Xem post\nReactions: ${item.reactions || 0}, Comments: ${item.comments || 0}, Shares: ${item.shares || 0}`}
                           >
                             <ExternalLink className="h-4 w-4" />
                           </Button>

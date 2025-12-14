@@ -37,6 +37,8 @@ import { format, set } from "date-fns";
 import { toast } from "sonner";
 import { useState, useEffect } from "react";
 import { getContentItemById } from "@/lib/api/content-items";
+import { se } from "date-fns/locale";
+import { createActivityLog } from "@/lib/api";
 
 interface ContentDetailModalProps {
   isOpen: boolean;
@@ -46,7 +48,6 @@ interface ContentDetailModalProps {
   content?: ContentItem | null;
   onApprove?: (item: ContentItem) => void;
   onEdit?: (item: ContentItem) => void;
-  isLoading?: boolean;
 }
 
 export function ContentDetailModal({
@@ -57,9 +58,8 @@ export function ContentDetailModal({
   content,
   onApprove,
   onEdit,
-  isLoading,
 }: ContentDetailModalProps) {
-  const [isSpinning, setIsSpinning] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [currentItem, setCurrentItem] = useState<ContentItem | null>(
     content ?? item ?? null
   );
@@ -89,10 +89,10 @@ export function ContentDetailModal({
   };
 
   const triggerEngagementTracker = async () => {
-    setIsSpinning(true);
+    setIsLoading(true);
 
     setTimeout(() => {
-      setIsSpinning(false);
+      setIsLoading(false);
     }, 1000);
 
     try {
@@ -114,6 +114,39 @@ export function ContentDetailModal({
     } catch (error: any) {
       console.error("Lỗi khi gọi AI:", error);
       toast.error(error.message);
+    }
+  };
+
+  const handleRemovePost = async () => {
+    setIsLoading(true);
+    try {
+      const response = await fetch("/api/webhook/remove-post", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          postUrl: currentItem.postUrl,
+          platform: currentItem.platform,
+          project: currentItem.projectName,
+        }),
+      });
+      if (!response.ok) {
+        toast.error("Xóa bài đăng thất bại");
+        throw new Error(await response.text());
+      } else {
+        updatedItem();
+
+        await createActivityLog("remove-post", "content", currentItem.id, {
+          userId: "user_1",
+          description: `Xóa bài đăng: ${currentItem.idea}`,
+        });
+
+        toast.success("Đã xóa bài đăng thành công");
+      }
+    } catch (error) {
+      console.error(error);
+      throw error;
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -302,7 +335,7 @@ export function ContentDetailModal({
                   >
                     <RefreshCw
                       className={`h-4 w-4 text-blue-500 transition-transform duration-500 ${
-                        isSpinning ? "rotate-180" : ""
+                        isLoading ? "rotate-180" : ""
                       }`}
                     />
                   </Button>
@@ -399,12 +432,12 @@ export function ContentDetailModal({
           {currentItem.status === "posted_successfully" && (
             <Button
               variant="outline"
-              onClick={() => onEdit?.(currentItem)}
+              onClick={handleRemovePost}
               disabled={isLoading}
               className="text-red-500 hover:text-red-600 hover:bg-red-100 border-red-400 cursor-pointer"
             >
               <Trash2 className="h-4 w-4 text-red-500" />
-              Xóa bài viết
+              {isLoading ? "Đang xóa..." : "Xóa bài đăng"}
             </Button>
           )}
           {currentItem.status === "awaiting_content_approval" && (

@@ -18,12 +18,13 @@ import { toast } from "sonner";
 import type { ActivityLog, ActivityType, EntityType } from "@/lib/api";
 
 const activityTypeColors: Record<ActivityType, string> = {
-  create: "bg-green-100 text-green-700 border-green-300",
+  create: "bg-yellow-100 text-yellow-700 border-yellow-300",
   update: "bg-blue-100 text-blue-700 border-blue-300",
   delete: "bg-red-100 text-red-700 border-red-300",
-  approve: "bg-purple-100 text-purple-700 border-purple-300",
-  publish: "bg-orange-100 text-orange-700 border-orange-300",
+  approve: "bg-cyan-100 text-cyan-700 border-cyan-300",
+  publish: "bg-green-100 text-green-700 border-green-300",
   schedule: "bg-pink-100 text-pink-700 border-pink-300",
+  "remove-post": "bg-orange-100 text-orange-700 border-orange-300",
 };
 
 const entityTypeColors: Record<EntityType, string> = {
@@ -108,10 +109,11 @@ export function ActivityLogsTab() {
                   <SelectItem value="all">Tất cả</SelectItem>
                   <SelectItem value="create">Tạo mới</SelectItem>
                   <SelectItem value="update">Cập nhật</SelectItem>
-                  <SelectItem value="delete">Xóa</SelectItem>
+                  <SelectItem value="delete">Xóa ý tưởng</SelectItem>
                   <SelectItem value="approve">Phê duyệt</SelectItem>
                   <SelectItem value="publish">Đăng bài</SelectItem>
                   <SelectItem value="schedule">Tạo lịch</SelectItem>
+                  <SelectItem value="remove-post">Xóa bài đăng</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -175,10 +177,11 @@ export function ActivityLogsTab() {
                       >
                         {log.activity_type === "create" && "Tạo mới"}
                         {log.activity_type === "update" && "Cập nhật"}
-                        {log.activity_type === "delete" && "Xóa"}
+                        {log.activity_type === "delete" && "Xóa ý tưởng"}
                         {log.activity_type === "approve" && "Phê duyệt"}
                         {log.activity_type === "publish" && "Đăng bài"}
                         {log.activity_type === "schedule" && "Tạo lịch"}
+                        {log.activity_type === "remove-post" && "Xóa bài đăng"}
                       </Badge>
                       <Badge
                         variant="outline"

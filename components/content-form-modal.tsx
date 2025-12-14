@@ -204,7 +204,7 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
   const currentStatus = editContent?.status || "idea";
   const canEditIdeaFields = currentStatus === "idea";
   const canEditContentApprovalFields =
-    currentStatus === "awaiting_content_approval" || currentStatus === "content_approved";
+    currentStatus === "awaiting_content_approval" || currentStatus === "content_approved" || currentStatus === "post_removed";
 
   const isIdeaValid =
     canEditIdeaFields &&

@@ -18,11 +18,11 @@ import { createActivityLog } from "@/lib/api/activity-logs";
 import { toast } from "sonner";
 import type { ContentItem } from "@/lib/types";
 import type { Status } from "@/lib/types";
-import ImageFullScreenViewer from "@/components/ImageFullScreenViewer";
+// import ImageFullScreenViewer from "@/components/ImageFullScreenViewer";
 
 export default function ContentPage() {
   const [contentItems, setContentItems] = useState<ContentItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
@@ -184,31 +184,6 @@ export default function ContentPage() {
     }
   };
 
-  // const handleRemovePost = async (item: ContentItem) => {
-  //   try {
-  //     const response = await fetch("/api/webhook/remove-post", {
-  //       method: "POST",
-  //       headers: { "Content-Type": "application/json" },
-  //       body: JSON.stringify({
-  //         postId: item.id,
-  //         platform: item.platform,
-  //       }),
-  //     }); 
-  //     if (!response.ok) {
-  //       toast.error("Xóa bài đăng thất bại");
-  //       throw new Error(await response.text());
-  //     } else {
-  //       toast.success("Đã xóa bài đăng thành công");        
-  //       await createActivityLog("remove-post", "content", item.id, {
-  //         userId: "user_1",
-  //         description: `Xóa bài đăng: ${item.idea}`,
-  //       });        
-  //     }
-  //   } catch (error) {
-  //     console.error(error);
-  //     throw error;
-  //   }
-
   const handleSaveContent = async (data: Partial<ContentItem>) => {
     try {
       setIsSaving(true);
@@ -309,7 +284,6 @@ export default function ContentPage() {
         isOpen={isDetailModalOpen}
         onOpenChange={setIsDetailModalOpen}
         content={selectedContent}
-        // onRemovePost={handleRemovePost}
       />
     </div>
   );
