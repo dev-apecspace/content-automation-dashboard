@@ -107,22 +107,17 @@ export interface Schedule {
   postingTime: string;
 }
 
-export interface ContentItem {
+export interface BaseContentItem {
   id: string;
   status: Status;
   idea: string;
   projectId: string;
   projectName: string;
-  platform: "Facebook Post";
-  contentType: string;
-  imageLink?: string;
-  editRequest?: string;  // Không lưu db
   topic?: string;
   targetAudience?: string;
   researchNotes?: string;
+  postUrl?: string;
   postingTime?: string;
-  caption?: string;
-  postUrl? :string;
   callToAction?: string;
   approvedBy?: string;
   approvedAt?: string;
@@ -135,32 +130,21 @@ export interface ContentItem {
   statsAt?: string;
 }
 
-export interface VideoItem {
-  id: string;
-  status: Status;
-  idea: string;
-  projectId: string;
-  projectName: string;
-  platform: Platform
-  existingVideoLink?: string;
-  videoDuration?: number;
+export interface ContentItem extends BaseContentItem {
+  platform: "Facebook Post";
+  contentType: string;
   imageLink?: string;
-  topic?: string;
-  targetAudience?: string;
-  researchNotes?: string;
-  expectedPostDate?: string;
-  postingTime?: string;
-  script?: {
-    scene: number;
-    description: string;
-    dialogue: string;
-  }[];
+  editRequest?: string;     // Không lưu db
   caption?: string;
-  postUrl?: string;
-  callToAction?: string;
-  approvedBy?: string;
-  approvedAt?: string;
-  publishedAt?: string;
-  createdAt?: string;
-  updatedAt?: string;
+}
+
+export interface VideoItem extends BaseContentItem {
+  platform: Platform[];
+  videoDuration?: number;
+  existingVideoLink?: string;
+  imageLink?: string;
+  videoLink?: string;
+  title?: string;
+  caption?: string;
+  views?: number;
 }

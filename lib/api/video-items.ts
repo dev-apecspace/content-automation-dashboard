@@ -1,160 +1,169 @@
-import { supabase } from "@/lib/supabase"
-import type { VideoItem, ContentStatus } from "@/lib/types"
+import { supabase } from "@/lib/supabase";
+import camelcaseKeys from "camelcase-keys";
+import type { VideoItem, Status, Platform } from "@/lib/types";
 
 export async function getVideoItems(filters?: {
-  status?: ContentStatus | "all"
-  projectId?: string
-  platform?: string
+  status?: Status | "all";
+  projectId?: string;
+  platform?: Platform;
 }): Promise<VideoItem[]> {
-  let query = supabase.from("video_items").select("*")
+  let query = supabase.from("video_items").select("*");
 
   if (filters?.status && filters.status !== "all") {
-    query = query.eq("status", filters.status)
+    query = query.eq("status", filters.status);
   }
 
-  if (filters?.projectId) {
-    query = query.eq("project_id", filters.projectId)
+  if (filters?.projectId && filters.projectId !== "all") {
+    query = query.eq("project_id", filters.projectId);
   }
 
   if (filters?.platform) {
-    query = query.eq("platform", filters.platform)
+    query = query.contains("platform", [filters.platform]);
   }
 
-  const { data, error } = await query.order("created_at", { ascending: false })
+  const { data, error } = await query.order("created_at", { ascending: false });
 
   if (error) {
-    console.error("Error fetching video items:", error)
-    throw error
+    console.error("Error fetching video items:", error);
+    throw error;
   }
 
-  return data || []
+  // Tự động chuyển toàn bộ snake_case sang camelCase (deep: true để xử lý nested object nếu có)
+  return camelcaseKeys(data || [], { deep: true }) as VideoItem[];
 }
 
 export async function getVideoItemById(id: string): Promise<VideoItem | null> {
-  const { data, error } = await supabase.from("video_items").select("*").eq("id", id).single()
+  const { data, error } = await supabase
+    .from("video_items")
+    .select("*")
+    .eq("id", id)
+    .single();
 
   if (error && error.code !== "PGRST116") {
-    console.error("Error fetching video item:", error)
-    throw error
+    // PGRST116: no rows returned
+    console.error("Error fetching video item:", error);
+    throw error;
   }
 
-  if (data) {
-    const scriptScenes = await getScriptScenes(id)
-    return { ...data, script: scriptScenes }
-  }
-
-  return null
+  return camelcaseKeys(data || null, { deep: true }) as VideoItem;
 }
 
 export async function createVideoItem(
   video: Omit<VideoItem, "id" | "createdAt" | "updatedAt">
 ): Promise<VideoItem> {
-  const { script, ...videoData } = video
-
   const dbData = {
-    id: Date.now().toString(),
-    status: videoData.status,
-    idea: videoData.idea,
-    project_id: videoData.projectId,
-    project_name: videoData.projectName,
-    platform: videoData.platform,
-    existing_video_link: videoData.existingVideoLink,
-    video_duration: videoData.videoDuration,
-    image_link: videoData.imageLink,
-    topic: videoData.topic,
-    target_audience: videoData.targetAudience,
-    research_notes: videoData.researchNotes,
-    expected_post_date: videoData.expectedPostDate || null,
-    posting_time: videoData.postingTime,
-    caption: videoData.caption,
-    call_to_action: videoData.callToAction,
-  }
+    status: video.status || "idea",
+    idea: video.idea,
+    project_id: video.projectId,
+    project_name: video.projectName,
+    platform: video.platform,
+    existing_video_link: video.existingVideoLink,
+    video_duration: video.videoDuration,
+    image_link: video.imageLink,
+    topic: video.topic,
+    target_audience: video.targetAudience,
+    research_notes: video.researchNotes,
+    posting_time: video.postingTime,
+    caption: video.caption,
+    call_to_action: video.callToAction,
+    title: video.title,
+    video_link: video.videoLink,
+    post_url: video.postUrl,
+  };
 
   const { data, error } = await supabase
     .from("video_items")
     .insert(dbData)
     .select()
-    .single()
+    .single();
 
   if (error) {
-    console.error("Error creating video item:", error)
-    throw error
+    console.error("Error creating video item:", error);
+    throw error;
   }
 
-  if (script && script.length > 0) {
-    await createScriptScenes(data.id, script)
-  }
-
-  return data
+  return camelcaseKeys(data, { deep: true }) as VideoItem;
 }
 
 export async function updateVideoItem(
   id: string,
   updates: Partial<VideoItem>
 ): Promise<VideoItem> {
-  const { script, ...updateData } = updates
-
   const dbData: Record<string, any> = {
     updated_at: new Date().toISOString(),
-  }
+  };
 
-  if (updateData.status !== undefined) dbData.status = updateData.status
-  if (updateData.idea !== undefined) dbData.idea = updateData.idea
-  if (updateData.projectId !== undefined) dbData.project_id = updateData.projectId
-  if (updateData.projectName !== undefined) dbData.project_name = updateData.projectName
-  if (updateData.platform !== undefined) dbData.platform = updateData.platform
-  if (updateData.existingVideoLink !== undefined) dbData.existing_video_link = updateData.existingVideoLink
-  if (updateData.videoDuration !== undefined) dbData.video_duration = updateData.videoDuration
-  if (updateData.imageLink !== undefined) dbData.image_link = updateData.imageLink
-  if (updateData.topic !== undefined) dbData.topic = updateData.topic
-  if (updateData.targetAudience !== undefined) dbData.target_audience = updateData.targetAudience
-  if (updateData.researchNotes !== undefined) dbData.research_notes = updateData.researchNotes
-  if (updateData.expectedPostDate !== undefined) dbData.expected_post_date = updateData.expectedPostDate
-  if (updateData.postingTime !== undefined) dbData.posting_time = updateData.postingTime
-  if (updateData.caption !== undefined) dbData.caption = updateData.caption
-  if (updateData.callToAction !== undefined) dbData.call_to_action = updateData.callToAction
+  if (updates.status !== undefined) dbData.status = updates.status;
+  if (updates.idea !== undefined) dbData.idea = updates.idea;
+  if (updates.projectId !== undefined) dbData.project_id = updates.projectId;
+  if (updates.projectName !== undefined)
+    dbData.project_name = updates.projectName;
+  if (updates.platform !== undefined) dbData.platform = updates.platform;
+  if (updates.existingVideoLink !== undefined)
+    dbData.existing_video_link = updates.existingVideoLink;
+  if (updates.videoDuration !== undefined)
+    dbData.video_duration = updates.videoDuration;
+  if (updates.imageLink !== undefined) dbData.image_link = updates.imageLink;
+  if (updates.topic !== undefined) dbData.topic = updates.topic;
+  if (updates.targetAudience !== undefined)
+    dbData.target_audience = updates.targetAudience;
+  if (updates.researchNotes !== undefined)
+    dbData.research_notes = updates.researchNotes;
+  if (updates.postingTime !== undefined)
+    dbData.posting_time = updates.postingTime;
+  if (updates.caption !== undefined) dbData.caption = updates.caption;
+  if (updates.callToAction !== undefined)
+    dbData.call_to_action = updates.callToAction;
+  if (updates.title !== undefined) dbData.title = updates.title;
+  if (updates.videoLink !== undefined) dbData.video_link = updates.videoLink;
+  if (updates.postUrl !== undefined) dbData.post_url = updates.postUrl;
+  if (updates.approvedBy !== undefined) dbData.approved_by = updates.approvedBy;
+  if (updates.approvedAt !== undefined) dbData.approved_at = updates.approvedAt;
+  if (updates.publishedAt !== undefined)
+    dbData.published_at = updates.publishedAt;
+  if (updates.views !== undefined) dbData.views = updates.views;
+  if (updates.reactions !== undefined) dbData.reactions = updates.reactions;
+  if (updates.comments !== undefined) dbData.comments = updates.comments;
+  if (updates.shares !== undefined) dbData.shares = updates.shares;
+  if (updates.statsAt !== undefined) dbData.stats_at = updates.statsAt;
 
   const { data, error } = await supabase
     .from("video_items")
     .update(dbData)
     .eq("id", id)
     .select()
-    .single()
+    .single();
 
   if (error) {
-    console.error("Error updating video item:", error)
-    throw error
+    console.error("Error updating video item:", error);
+    throw error;
   }
 
-  if (script && script.length > 0) {
-    await deleteScriptScenes(id)
-    await createScriptScenes(id, script)
-  }
-
-  if (script) {
-    data.script = script
-  }
-
-  return data
+  return camelcaseKeys(data || null, { deep: true }) as VideoItem;
 }
 
 export async function deleteVideoItem(id: string): Promise<void> {
-  const { error } = await supabase.from("video_items").delete().eq("id", id)
+  const { error } = await supabase.from("video_items").delete().eq("id", id);
 
   if (error) {
-    console.error("Error deleting video item:", error)
-    throw error
+    console.error("Error deleting video item:", error);
+    throw error;
   }
 }
 
-export async function updateVideoStatus(id: string, status: ContentStatus): Promise<VideoItem> {
+// Hàm cập nhật trạng thái chung (dùng cho các bước chuyển status)
+export async function updateVideoStatus(
+  id: string,
+  status: Status
+): Promise<VideoItem> {
   const updates: Record<string, any> = {
     status,
     updated_at: new Date().toISOString(),
-  }
+  };
 
-  if (status === "da_dang_thanh_cong") {
-    updates.published_at = new Date().toISOString()
+  // Nếu đăng thành công thì lưu thời gian published
+  if (status === "posted_successfully") {
+    updates.published_at = new Date().toISOString();
   }
 
   const { data, error } = await supabase
@@ -162,84 +171,94 @@ export async function updateVideoStatus(id: string, status: ContentStatus): Prom
     .update(updates)
     .eq("id", id)
     .select()
-    .single()
+    .single();
 
   if (error) {
-    console.error("Error updating video status:", error)
-    throw error
+    console.error("Error updating video status:", error);
+    throw error;
   }
 
-  return data
+  return camelcaseKeys(data || null, { deep: true }) as VideoItem;
 }
 
-export async function approveVideo(
+// Phê duyệt ý tưởng (từ idea → idea_approved)
+export async function approveVideoIdea(
+  id: string,
+  approvedBy: string,
+  idea: string,
+  projectId: string,
+  platform: Platform[],
+  videoDuration?: number,
+  existingVideoLink?: string
+): Promise<VideoItem> {
+  const { data, error } = await supabase
+    .from("video_items")
+    .update({
+      status: "ai_generating_content",
+      approved_by: approvedBy,
+      approved_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", id)
+    .select()
+    .single();
+
+  if (error) {
+    console.error("Error approving idea:", error);
+    throw error;
+  }
+
+  const webhookUrl = process.env.NEXT_PUBLIC_VIDEO_TRIGGER_WEBHOOK;
+
+  if (webhookUrl) {
+    fetch(webhookUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        event: "video_idea.approved",
+        timestamp: new Date().toISOString(),
+        data: {
+          id,
+          idea,
+          projectId,
+          platform,
+          videoDuration,
+          existingVideoLink,
+        },
+      }),
+    }).catch((webhookError) => {
+      console.error("Failed to send webhook:", webhookError);
+    });
+  } else {
+    console.warn("Webhook URL not configured. Skipping webhook call.");
+  }
+
+  return camelcaseKeys(data || null, { deep: true }) as VideoItem;
+}
+
+// Phê duyệt nội dung (từ awaiting_content_approval → content_approved)
+export async function approveVideoContent(
   id: string,
   approvedBy: string
 ): Promise<VideoItem> {
   const { data, error } = await supabase
     .from("video_items")
     .update({
-      status: "da_dang_thanh_cong",
+      status: "content_approved",
       approved_by: approvedBy,
       approved_at: new Date().toISOString(),
-      published_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     })
     .eq("id", id)
     .select()
-    .single()
+    .single();
 
   if (error) {
-    console.error("Error approving video:", error)
-    throw error
+    console.error("Error approving content:", error);
+    throw error;
   }
 
-  return data
-}
-
-async function getScriptScenes(videoItemId: string) {
-  const { data, error } = await supabase
-    .from("script_scenes_video")
-    .select("*")
-    .eq("video_item_id", videoItemId)
-    .order("scene_number", { ascending: true })
-
-  if (error) {
-    console.error("Error fetching script scenes:", error)
-    return []
-  }
-
-  return data?.map((scene) => ({
-    scene: scene.scene_number,
-    description: scene.description,
-    dialogue: scene.dialogue,
-  })) || []
-}
-
-async function createScriptScenes(
-  videoItemId: string,
-  scenes: { scene: number; description: string; dialogue: string }[]
-) {
-  const sceneData = scenes.map((scene) => ({
-    video_item_id: videoItemId,
-    scene_number: scene.scene,
-    description: scene.description,
-    dialogue: scene.dialogue,
-  }))
-
-  const { error } = await supabase.from("script_scenes_video").insert(sceneData)
-
-  if (error) {
-    console.error("Error creating script scenes:", error)
-    throw error
-  }
-}
-
-async function deleteScriptScenes(videoItemId: string) {
-  const { error } = await supabase.from("script_scenes_video").delete().eq("video_item_id", videoItemId)
-
-  if (error) {
-    console.error("Error deleting script scenes:", error)
-    throw error
-  }
+  return camelcaseKeys(data || null, { deep: true }) as VideoItem;
 }

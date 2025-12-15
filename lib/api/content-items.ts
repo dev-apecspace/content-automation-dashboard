@@ -1,3 +1,4 @@
+// lib/api/content-items.ts
 import { supabase } from "@/lib/supabase";
 import camelcaseKeys from "camelcase-keys";
 import type { ContentItem, Status } from "@/lib/types";

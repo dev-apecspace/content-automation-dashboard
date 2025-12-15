@@ -1,14 +1,14 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ContentTable } from "@/components/content-table";
-import { ContentFormModal } from "@/components/content-form-modal";
-import { ContentDetailModal } from "@/components/content-detail-modal";
+import { VideoTable } from "@/components/video-table";
+import { VideoFormModal } from "@/components/video-form-modal";
+import { VideoDetailModal } from "@/components/video-detail-modal";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
-import { getVideoItems, createActivityLog } from "@/lib/api";
+import { getVideoItems, createVideoItem, updateVideoItem, deleteVideoItem, approveVideoContent, createActivityLog } from "@/lib/api";
 import { toast } from "sonner";
-import type { VideoItem } from "@/lib/types";
+import type { Status, VideoItem } from "@/lib/types";
 
 export default function VideoPage() {
   const [videoItems, setVideoItems] = useState<VideoItem[]>([]);
@@ -18,9 +18,7 @@ export default function VideoPage() {
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [editVideo, setEditVideo] = useState<VideoItem | null>(null);
   const [selectedVideo, setSelectedVideo] = useState<VideoItem | null>(null);
-  const [filterStatus, setFilterStatus] = useState<
-    "cho_duyet" | "da_dang_thanh_cong" | "dang_xu_ly" | "loi" | "all"
-  >("all");
+  const [filterStatus, setFilterStatus] = useState<Status | "all">("all");
   const [filterProject, setFilterProject] = useState<string>("all");
 
   useEffect(() => {
@@ -31,7 +29,7 @@ export default function VideoPage() {
     try {
       setIsLoading(true);
       const data = await getVideoItems({
-        status: filterStatus !== "all" ? (filterStatus as any) : undefined,
+        status: filterStatus !== "all" ? filterStatus : undefined,
         projectId: filterProject !== "all" ? filterProject : undefined,
       });
       setVideoItems(data);
@@ -60,7 +58,6 @@ export default function VideoPage() {
 
   const handleDeleteVideo = async (id: string) => {
     try {
-      const { deleteVideoItem } = await import("@/lib/api");
       await deleteVideoItem(id);
       setVideoItems((prev) => prev.filter((v) => v.id !== id));
       toast.success("Video deleted!");
@@ -77,17 +74,16 @@ export default function VideoPage() {
 
   const handleApproveVideo = async (item: VideoItem) => {
     try {
-      const { approveVideo } = await import("@/lib/api");
-      const updated = await approveVideo(item.id, "user_1");
+      const updated = await approveVideoContent(item.id, "user_1");
       setVideoItems((prev) =>
         prev.map((v) => (v.id === item.id ? updated : v))
       );
-      toast.success("Video approved!");
+      toast.success("Video content approved!");
 
       await createActivityLog("approve", "video", item.id, {
         userId: "user_1",
-        newValues: { status: "da_dang_thanh_cong" },
-        description: `Approved: ${item.idea}`,
+        newValues: { status: "content_approved" },
+        description: `Approved content: ${item.idea}`,
       });
     } catch (error) {
       toast.error("Failed to approve video");
@@ -100,7 +96,6 @@ export default function VideoPage() {
       setIsSaving(true);
 
       if (editVideo) {
-        const { updateVideoItem } = await import("@/lib/api");
         const updated = await updateVideoItem(editVideo.id, data);
         setVideoItems((prev) =>
           prev.map((v) => (v.id === editVideo.id ? updated : v))
@@ -113,32 +108,32 @@ export default function VideoPage() {
           description: `Updated: ${data.idea || editVideo.idea}`,
         });
       } else {
-        const { createVideoItem } = await import("@/lib/api");
         const newVideo = await createVideoItem({
-          ...data,
-          status: "cho_duyet",
+          status: data.status || "idea",
           idea: data.idea || "",
           projectId: data.projectId || "",
           projectName: data.projectName || "",
-          platform:
-            (data.platform as "Facebook Reels" | "Youtube Shorts") ||
-            "Facebook Reels",
-          existingVideoLink: data.existingVideoLink || "",
-          videoDuration: data.videoDuration || 5,
-          imageLink: data.imageLink || "",
-          topic: data.topic || "",
-          targetAudience: data.targetAudience || "",
-          researchNotes: data.researchNotes || "",
-          expectedPostDate: data.expectedPostDate || "",
-          postingTime: data.postingTime || "",
+          platform: data.platform || ["Facebook Reels"],
+          existingVideoLink: data.existingVideoLink,
+          videoDuration: data.videoDuration,
+          imageLink: data.imageLink,
+          topic: data.topic,
+          targetAudience: data.targetAudience,
+          researchNotes: data.researchNotes,
+          postingTime: data.postingTime,
+          caption: data.caption,
+          callToAction: data.callToAction,
+          title: data.title,
+          videoLink: data.videoLink,
+          postUrl: data.postUrl,
         } as Omit<VideoItem, "id" | "createdAt" | "updatedAt">);
 
-        setVideoItems((prev) => [...prev, newVideo]);
+        setVideoItems((prev) => [newVideo, ...prev]);
         toast.success("Video created!");
 
         await createActivityLog("create", "video", newVideo.id, {
           userId: "user_1",
-          newValues: { idea: newVideo.idea, status: "cho_duyet" },
+          newValues: { idea: newVideo.idea, status: newVideo.status },
           description: `Created: ${newVideo.idea}`,
         });
       }
@@ -168,7 +163,7 @@ export default function VideoPage() {
         </Button>
       </div>
 
-      <ContentTable
+      <VideoTable
         data={videoItems}
         filterStatus={filterStatus}
         onFilterChange={setFilterStatus}
@@ -181,15 +176,15 @@ export default function VideoPage() {
         onAdd={handleCreateClick}
       />
 
-      <ContentFormModal
+      <VideoFormModal
         isOpen={isFormModalOpen}
         onOpenChange={setIsFormModalOpen}
         onSave={handleSaveVideo}
-        editContent={editVideo}
+        editVideo={editVideo}
         isSaving={isSaving}
       />
 
-      <ContentDetailModal
+      <VideoDetailModal
         isOpen={isDetailModalOpen}
         onOpenChange={setIsDetailModalOpen}
         content={selectedVideo}
