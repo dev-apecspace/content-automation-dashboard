@@ -193,13 +193,23 @@ export default function ContentPage() {
         setContentItems((prev) =>
           prev.map((c) => (c.id === editContent.id ? updated : c))
         );
-        toast.success("Cập nhật bài viết thành công!");
+
+        if (updated.postingTime) {
+          const oldTime = editContent.postingTime?.trim() || "";
+          const newTime = updated.postingTime.trim();
+          
+          if (oldTime !== newTime) {
+            await schedulePost(updated);
+          }
+        }
 
         await createActivityLog("update", "content", editContent.id, {
           userId: "user_1",
           newValues: data,
           description: `Cập nhật: ${data.idea || editContent.idea}`,
         });
+
+        toast.success("Cập nhật bài viết thành công!");
       } else {
         const newContent = await createContentItem({
           ...data,

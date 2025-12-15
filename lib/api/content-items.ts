@@ -120,7 +120,7 @@ export async function updateContentItem(
     throw error;
   }
 
-  return data;
+  return camelcaseKeys(data || null, { deep: true }) as ContentItem;
 }
 
 export async function deleteContentItem(id: string): Promise<void> {
@@ -214,7 +214,7 @@ export async function approveIdea(
     console.warn("Webhook URL not configured. Skipping webhook call.");
   }
 
-  return data;
+  return camelcaseKeys(data || null, { deep: true }) as ContentItem;
 }
 
 // Phê duyệt nội dung (từ awaiting_content_approval → content_approved)
@@ -239,5 +239,5 @@ export async function approveContent(
     throw error;
   }
 
-  return data;
+  return camelcaseKeys(data || null, { deep: true }) as ContentItem;
 }

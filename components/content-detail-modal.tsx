@@ -60,6 +60,7 @@ export function ContentDetailModal({
   onEdit,
 }: ContentDetailModalProps) {
   const [isLoading, setIsLoading] = useState(false);
+  const [isSpinning, setIsSpinning] = useState(false);
   const [currentItem, setCurrentItem] = useState<ContentItem | null>(
     content ?? item ?? null
   );
@@ -89,11 +90,7 @@ export function ContentDetailModal({
   };
 
   const triggerEngagementTracker = async () => {
-    setIsLoading(true);
-
-    setTimeout(() => {
-      setIsLoading(false);
-    }, 1000);
+    setIsSpinning(true);
 
     try {
       const res = await fetch("/api/webhook/engagement-tracker", {
@@ -101,8 +98,6 @@ export function ContentDetailModal({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ postType: "content" }),
       });
-
-      toast.success("Đang lấy tương tác...");
 
       if (!res.ok) {
         const error = await res.json();
@@ -114,6 +109,8 @@ export function ContentDetailModal({
     } catch (error: any) {
       console.error("Lỗi khi gọi AI:", error);
       toast.error(error.message);
+    } finally {
+      setIsSpinning(false);
     }
   };
 
@@ -244,6 +241,11 @@ export function ContentDetailModal({
                       >
                         {currentItem.imageLink}
                       </a>
+                      <img
+                        src={currentItem.imageLink}
+                        alt="Preview"
+                        className="max-w-full h-72 mt-3 rounded-lg border border-gray-300 shadow-sm"
+                      />
                     </div>
                   </div>
                 )}
@@ -334,8 +336,8 @@ export function ContentDetailModal({
                     className="cursor-pointer"
                   >
                     <RefreshCw
-                      className={`h-4 w-4 text-blue-500 transition-transform duration-500 ${
-                        isLoading ? "rotate-180" : ""
+                      className={`h-4 w-4 text-blue-500 ${
+                        isSpinning ? "animate-spin" : ""
                       }`}
                     />
                   </Button>
