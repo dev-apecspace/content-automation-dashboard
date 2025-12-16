@@ -25,6 +25,7 @@ import type { VideoItem, Project } from "@/lib/types";
 import { platformColors, statusConfig, type Status } from "@/lib/types";
 import { useEffect, useState } from "react";
 import { getProjects } from "@/lib/api";
+import { toast } from "sonner";
 
 interface VideoTableProps {
   data: VideoItem[];
@@ -33,7 +34,8 @@ interface VideoTableProps {
   onEdit: (item: VideoItem) => void;
   onDelete: (id: string) => void;
   onAdd: () => void;
-  onApprove?: (item: VideoItem) => void;
+  onApproveIdea?: (item: VideoItem) => void;
+  onApproveContent?: (item: VideoItem) => void;
   onViewImage?: (item: VideoItem) => void;
   onViewPost?: (item: VideoItem) => void;
   filterStatus: Status | "all";
@@ -48,7 +50,8 @@ export function VideoTable({
   onEdit,
   onDelete,
   onAdd,
-  onApprove,
+  onApproveIdea,
+  onApproveContent,
   onViewImage,
   onViewPost,
   filterStatus,
@@ -58,6 +61,7 @@ export function VideoTable({
 }: VideoTableProps) {
   const allStatuses: Status[] = Object.keys(statusConfig) as Status[];
   const [projects, setProjects] = useState<Project[]>([]);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     async function fetchProjects() {
@@ -70,6 +74,29 @@ export function VideoTable({
     }
     fetchProjects();
   }, []);
+
+  const triggerAiSearchIdeas = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/webhook/ai-search-ideas", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ postType: "video" }),
+      });
+
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || "Lỗi gọi AI tạo ý tưởng");
+      }
+
+      toast.success("AI đang tạo ý tưởng...");
+    } catch (error: any) {
+      console.error("Lỗi khi gọi AI:", error);
+      toast.error(error.message || "Không thể tạo ý tưởng bằng AI lúc này");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="space-y-4">
@@ -117,10 +144,22 @@ export function VideoTable({
           </div>
           <Button
             onClick={onAdd}
-            className="ml-auto bg-[#1a365d] hover:bg-[#2a4a7d]"
+            className="ml-auto bg-[#1a365d] hover:bg-[#2a4a7d] cursor-pointer"
           >
             <Plus className="h-4 w-4 mr-2" />
-            Thêm video
+            Thêm ý tưởng
+          </Button>
+          <Button
+            onClick={triggerAiSearchIdeas}
+            disabled={loading}
+            className={`flex items-center gap-2 p-3 font-medium transition-all duration-200 cursor-pointer
+              ${
+                loading
+                  ? "bg-gray-100 text-gray-400"
+                  : "bg-amber-100 hover:bg-yellow-300 text-black border border-amber-300 shadow-md"
+              }`}
+          >
+            {loading ? <>✨ Đang tạo...</> : <>✨ AI tạo ý tưởng</>}
           </Button>
         </div>
       </Card>
@@ -208,7 +247,7 @@ export function VideoTable({
                     </td>
                     {/* Nền tảng  */}
                     <td className="p-4">
-                      <div className="flex flex-wrap gap-1">
+                      <div className="flex flex-col gap-1">
                         {Array.isArray(item.platform) ? (
                           item.platform.map((p) => (
                             <Badge
@@ -250,6 +289,7 @@ export function VideoTable({
                           size="icon"
                           onClick={() => onViewDetails(item)}
                           title="Xem chi tiết"
+                          className="cursor-pointer"
                         >
                           <Eye className="h-4 w-4" />
                         </Button>
@@ -264,18 +304,32 @@ export function VideoTable({
                             size="icon"
                             onClick={() => onEdit(item)}
                             title="Chỉnh sửa"
+                            className="cursor-pointer"
                           >
                             <Edit2 className="h-4 w-4" />
                           </Button>
                         )}
 
-                        {/* Phê duyệt */}
+                        {/* Phê duyệt ý tưởng */}
+                        {item.status === "idea" && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => onApproveIdea?.(item)}
+                            className="text-green-600 hover:text-green-700 cursor-pointer"
+                            title="Phê duyệt ý tưởng"
+                          >
+                            <CheckCircle className="h-4 w-4" />
+                          </Button>
+                        )}
+
+                        {/* Phê duyệt nội dung */}
                         {item.status === "awaiting_content_approval" && (
                           <Button
                             variant="ghost"
                             size="icon"
-                            onClick={() => onApprove?.(item)}
-                            className="text-green-600 hover:text-green-700"
+                            onClick={() => onApproveContent?.(item)}
+                            className="text-green-600 hover:text-green-700 cursor-pointer"
                             title="Phê duyệt nội dung"
                           >
                             <CheckCircle className="h-4 w-4" />
@@ -289,6 +343,7 @@ export function VideoTable({
                             size="icon"
                             onClick={() => onViewImage(item)}
                             title="Xem ảnh"
+                            className="cursor-pointer"
                           >
                             <Image className="h-4 w-4" />
                           </Button>
@@ -302,8 +357,12 @@ export function VideoTable({
                               variant="ghost"
                               size="icon"
                               onClick={() => onViewPost(item)}
-                              className="text-blue-600 hover:text-blue-700"
-                              title={`Xem post\nLượt xem: ${item.views || 0}`}
+                              className="text-blue-600 hover:text-blue-700 cursor-pointer"
+                              title={`Xem post\nViews: ${
+                                item.views || 0
+                              }\nReactions: ${item.reactions || 0}\nComments: ${
+                                item.comments || 0
+                              }\nShares: ${item.shares || 0}`}
                             >
                               <ExternalLink className="h-4 w-4" />
                             </Button>
@@ -315,8 +374,8 @@ export function VideoTable({
                             variant="ghost"
                             size="icon"
                             onClick={() => onDelete(item.id)}
-                            className="text-red-600 hover:text-red-700"
-                            title="Xóa video"
+                            className="text-red-600 hover:text-red-700 cursor-pointer"
+                            title="Xóa ý tưởng"
                           >
                             <X className="h-4 w-4" />
                           </Button>

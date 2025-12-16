@@ -2,7 +2,7 @@ export type Platform = "Facebook Post" | "Facebook Reels" | "Youtube Shorts";
 
 export const platformColors: Record<Platform, string> = {
   "Facebook Post": "bg-blue-100 text-blue-700 border-blue-300",
-  "Facebook Reels": "bg-pink-100 text-pink-700 border-pink-300",
+  "Facebook Reels": "bg-blue-100 text-blue-700 border-blue-300",
   "Youtube Shorts": "bg-red-100 text-red-700 border-red-300",
 };
 
@@ -128,6 +128,7 @@ export interface BaseContentItem {
   comments?: number;
   shares?: number;
   statsAt?: string;
+  expectedPostDate: string;
 }
 
 export interface ContentItem extends BaseContentItem {

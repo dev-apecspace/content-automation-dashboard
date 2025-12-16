@@ -6,7 +6,7 @@ import { VideoFormModal } from "@/components/video-form-modal";
 import { VideoDetailModal } from "@/components/video-detail-modal";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
-import { getVideoItems, createVideoItem, updateVideoItem, deleteVideoItem, approveVideoContent, createActivityLog } from "@/lib/api";
+import { getVideoItems, createVideoItem, updateVideoItem, deleteVideoItem, approveVideoIdea, approveVideoContent, createActivityLog } from "@/lib/api";
 import { toast } from "sonner";
 import type { Status, VideoItem } from "@/lib/types";
 
@@ -23,7 +23,7 @@ export default function VideoPage() {
 
   useEffect(() => {
     loadVideoItems();
-  }, [filterStatus, filterProject]);
+  }, [filterStatus, filterProject, videoItems]);
 
   const loadVideoItems = async () => {
     try {
@@ -34,7 +34,7 @@ export default function VideoPage() {
       });
       setVideoItems(data);
     } catch (error) {
-      toast.error("Failed to load video items");
+      toast.error("Có lỗi khi tải lên danh sách video");
       console.error(error);
     } finally {
       setIsLoading(false);
@@ -56,38 +56,107 @@ export default function VideoPage() {
     setIsDetailModalOpen(true);
   };
 
+  const handleViewPost = (item: VideoItem) => {
+    if (item.postUrl) {
+      window.open(item.postUrl, "_blank");
+    }
+  };
+
   const handleDeleteVideo = async (id: string) => {
+    if (!confirm("Bạn có chắc chắn muốn xóa ý tưởng này?")) return;
+
     try {
       await deleteVideoItem(id);
       setVideoItems((prev) => prev.filter((v) => v.id !== id));
-      toast.success("Video deleted!");
+      toast.success("Đã xóa ý tưởng!");
 
       await createActivityLog("delete", "video", id, {
         userId: "user_1",
-        description: "Deleted video item",
+        description: `Xóa ý tưởng ${id}`,
       });
     } catch (error) {
-      toast.error("Failed to delete video");
+      toast.error("Xóa ý tưởng thất bại");
       console.error(error);
     }
   };
 
-  const handleApproveVideo = async (item: VideoItem) => {
+  const handleApproveIdea = async (item: VideoItem) => {
+    if (!confirm("Bạn có chắc chắn muốn phê duyệt ý tưởng này?")) return;
+
     try {
+      const updated = await approveVideoIdea(
+        item.id,
+        "user_1",
+        item.idea,
+        item.projectId,
+        item.projectName,
+        item.platform,
+        item.videoDuration,
+        item.existingVideoLink,
+        item.imageLink
+      );
+      setVideoItems((prev) =>
+        prev.map((v) => (v.id === item.id ? updated : v))
+      );
+
+      await createActivityLog("approve", "video", item.id, {
+        userId: "user_1",
+        newValues: { status: "ai_generating_content" },
+        description: `Đã duyệt ý tưởng: ${item.idea}`,
+      });
+    } catch (error) {
+      toast.error("Duyệt ý tưởng thất bại");
+      console.error(error);
+    }
+  };
+
+  const handleApproveContent = async (item: VideoItem) => {
+    if (!confirm("Bạn có chắc chắn muốn phê duyệt nội dung này?")) return;
+    try {
+      await schedulePost(item);
+
       const updated = await approveVideoContent(item.id, "user_1");
       setVideoItems((prev) =>
         prev.map((v) => (v.id === item.id ? updated : v))
       );
-      toast.success("Video content approved!");
 
       await createActivityLog("approve", "video", item.id, {
         userId: "user_1",
         newValues: { status: "content_approved" },
-        description: `Approved content: ${item.idea}`,
+        description: `Đã duyệt nội dung: ${item.idea}`,
       });
     } catch (error) {
-      toast.error("Failed to approve video");
+      toast.error("Duyệt nội dung thất bại");
       console.error(error);
+    }
+  };
+
+  const schedulePost = async (item: VideoItem) => {
+    try {
+      const response = await fetch("/api/webhook/schedule-post", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          post_id: item.id,
+          posting_time: item.postingTime,
+          platform: item.platform,
+        }),
+      });
+
+      if (!response.ok) {
+        toast.error("Failed to schedule post");
+        throw new Error(await response.text());
+      } else {
+        toast.success(`Đã lên lịch đăng bài lúc ${item.postingTime}`);
+
+        await createActivityLog("schedule", "video", item.id, {
+          userId: "user_1",
+          description: `Lên lịch đăng bài: ${item.idea} vào ${item.postingTime}`,
+        });
+      }
+    } catch (error) {
+      console.error(error);
+      throw error;
     }
   };
 
@@ -100,12 +169,22 @@ export default function VideoPage() {
         setVideoItems((prev) =>
           prev.map((v) => (v.id === editVideo.id ? updated : v))
         );
-        toast.success("Video updated!");
+
+        if (updated.postingTime) {
+          const oldTime = editVideo.postingTime?.trim() || "";
+          const newTime = updated.postingTime.trim();
+          
+          if (oldTime !== newTime) {
+            await schedulePost(updated);
+          }
+        }
+
+        toast.success("Đã cập nhật video!");
 
         await createActivityLog("update", "video", editVideo.id, {
           userId: "user_1",
           newValues: data,
-          description: `Updated: ${data.idea || editVideo.idea}`,
+          description: `Đã cập nhật ý tưởng: ${data.idea || editVideo.idea}`,
         });
       } else {
         const newVideo = await createVideoItem({
@@ -129,19 +208,19 @@ export default function VideoPage() {
         } as Omit<VideoItem, "id" | "createdAt" | "updatedAt">);
 
         setVideoItems((prev) => [newVideo, ...prev]);
-        toast.success("Video created!");
+        toast.success("Đã tạo ý tưởng mới!");
 
         await createActivityLog("create", "video", newVideo.id, {
           userId: "user_1",
           newValues: { idea: newVideo.idea, status: newVideo.status },
-          description: `Created: ${newVideo.idea}`,
+          description: `Tạo ý tưởng: ${newVideo.idea}`,
         });
       }
 
       setEditVideo(null);
       setIsFormModalOpen(false);
     } catch (error) {
-      toast.error("Failed to save video");
+      toast.error("Đã xảy ra lỗi khi lưu!");
       console.error(error);
     } finally {
       setIsSaving(false);
@@ -170,9 +249,11 @@ export default function VideoPage() {
         filterProject={filterProject}
         onProjectFilterChange={setFilterProject}
         onViewDetails={handleViewClick}
+        onViewPost={handleViewPost}
         onEdit={handleEditClick}
         onDelete={handleDeleteVideo}
-        onApprove={handleApproveVideo}
+        onApproveIdea={handleApproveIdea}
+        onApproveContent={handleApproveContent}
         onAdd={handleCreateClick}
       />
 
@@ -180,6 +261,8 @@ export default function VideoPage() {
         isOpen={isFormModalOpen}
         onOpenChange={setIsFormModalOpen}
         onSave={handleSaveVideo}
+        onApproveIdea={handleApproveIdea}
+        onApprove={handleApproveContent}
         editVideo={editVideo}
         isSaving={isSaving}
       />

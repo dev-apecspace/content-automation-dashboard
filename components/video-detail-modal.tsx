@@ -83,38 +83,38 @@ export function VideoDetailModal({
   };
 
   const updatedItem = async () => {
-      if (!content) return;
-  
-      const item = await getVideoItemById(content.id);
-      console.log("==== item: ", item);
-      setCurrentItem(item);
-    };
-  
-    const triggerEngagementTracker = async () => {
-      setIsSpinning(true);
-  
-      try {
-        const res = await fetch("/api/webhook/engagement-tracker", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ postType: "video" }),
-        });
-  
-        if (!res.ok) {
-          const error = await res.json();
-          throw new Error(error.error || "Lỗi gọi AI lấy tương tác");
-        } else {
-          console.log("==== res: ", res);
-          updatedItem();
-          toast.success("Tương tác đã được cập nhật!");
-        }
-      } catch (error: any) {
-        console.error("Lỗi khi gọi AI:", error);
-        toast.error(error.message);
-      } finally {
-        setIsSpinning(false);
+    if (!content) return;
+
+    const item = await getVideoItemById(content.id);
+    console.log("==== item: ", item);
+    setCurrentItem(item);
+  };
+
+  const triggerEngagementTracker = async () => {
+    setIsSpinning(true);
+
+    try {
+      const res = await fetch("/api/webhook/engagement-tracker", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ postType: "video" }),
+      });
+
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || "Lỗi gọi AI lấy tương tác");
+      } else {
+        console.log("==== res: ", res);
+        updatedItem();
+        toast.success("Tương tác đã được cập nhật!");
       }
-    };
+    } catch (error: any) {
+      console.error("Lỗi khi gọi AI:", error);
+      toast.error(error.message);
+    } finally {
+      setIsSpinning(false);
+    }
+  };
 
   const handleRemovePost = async () => {
     setIsLoading(true);
@@ -124,7 +124,7 @@ export function VideoDetailModal({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           postUrl: currentItem.postUrl,
-          platform: currentItem.platform,
+          platform: currentItem.platform[0],
           project: currentItem.projectName,
         }),
       });
@@ -194,7 +194,7 @@ export function VideoDetailModal({
         </DialogHeader>
 
         <Tabs defaultValue="info" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="info">Thông tin</TabsTrigger>
             <TabsTrigger value="interaction">Thống kê</TabsTrigger>
             <TabsTrigger value="ai">AI phân tích</TabsTrigger>
@@ -205,29 +205,11 @@ export function VideoDetailModal({
             <Card>
               <CardContent className="space-y-6">
                 {/* Tiêu đề & Thời lượng */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="flex items-start gap-3">
-                    <Film className="h-5 w-5 text-muted-foreground mt-1" />
-                    <div>
-                      <div className="text-sm text-muted-foreground">
-                        Tiêu đề
-                      </div>
-                      <p className="font-medium">{currentItem.title || "-"}</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-3">
-                    <Clock className="h-5 w-5 text-muted-foreground mt-1" />
-                    <div>
-                      <div className="text-sm text-muted-foreground">
-                        Thời lượng
-                      </div>
-                      <p className="font-medium">
-                        {currentItem.videoDuration
-                          ? `${currentItem.videoDuration}s`
-                          : "-"}
-                      </p>
-                    </div>
+                <div className="flex items-start gap-3">
+                  <Film className="h-5 w-5 text-muted-foreground mt-1" />
+                  <div>
+                    <div className="text-sm text-muted-foreground">Tiêu đề</div>
+                    <p className="font-medium">{currentItem.title || "-"}</p>
                   </div>
                 </div>
 
@@ -255,8 +237,22 @@ export function VideoDetailModal({
                   </p>
                 </div>
 
+                <div className="flex items-start gap-3">
+                  <Clock className="h-5 w-5 text-muted-foreground mt-1" />
+                  <div>
+                    <div className="text-sm text-muted-foreground">
+                      Thời lượng
+                    </div>
+                    <p className="font-medium">
+                      {currentItem.videoDuration
+                        ? `${currentItem.videoDuration}s`
+                        : "-"}
+                    </p>
+                  </div>
+                </div>
+
                 {/* Video links */}
-                {currentItem.existingVideoLink && (
+                {/* {currentItem.existingVideoLink && (
                   <div className="flex items-start gap-3">
                     <Play className="h-5 w-5 text-muted-foreground mt-1" />
                     <div>
@@ -273,7 +269,7 @@ export function VideoDetailModal({
                       </a>
                     </div>
                   </div>
-                )}
+                )} */}
 
                 {currentItem.videoLink && (
                   <div className="flex items-start gap-3">
@@ -294,7 +290,7 @@ export function VideoDetailModal({
                   </div>
                 )}
 
-                {/* Ảnh thumbnail */}
+                {/* Ảnh */}
                 {currentItem.imageLink && (
                   <div className="flex items-start gap-3">
                     <Eye className="h-5 w-5 text-muted-foreground mt-1" />
@@ -415,9 +411,9 @@ export function VideoDetailModal({
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div className="grid grid-cols-3 gap-4 text-center">
+                <div className="grid grid-cols-4 gap-4 text-center">
                   <div className="p-4 border rounded-lg">
-                    <Eye className="h-8 w-8 mx-auto text-blue-600 mb-2" />
+                    <Eye className="h-8 w-8 mx-auto text-black mb-2" />
                     <div className="text-2xl font-bold">
                       {currentItem.views ?? 0}
                     </div>

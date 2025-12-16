@@ -94,7 +94,7 @@ export default function ContentPage() {
 
       await createActivityLog("delete", "content", id, {
         userId: "user_1",
-        description: "Đã xóa ý tưởng",
+        description: `Xóa ý tưởng ${id}`,
       });
     } catch (error) {
       toast.error("Xóa ý tưởng thất bại");

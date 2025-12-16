@@ -187,9 +187,11 @@ export async function approveVideoIdea(
   approvedBy: string,
   idea: string,
   projectId: string,
+  projectName: string,
   platform: Platform[],
   videoDuration?: number,
-  existingVideoLink?: string
+  existingVideoLink?: string,
+  imageLink?: string
 ): Promise<VideoItem> {
   const { data, error } = await supabase
     .from("video_items")
@@ -223,9 +225,11 @@ export async function approveVideoIdea(
           id,
           idea,
           projectId,
+          projectName,
           platform,
           videoDuration,
           existingVideoLink,
+          imageLink,
         },
       }),
     }).catch((webhookError) => {

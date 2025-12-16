@@ -89,7 +89,7 @@ export function ContentTable({
         throw new Error(error.error || "Lỗi gọi AI tạo ý tưởng");
       }
 
-      toast.success("AI đang tạo ý tưởng!");
+      toast.success("AI đang tạo ý tưởng...");
     } catch (error: any) {
       console.error("Lỗi khi gọi AI:", error);
       toast.error(error.message || "Không thể tạo ý tưởng bằng AI lúc này");
@@ -327,7 +327,7 @@ export function ContentTable({
                             size="icon"
                             onClick={() => onViewPost(item)}
                             className="text-blue-600 hover:text-blue-700"
-                            title={`Xem post\nReactions: ${item.reactions || 0}, Comments: ${item.comments || 0}, Shares: ${item.shares || 0}`}
+                            title={`Xem post\nReactions: ${item.reactions || 0}\nComments: ${item.comments || 0}\nShares: ${item.shares || 0}`}
                           >
                             <ExternalLink className="h-4 w-4" />
                           </Button>
