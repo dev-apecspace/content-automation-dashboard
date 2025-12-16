@@ -38,7 +38,7 @@ export default function RootLayout({
 }>) {
   return (
     // <CHANGE> Updated lang to 'vi' for Vietnamese
-    <html lang="vi">
+    <html lang="vi" suppressHydrationWarning>
       <body className={`font-sans antialiased`}>
         {children}
         <Analytics />

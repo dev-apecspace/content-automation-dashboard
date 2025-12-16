@@ -21,30 +21,30 @@ import {
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { ContentItem, Project } from "@/lib/types";
+import type { VideoItem, Project } from "@/lib/types";
 import { platformColors, statusConfig, type Status } from "@/lib/types";
 import { useEffect, useState } from "react";
 import { getProjects } from "@/lib/api";
 import { toast } from "sonner";
 
-interface ContentTableProps {
-  data: ContentItem[];
+interface VideoTableProps {
+  data: VideoItem[];
   isLoading?: boolean;
-  onViewDetails: (item: ContentItem) => void;
-  onEdit: (item: ContentItem) => void;
+  onViewDetails: (item: VideoItem) => void;
+  onEdit: (item: VideoItem) => void;
   onDelete: (id: string) => void;
   onAdd: () => void;
-  onApproveIdea?: (item: ContentItem) => void;
-  onApproveContent?: (item: ContentItem) => void;
-  onViewImage?: (item: ContentItem) => void;
-  onViewPost?: (item: ContentItem) => void;
+  onApproveIdea?: (item: VideoItem) => void;
+  onApproveContent?: (item: VideoItem) => void;
+  onViewImage?: (item: VideoItem) => void;
+  onViewPost?: (item: VideoItem) => void;
   filterStatus: Status | "all";
   onFilterChange: (status: Status | "all") => void;
   filterProject: string;
   onProjectFilterChange: (projectId: string) => void;
 }
 
-export function ContentTable({
+export function VideoTable({
   data,
   onViewDetails,
   onEdit,
@@ -58,7 +58,7 @@ export function ContentTable({
   onFilterChange,
   filterProject,
   onProjectFilterChange,
-}: ContentTableProps) {
+}: VideoTableProps) {
   const allStatuses: Status[] = Object.keys(statusConfig) as Status[];
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(false);
@@ -81,7 +81,7 @@ export function ContentTable({
       const res = await fetch("/api/webhook/ai-search-ideas", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ postType: "content" }),
+        body: JSON.stringify({ postType: "video" }),
       });
 
       if (!res.ok) {
@@ -144,7 +144,7 @@ export function ContentTable({
           </div>
           <Button
             onClick={onAdd}
-            className="ml-auto bg-[#1a365d] hover:bg-[#2a4a7d]"
+            className="ml-auto bg-[#1a365d] hover:bg-[#2a4a7d] cursor-pointer"
           >
             <Plus className="h-4 w-4 mr-2" />
             Thêm ý tưởng
@@ -153,11 +153,11 @@ export function ContentTable({
             onClick={triggerAiSearchIdeas}
             disabled={loading}
             className={`flex items-center gap-2 p-3 font-medium transition-all duration-200 cursor-pointer
-    ${
-      loading
-        ? "bg-gray-100 text-gray-400"
-        : "bg-amber-100 hover:bg-yellow-300 text-black border border-amber-300 shadow-md"
-    }`}
+              ${
+                loading
+                  ? "bg-gray-100 text-gray-400"
+                  : "bg-amber-100 hover:bg-yellow-300 text-black border border-amber-300 shadow-md"
+              }`}
           >
             {loading ? <>✨ Đang tạo...</> : <>✨ AI tạo ý tưởng</>}
           </Button>
@@ -179,6 +179,9 @@ export function ContentTable({
                   Nền tảng
                 </th>
                 <th className="text-left p-4 font-semibold text-sm">
+                  Thời lượng
+                </th>
+                <th className="text-left p-4 font-semibold text-sm">
                   Thời gian đăng
                 </th>
                 <th className="text-left p-4 font-semibold text-sm">
@@ -190,7 +193,7 @@ export function ContentTable({
               {data.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={6}
+                    colSpan={7}
                     className="p-8 text-center text-muted-foreground"
                   >
                     Không có dữ liệu
@@ -244,12 +247,35 @@ export function ContentTable({
                     </td>
                     {/* Nền tảng  */}
                     <td className="p-4">
-                      <Badge
-                        variant="outline"
-                        className={cn("border", platformColors[item.platform])}
-                      >
-                        {item.platform}
-                      </Badge>
+                      <div className="flex flex-col gap-1">
+                        {Array.isArray(item.platform) ? (
+                          item.platform.map((p) => (
+                            <Badge
+                              key={p}
+                              variant="outline"
+                              className={cn("border", platformColors[p])}
+                            >
+                              {p}
+                            </Badge>
+                          ))
+                        ) : (
+                          <Badge
+                            variant="outline"
+                            className={cn(
+                              "border",
+                              platformColors[item.platform]
+                            )}
+                          >
+                            {item.platform}
+                          </Badge>
+                        )}
+                      </div>
+                    </td>
+                    {/* Thời lượng */}
+                    <td className="p-4 text-sm">
+                      {item.videoDuration
+                        ? `${item.videoDuration}s`
+                        : "Chưa cập nhật"}
                     </td>
                     {/* Thời gian đăng */}
                     <td className="p-4 text-sm">
@@ -263,6 +289,7 @@ export function ContentTable({
                           size="icon"
                           onClick={() => onViewDetails(item)}
                           title="Xem chi tiết"
+                          className="cursor-pointer"
                         >
                           <Eye className="h-4 w-4" />
                         </Button>
@@ -270,13 +297,14 @@ export function ContentTable({
                         {/* Chỉnh sửa */}
                         {(item.status === "idea" ||
                           item.status === "awaiting_content_approval" ||
-                          item.status === "content_approved" || 
+                          item.status === "content_approved" ||
                           item.status === "post_removed") && (
                           <Button
                             variant="ghost"
                             size="icon"
                             onClick={() => onEdit(item)}
                             title="Chỉnh sửa"
+                            className="cursor-pointer"
                           >
                             <Edit2 className="h-4 w-4" />
                           </Button>
@@ -288,7 +316,7 @@ export function ContentTable({
                             variant="ghost"
                             size="icon"
                             onClick={() => onApproveIdea?.(item)}
-                            className="text-green-600 hover:text-green-700"
+                            className="text-green-600 hover:text-green-700 cursor-pointer"
                             title="Phê duyệt ý tưởng"
                           >
                             <CheckCircle className="h-4 w-4" />
@@ -301,7 +329,7 @@ export function ContentTable({
                             variant="ghost"
                             size="icon"
                             onClick={() => onApproveContent?.(item)}
-                            className="text-green-600 hover:text-green-700"
+                            className="text-green-600 hover:text-green-700 cursor-pointer"
                             title="Phê duyệt nội dung"
                           >
                             <CheckCircle className="h-4 w-4" />
@@ -315,31 +343,38 @@ export function ContentTable({
                             size="icon"
                             onClick={() => onViewImage(item)}
                             title="Xem ảnh"
+                            className="cursor-pointer"
                           >
                             <Image className="h-4 w-4" />
                           </Button>
                         )}
 
                         {/* Xem post */}
-                        {item.status === "posted_successfully" && item.postUrl && onViewPost && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => onViewPost(item)}
-                            className="text-blue-600 hover:text-blue-700"
-                            title={`Xem post\nReactions: ${item.reactions || 0}\nComments: ${item.comments || 0}\nShares: ${item.shares || 0}`}
-                          >
-                            <ExternalLink className="h-4 w-4" />
-                          </Button>
-                        )}
+                        {item.status === "posted_successfully" &&
+                          item.postUrl &&
+                          onViewPost && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => onViewPost(item)}
+                              className="text-blue-600 hover:text-blue-700 cursor-pointer"
+                              title={`Xem post\nViews: ${
+                                item.views || 0
+                              }\nReactions: ${item.reactions || 0}\nComments: ${
+                                item.comments || 0
+                              }\nShares: ${item.shares || 0}`}
+                            >
+                              <ExternalLink className="h-4 w-4" />
+                            </Button>
+                          )}
 
-                        {/* Xóa ý tưởng */}
+                        {/* Xóa */}
                         {item.status === "idea" && (
                           <Button
                             variant="ghost"
                             size="icon"
                             onClick={() => onDelete(item.id)}
-                            className="text-red-600 hover:text-red-700"
+                            className="text-red-600 hover:text-red-700 cursor-pointer"
                             title="Xóa ý tưởng"
                           >
                             <X className="h-4 w-4" />

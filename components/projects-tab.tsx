@@ -1,111 +1,135 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
-import { Plus, Edit2, Trash2, Video, Calendar } from "lucide-react"
-import type { Project, ContentItem, Schedule } from "@/lib/types"
-import { createProject, updateProject, deleteProject, createActivityLog } from "@/lib/api"
-import { toast } from "sonner"
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Plus, Edit2, Trash2, Video, Calendar } from "lucide-react";
+import type { Project, ContentItem, Schedule } from "@/lib/types";
+import {
+  createProject,
+  updateProject,
+  deleteProject,
+  createActivityLog,
+} from "@/lib/api";
+import { toast } from "sonner";
 
 interface ProjectsTabProps {
-  projects: Project[]
-  contentItems: ContentItem[]
-  schedules: Schedule[]
-  onUpdateProjects: (projects: Project[]) => void
-  isLoading?: boolean
+  projects: Project[];
+  contentItems: ContentItem[];
+  schedules: Schedule[];
+  onUpdateProjects: (projects: Project[]) => void;
+  isLoading?: boolean;
 }
 
-export function ProjectsTab({ projects, contentItems, schedules, onUpdateProjects, isLoading }: ProjectsTabProps) {
-  const [isModalOpen, setIsModalOpen] = useState(false)
-  const [isSaving, setIsSaving] = useState(false)
-  const [editItem, setEditItem] = useState<Project | null>(null)
-  const [formData, setFormData] = useState<Partial<Project>>({})
+export function ProjectsTab({
+  projects,
+  contentItems,
+  schedules,
+  onUpdateProjects,
+  isLoading,
+}: ProjectsTabProps) {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [editItem, setEditItem] = useState<Project | null>(null);
+  const [formData, setFormData] = useState<Partial<Project>>({});
 
   const handleAdd = () => {
-    setEditItem(null)
-    setFormData({ name: "", color: "#3b82f6" })
-    setIsModalOpen(true)
-  }
+    setEditItem(null);
+    setFormData({ name: "", color: "#3b82f6" });
+    setIsModalOpen(true);
+  };
 
   const handleEdit = (item: Project) => {
-    setEditItem(item)
-    setFormData(item)
-    setIsModalOpen(true)
-  }
+    setEditItem(item);
+    setFormData(item);
+    setIsModalOpen(true);
+  };
 
   const handleDelete = async (id: string) => {
     try {
-      setIsSaving(true)
-      await deleteProject(id)
-      onUpdateProjects(projects.filter((p) => p.id !== id))
-      toast.success("Project deleted!")
+      setIsSaving(true);
+      await deleteProject(id);
+      onUpdateProjects(projects.filter((p) => p.id !== id));
+      toast.success("Project deleted!");
 
       await createActivityLog("delete", "project", id, {
         userId: "user_1",
         description: "Deleted project",
-      })
+      });
     } catch (error) {
-      toast.error("Failed to delete project")
-      console.error(error)
+      toast.error("Failed to delete project");
+      console.error(error);
     } finally {
-      setIsSaving(false)
+      setIsSaving(false);
     }
-  }
+  };
 
   const handleSave = async () => {
     try {
-      setIsSaving(true)
+      setIsSaving(true);
 
       if (!formData.name) {
-        toast.error("Project name is required")
-        return
+        toast.error("Project name is required");
+        return;
       }
 
       if (editItem) {
-        const updated = await updateProject(editItem.id, formData as Partial<Project>)
-        onUpdateProjects(projects.map((p) => (p.id === editItem.id ? updated : p)))
-        toast.success("Project updated!")
+        const updated = await updateProject(
+          editItem.id,
+          formData as Partial<Project>
+        );
+        onUpdateProjects(
+          projects.map((p) => (p.id === editItem.id ? updated : p))
+        );
+        toast.success("Project updated!");
 
         await createActivityLog("update", "project", editItem.id, {
           userId: "user_1",
           newValues: formData,
           description: `Updated project: ${formData.name}`,
-        })
+        });
       } else {
-        const newProject = await createProject(formData as Omit<Project, "id">)
-        onUpdateProjects([...projects, newProject])
-        toast.success("Project created!")
+        const newProject = await createProject(formData as Omit<Project, "id">);
+        onUpdateProjects([...projects, newProject]);
+        toast.success("Project created!");
 
         await createActivityLog("create", "project", newProject.id, {
           userId: "user_1",
           newValues: { name: newProject.name, color: newProject.color },
           description: `Created project: ${newProject.name}`,
-        })
+        });
       }
 
-      setIsModalOpen(false)
+      setIsModalOpen(false);
     } catch (error) {
-      toast.error("Failed to save project")
-      console.error(error)
+      toast.error("Failed to save project");
+      console.error(error);
     } finally {
-      setIsSaving(false)
+      setIsSaving(false);
     }
-  }
+  };
 
   const getProjectStats = (projectId: string) => {
-    const contents = contentItems.filter((c) => c.projectId === projectId)
-    const projectSchedules = schedules.filter((s) => s.projectId === projectId)
+    const contents = contentItems.filter((c) => c.projectId === projectId);
+    const projectSchedules = schedules.filter((s) => s.projectId === projectId);
     return {
       totalContent: contents.length,
       pendingContent: contents.filter((c) => c.status === "cho_duyet").length,
-      publishedContent: contents.filter((c) => c.status === "da_dang_thanh_cong").length,
+      publishedContent: contents.filter(
+        (c) => c.status === "da_dang_thanh_cong"
+      ).length,
       scheduleCount: projectSchedules.length,
-    }
-  }
+    };
+  };
 
   return (
     <div className="space-y-6">
@@ -122,14 +146,21 @@ export function ProjectsTab({ projects, contentItems, schedules, onUpdateProject
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {projects.map((project) => {
-          const stats = getProjectStats(project.id)
+          const stats = getProjectStats(project.id);
           return (
             <Card key={project.id} className="relative overflow-hidden">
-              <div className="absolute top-0 left-0 w-1 h-full" style={{ backgroundColor: project.color }} />
+              <div
+                className="absolute top-0 left-0 w-1 h-full"
+                style={{ backgroundColor: project.color }}
+              />
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-lg">{project.name}</CardTitle>
                 <div className="flex gap-1">
-                  <Button variant="ghost" size="icon" onClick={() => handleEdit(project)}>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleEdit(project)}
+                  >
                     <Edit2 className="h-4 w-4" />
                   </Button>
                   <Button
@@ -155,17 +186,21 @@ export function ProjectsTab({ projects, contentItems, schedules, onUpdateProject
                 </div>
                 <div className="flex gap-2">
                   <div className="flex-1 bg-orange-100 rounded p-2 text-center">
-                    <div className="text-lg font-bold text-orange-700">{stats.pendingContent}</div>
+                    <div className="text-lg font-bold text-orange-700">
+                      {stats.pendingContent}
+                    </div>
                     <div className="text-xs text-orange-600">Chờ duyệt</div>
                   </div>
                   <div className="flex-1 bg-green-100 rounded p-2 text-center">
-                    <div className="text-lg font-bold text-green-700">{stats.publishedContent}</div>
+                    <div className="text-lg font-bold text-green-700">
+                      {stats.publishedContent}
+                    </div>
                     <div className="text-xs text-green-600">Đã đăng</div>
                   </div>
                 </div>
               </CardContent>
             </Card>
-          )
+          );
         })}
       </div>
 
@@ -173,7 +208,9 @@ export function ProjectsTab({ projects, contentItems, schedules, onUpdateProject
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{editItem ? "Chỉnh sửa dự án" : "Thêm dự án mới"}</DialogTitle>
+            <DialogTitle>
+              {editItem ? "Chỉnh sửa dự án" : "Thêm dự án mới"}
+            </DialogTitle>
           </DialogHeader>
 
           <div className="grid gap-4 py-4">
@@ -182,7 +219,9 @@ export function ProjectsTab({ projects, contentItems, schedules, onUpdateProject
               <Input
                 id="name"
                 value={formData.name}
-                onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
+                onChange={(e) =>
+                  setFormData((prev) => ({ ...prev, name: e.target.value }))
+                }
                 placeholder="Nhập tên dự án"
               />
             </div>
@@ -193,12 +232,16 @@ export function ProjectsTab({ projects, contentItems, schedules, onUpdateProject
                   id="color"
                   type="color"
                   value={formData.color}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, color: e.target.value }))}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, color: e.target.value }))
+                  }
                   className="w-16 h-10 p-1 cursor-pointer"
                 />
                 <Input
                   value={formData.color}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, color: e.target.value }))}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, color: e.target.value }))
+                  }
                   placeholder="#3b82f6"
                   className="flex-1"
                 />
@@ -207,15 +250,23 @@ export function ProjectsTab({ projects, contentItems, schedules, onUpdateProject
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsModalOpen(false)} disabled={isSaving}>
+            <Button
+              variant="outline"
+              onClick={() => setIsModalOpen(false)}
+              disabled={isSaving}
+            >
               Hủy
             </Button>
-            <Button onClick={handleSave} disabled={isSaving} className="bg-[#1a365d] hover:bg-[#2a4a7d] disabled:opacity-50">
+            <Button
+              onClick={handleSave}
+              disabled={isSaving}
+              className="bg-[#1a365d] hover:bg-[#2a4a7d] disabled:opacity-50"
+            >
               {isSaving ? "Đang lưu..." : editItem ? "Cập nhật" : "Thêm mới"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
-  )
+  );
 }

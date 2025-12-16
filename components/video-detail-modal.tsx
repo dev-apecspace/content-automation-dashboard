@@ -13,44 +13,44 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   CheckCircle,
-  Edit2,
   Clock,
   Link,
   User,
   Calendar,
   Globe,
-  MessageCircle,
-  Share2,
-  ThumbsUp,
+  Play,
   BarChart3,
+  RefreshCw,
+  Trash2,
+  Eye,
+  Film,
+  MessageCircle,
   Target,
   Notebook,
   FileText,
   Captions,
-  RefreshCw,
-  Trash2,
+  ThumbsUp,
+  Share2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { contentTypes, statusConfig, type ContentItem } from "@/lib/types";
+import { statusConfig, type VideoItem } from "@/lib/types";
 import { projects } from "@/lib/mock-data";
-import { format, set } from "date-fns";
+import { format } from "date-fns";
 import { toast } from "sonner";
 import { useState, useEffect } from "react";
-import { getContentItemById } from "@/lib/api/content-items";
-import { se } from "date-fns/locale";
-import { createActivityLog } from "@/lib/api";
+import { createActivityLog, getVideoItemById } from "@/lib/api";
 
-interface ContentDetailModalProps {
+interface VideoDetailModalProps {
   isOpen: boolean;
   onClose?: () => void;
   onOpenChange?: (open: boolean) => void;
-  item?: ContentItem | null;
-  content?: ContentItem | null;
-  onApprove?: (item: ContentItem) => void;
-  onEdit?: (item: ContentItem) => void;
+  item?: VideoItem | null;
+  content?: VideoItem | null;
+  onApprove?: (item: VideoItem) => void;
+  onEdit?: (item: VideoItem) => void;
 }
 
-export function ContentDetailModal({
+export function VideoDetailModal({
   isOpen,
   onClose,
   onOpenChange,
@@ -58,10 +58,10 @@ export function ContentDetailModal({
   content,
   onApprove,
   onEdit,
-}: ContentDetailModalProps) {
+}: VideoDetailModalProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [isSpinning, setIsSpinning] = useState(false);
-  const [currentItem, setCurrentItem] = useState<ContentItem | null>(
+  const [currentItem, setCurrentItem] = useState<VideoItem | null>(
     content ?? item ?? null
   );
 
@@ -85,7 +85,8 @@ export function ContentDetailModal({
   const updatedItem = async () => {
     if (!content) return;
 
-    const item = await getContentItemById(content.id);
+    const item = await getVideoItemById(content.id);
+    console.log("==== item: ", item);
     setCurrentItem(item);
   };
 
@@ -96,13 +97,14 @@ export function ContentDetailModal({
       const res = await fetch("/api/webhook/engagement-tracker", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ postType: "content" }),
+        body: JSON.stringify({ postType: "video" }),
       });
 
       if (!res.ok) {
         const error = await res.json();
         throw new Error(error.error || "Lỗi gọi AI lấy tương tác");
       } else {
+        console.log("==== res: ", res);
         updatedItem();
         toast.success("Tương tác đã được cập nhật!");
       }
@@ -122,7 +124,7 @@ export function ContentDetailModal({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           postUrl: currentItem.postUrl,
-          platform: currentItem.platform,
+          platform: currentItem.platform[0],
           project: currentItem.projectName,
         }),
       });
@@ -130,9 +132,7 @@ export function ContentDetailModal({
         toast.error("Xóa bài đăng thất bại");
         throw new Error(await response.text());
       } else {
-        updatedItem();
-
-        await createActivityLog("remove-post", "content", currentItem.id, {
+        await createActivityLog("remove-post", "video", currentItem.id, {
           userId: "user_1",
           description: `Xóa bài đăng: ${currentItem.idea}`,
         });
@@ -176,20 +176,19 @@ export function ContentDetailModal({
               >
                 {currentItem.projectName}
               </Badge>
-              <Badge
-                variant="outline"
-                className="border-emerald-300 text-emerald-700"
-              >
-                {contentTypes.find(
-                  (type) => type.value === currentItem.contentType
-                )?.label || currentItem.contentType}
-              </Badge>
-              <Badge
-                variant="outline"
-                className="border-blue-300 text-blue-700"
-              >
-                {currentItem.platform}
-              </Badge>
+              {Array.isArray(currentItem.platform) && (
+                <>
+                  {currentItem.platform.map((p) => (
+                    <Badge
+                      key={p}
+                      variant="outline"
+                      className="border-pink-300 text-pink-700"
+                    >
+                      {p}
+                    </Badge>
+                  ))}
+                </>
+              )}
             </div>
           </div>
         </DialogHeader>
@@ -197,7 +196,7 @@ export function ContentDetailModal({
         <Tabs defaultValue="info" className="w-full">
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="info">Thông tin</TabsTrigger>
-            <TabsTrigger value="interaction">Lượt tương tác</TabsTrigger>
+            <TabsTrigger value="interaction">Thống kê</TabsTrigger>
             <TabsTrigger value="ai">AI phân tích</TabsTrigger>
           </TabsList>
 
@@ -205,7 +204,17 @@ export function ContentDetailModal({
           <TabsContent value="info" className="space-y-6 mt-6">
             <Card>
               <CardContent className="space-y-6">
-                <div className="flex items-center gap-4">
+                {/* Tiêu đề & Thời lượng */}
+                <div className="flex items-start gap-3">
+                  <Film className="h-5 w-5 text-muted-foreground mt-1" />
+                  <div>
+                    <div className="text-sm text-muted-foreground">Tiêu đề</div>
+                    <p className="font-medium">{currentItem.title || "-"}</p>
+                  </div>
+                </div>
+
+                {/* Thời gian đăng */}
+                <div className="flex items-center gap-4 pb-4 border-b">
                   <Clock className="h-5 w-5 text-muted-foreground" />
                   <div>
                     <p className="text-xs text-muted-foreground">
@@ -217,6 +226,7 @@ export function ContentDetailModal({
                   </div>
                 </div>
 
+                {/* Caption */}
                 <div>
                   <div className="flex items-center gap-3 mb-2">
                     <Captions className="h-5 w-5 text-muted-foreground" />
@@ -226,12 +236,67 @@ export function ContentDetailModal({
                     {currentItem.caption || "Chưa có caption"}
                   </p>
                 </div>
-                {currentItem.imageLink && (
+
+                <div className="flex items-start gap-3">
+                  <Clock className="h-5 w-5 text-muted-foreground mt-1" />
+                  <div>
+                    <div className="text-sm text-muted-foreground">
+                      Thời lượng
+                    </div>
+                    <p className="font-medium">
+                      {currentItem.videoDuration
+                        ? `${currentItem.videoDuration}s`
+                        : "-"}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Video links */}
+                {/* {currentItem.existingVideoLink && (
                   <div className="flex items-start gap-3">
-                    <Link className="h-5 w-5 text-muted-foreground mt-1" />
+                    <Play className="h-5 w-5 text-muted-foreground mt-1" />
                     <div>
                       <div className="text-sm text-muted-foreground mb-1">
-                        Ảnh
+                        Link video có sẵn
+                      </div>
+                      <a
+                        href={currentItem.existingVideoLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm text-blue-600 hover:underline break-all"
+                      >
+                        {currentItem.existingVideoLink}
+                      </a>
+                    </div>
+                  </div>
+                )} */}
+
+                {currentItem.videoLink && (
+                  <div className="flex items-start gap-3">
+                    <Play className="h-5 w-5 text-muted-foreground mt-1" />
+                    <div>
+                      <div className="text-sm text-muted-foreground mb-1">
+                        Video
+                      </div>
+                      <a
+                        href={currentItem.videoLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm text-blue-600 hover:underline break-all"
+                      >
+                        {currentItem.videoLink}
+                      </a>
+                    </div>
+                  </div>
+                )}
+
+                {/* Ảnh */}
+                {currentItem.imageLink && (
+                  <div className="flex items-start gap-3">
+                    <Eye className="h-5 w-5 text-muted-foreground mt-1" />
+                    <div>
+                      <div className="text-sm text-muted-foreground mb-1">
+                        Ảnh thumbnail
                       </div>
                       <a
                         href={currentItem.imageLink}
@@ -250,12 +315,13 @@ export function ContentDetailModal({
                   </div>
                 )}
 
+                {/* Post URL */}
                 {currentItem.postUrl && (
                   <div className="flex items-start gap-3">
                     <Globe className="h-5 w-5 text-muted-foreground mt-1" />
                     <div>
                       <div className="text-sm text-muted-foreground mb-1">
-                        Link post
+                        Link bài đăng
                       </div>
                       <a
                         href={currentItem.postUrl}
@@ -271,6 +337,7 @@ export function ContentDetailModal({
               </CardContent>
             </Card>
 
+            {/* Metadata */}
             <Card>
               <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="flex items-center gap-3">
@@ -344,7 +411,14 @@ export function ContentDetailModal({
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div className="grid grid-cols-3 gap-4 text-center">
+                <div className="grid grid-cols-4 gap-4 text-center">
+                  <div className="p-4 border rounded-lg">
+                    <Eye className="h-8 w-8 mx-auto text-black mb-2" />
+                    <div className="text-2xl font-bold">
+                      {currentItem.views ?? 0}
+                    </div>
+                    <div className="text-sm text-muted-foreground">Views</div>
+                  </div>
                   <div className="p-4 border rounded-lg">
                     <ThumbsUp className="h-8 w-8 mx-auto text-blue-600 mb-2" />
                     <div className="text-2xl font-bold">
