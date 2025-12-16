@@ -13,7 +13,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Plus, Edit2, Trash2, Video, Calendar } from "lucide-react";
-import type { Project, ContentItem, Schedule } from "@/lib/types";
+import type { Project, ContentItem, Schedule, VideoItem } from "@/lib/types";
 import {
   createProject,
   updateProject,
@@ -25,6 +25,7 @@ import { toast } from "sonner";
 interface ProjectsTabProps {
   projects: Project[];
   contentItems: ContentItem[];
+  videoItems: VideoItem[];
   schedules: Schedule[];
   onUpdateProjects: (projects: Project[]) => void;
   isLoading?: boolean;
@@ -33,6 +34,7 @@ interface ProjectsTabProps {
 export function ProjectsTab({
   projects,
   contentItems,
+  videoItems,
   schedules,
   onUpdateProjects,
   isLoading,
@@ -120,13 +122,27 @@ export function ProjectsTab({
 
   const getProjectStats = (projectId: string) => {
     const contents = contentItems.filter((c) => c.projectId === projectId);
+    const videos = videoItems.filter((v) => v.projectId === projectId);
     const projectSchedules = schedules.filter((s) => s.projectId === projectId);
+
+    const pendingStatuses = [
+      "idea",
+      "awaiting_content_approval",
+      "media_edited",
+      "ai_generating_content",
+    ];
+    const allContent = [...contents, ...videos];
+    const pendingAll = allContent.filter((item) =>
+      pendingStatuses.includes(item.status)
+    ).length;
+    const publishedAll = allContent.filter(
+      (item) => item.status === "posted_successfully"
+    ).length;
+
     return {
-      totalContent: contents.length,
-      pendingContent: contents.filter((c) => c.status === "cho_duyet").length,
-      publishedContent: contents.filter(
-        (c) => c.status === "da_dang_thanh_cong"
-      ).length,
+      totalContent: allContent.length,
+      pendingContent: pendingAll,
+      publishedContent: publishedAll,
       scheduleCount: projectSchedules.length,
     };
   };

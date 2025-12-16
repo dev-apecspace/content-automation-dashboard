@@ -45,7 +45,7 @@ export default function SchedulesPage() {
         schedules={schedules}
         projects={projects}
         isLoading={isLoading}
-        onSchedulesChange={setSchedules}
+        onUpdate={setSchedules}
       />
     </div>
   );
