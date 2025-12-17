@@ -6,7 +6,15 @@ import { VideoFormModal } from "@/components/video-form-modal";
 import { VideoDetailModal } from "@/components/video-detail-modal";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
-import { getVideoItems, createVideoItem, updateVideoItem, deleteVideoItem, approveVideoIdea, approveVideoContent, createActivityLog } from "@/lib/api";
+import {
+  getVideoItems,
+  createVideoItem,
+  updateVideoItem,
+  deleteVideoItem,
+  approveVideoIdea,
+  approveVideoContent,
+  createActivityLog,
+} from "@/lib/api";
 import { toast } from "sonner";
 import type { Status, VideoItem } from "@/lib/types";
 
@@ -49,6 +57,7 @@ export default function VideoPage() {
   const handleEditClick = (item: VideoItem) => {
     setEditVideo(item);
     setIsFormModalOpen(true);
+    setIsDetailModalOpen(false);
   };
 
   const handleViewClick = (item: VideoItem) => {
@@ -90,6 +99,7 @@ export default function VideoPage() {
         item.idea,
         item.projectId,
         item.projectName,
+        item.createdAt || new Date().toISOString(),
         item.platform,
         item.videoDuration,
         item.existingVideoLink,
@@ -173,7 +183,7 @@ export default function VideoPage() {
         if (updated.postingTime) {
           const oldTime = editVideo.postingTime?.trim() || "";
           const newTime = updated.postingTime.trim();
-          
+
           if (oldTime !== newTime) {
             await schedulePost(updated);
           }
@@ -271,6 +281,7 @@ export default function VideoPage() {
         isOpen={isDetailModalOpen}
         onOpenChange={setIsDetailModalOpen}
         content={selectedVideo}
+        onEdit={handleEditClick}
       />
     </div>
   );

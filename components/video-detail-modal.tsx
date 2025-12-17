@@ -13,6 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   CheckCircle,
+  Edit2,
   Clock,
   Link,
   User,
@@ -505,6 +506,14 @@ export function VideoDetailModal({
         </Tabs>
 
         <DialogFooter className="flex flex-col sm:flex-row gap-3 mt-8">
+          <Button
+            variant="outline"
+            onClick={() => onEdit?.(currentItem)}
+            className="text-blue-600 border-blue-200 hover:bg-blue-50 cursor-pointer"
+          >
+            <Edit2 className="h-4 w-4 mr-2" />
+            Chỉnh sửa
+          </Button>
           {currentItem.status === "posted_successfully" && (
             <Button
               variant="outline"

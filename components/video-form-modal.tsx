@@ -31,10 +31,15 @@ import {
   Image as ImageIcon,
   Play,
   CheckCircle,
+  Sparkles,
 } from "lucide-react";
 import { getProjects } from "@/lib/api";
 import { VideoItem, Project } from "@/lib/types";
 import { uploadImageFile, uploadVideoFile } from "@/app/api/cloudinary";
+import { AiRequirementDialog } from "./ai-requirement-dialog";
+import { getContentItemById } from "@/lib/api/content-items"; // Removed invalid import if exists, wait, getVideoItemById needed
+import { getVideoItemById } from "@/lib/api/video-items";
+import { toast } from "sonner";
 
 interface VideoFormModalProps {
   isOpen: boolean;
@@ -96,9 +101,10 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
     if (editVideo) {
       setFormData({
         ...editVideo,
-        expectedPostDate: editVideo.postingTime
-          ? editVideo.postingTime.split(" ")[0].split("/").reverse().join("-")
-          : "",
+        expectedPostDate:
+          editVideo.postingTime && editVideo.postingTime.includes("/")
+            ? editVideo.postingTime.split(" ")[0].split("/").reverse().join("-")
+            : "",
       });
     } else {
       setFormData({
@@ -140,6 +146,95 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
         : [...currentPlatforms, platform];
       return { ...prev, platform: updated as any };
     });
+  };
+
+  // ------------------- AI HANDLERS -------------------
+  const [aiPromptOpen, setAiPromptOpen] = useState(false);
+  const [aiPromptType, setAiPromptType] = useState<
+    "caption" | "schedule" | "image" | "video-edit" | null
+  >(null);
+  const [isAiLoading, setIsAiLoading] = useState(false);
+
+  const handleEditWithAI = (type: "schedule" | "video-edit") => {
+    setAiPromptType(type);
+    setAiPromptOpen(true);
+  };
+
+  const handleConfirmAiEdit = async (
+    requirement: string,
+    imageAction?: "create" | "edit",
+    duration?: number
+  ) => {
+    if (!aiPromptType) return;
+
+    setIsAiLoading(true);
+    try {
+      if (aiPromptType === "schedule") {
+        const payload = {
+          type: "schedule",
+          content: formData.postingTime, // Though reschedule might not use content, preserving structure
+          projectId: formData.projectId,
+          platform: formData.platform?.[0] || "Facebook Reels", // Assumes main platform
+          id: editVideo?.id, // Use 'id' as requested for edit-content-text
+        };
+
+        const res = await fetch("/api/webhook/edit-content-text", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+
+        if (!res.ok) throw new Error("API request failed");
+
+        toast.success("AI đã xử lý xong!");
+        setAiPromptOpen(false);
+
+        // Load refresh data
+        if (editVideo?.id) {
+          const updatedItem = await getVideoItemById(editVideo.id);
+          if (updatedItem) {
+            setFormData((prev) => ({
+              ...prev,
+              postingTime: updatedItem.postingTime,
+              expectedPostDate:
+                updatedItem.postingTime && updatedItem.postingTime.includes(" ")
+                  ? updatedItem.postingTime
+                      .split(" ")[0]
+                      .split("/")
+                      .reverse()
+                      .join("-")
+                  : prev.expectedPostDate,
+            }));
+          }
+        }
+      } else if (aiPromptType === "video-edit") {
+        const payload = {
+          type: "video-edit",
+          projectId: formData.projectId,
+          platform: formData.platform?.[0], // Assuming single or first platform
+          id: editVideo?.id,
+          require: requirement,
+          topic: formData.topic,
+          targetAudience: formData.targetAudience,
+          researchNotes: formData.researchNotes,
+          videoDuration: duration || formData.videoDuration, // Prioritize user input duration
+        };
+
+        await fetch("/api/webhook/edit-media", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+
+        toast.success("Đã gửi yêu cầu sửa video! Vui lòng đợi kết quả.");
+        setAiPromptOpen(false);
+      }
+    } catch (error) {
+      console.error("Lỗi gửi webhook AI:", error);
+      toast.error("Gửi yêu cầu thất bại, vui lòng thử lại.");
+    } finally {
+      setIsAiLoading(false);
+    }
   };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -482,9 +577,20 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
             <div className="space-y-6">
               {/* Thời gian đăng */}
               <div>
-                <Label className="flex items-center gap-2 text-base font-semibold text-gray-700 mb-4">
-                  <Clock className="w-4 h-4 text-blue-500" />
-                  Thời gian đăng <span className="text-red-500">*</span>
+                <Label className="flex items-center justify-between text-base font-semibold text-gray-700 mb-4">
+                  <div className="flex items-center gap-2">
+                    <Clock className="w-4 h-4 text-blue-500" />
+                    Thời gian đăng <span className="text-red-500">*</span>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleEditWithAI("schedule")}
+                    className="h-6 text-xs text-yellow-600 hover:text-yellow-800 hover:bg-yellow-50"
+                  >
+                    <Sparkles className="w-3 h-3 mr-1" />
+                    AI xếp lịch
+                  </Button>
                 </Label>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
@@ -527,44 +633,53 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
               </div>
 
               {/* Tiêu đề & Video link */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {formData.platform?.includes("Youtube Shorts") && (
-                  <div className="space-y-2">
-                    <Label className="flex items-center gap-2 text-base font-semibold text-gray-700">
-                      <Film className="w-4 h-4 text-indigo-500" />
-                      Tiêu đề <span className="text-red-500">*</span>
-                    </Label>
-                    <Input
-                      value={formData.title || ""}
-                      onChange={(e) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          title: e.target.value,
-                        }))
-                      }
-                      placeholder="Nhập tiêu đề video..."
-                      className="border-2 border-indigo-200 focus:border-indigo-400 bg-white"
-                    />
-                  </div>
-                )}
-
+              {formData.platform?.includes("Youtube Shorts") && (
                 <div className="space-y-2">
                   <Label className="flex items-center gap-2 text-base font-semibold text-gray-700">
-                    <Play className="w-4 h-4 text-red-500" />
-                    Link video (tùy chọn)
+                    <Film className="w-4 h-4 text-indigo-500" />
+                    Tiêu đề <span className="text-red-500">*</span>
                   </Label>
                   <Input
-                    value={formData.videoLink || ""}
+                    value={formData.title || ""}
                     onChange={(e) =>
                       setFormData((prev) => ({
                         ...prev,
-                        videoLink: e.target.value,
+                        title: e.target.value,
                       }))
                     }
-                    placeholder="https://..."
-                    className="border-2 border-red-200 focus:border-red-400 bg-white"
+                    placeholder="Nhập tiêu đề video..."
+                    className="border-2 border-indigo-200 focus:border-indigo-400 bg-white"
                   />
                 </div>
+              )}
+
+              <div className="space-y-2">
+                <Label className="flex items-center justify-between text-base font-semibold text-gray-700">
+                  <div className="flex items-center gap-2">
+                    <Play className="w-4 h-4 text-red-500" />
+                    Video sẽ đăng
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleEditWithAI("video-edit")}
+                    className="h-6 text-xs text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50"
+                  >
+                    <Sparkles className="w-3 h-3 mr-1" />
+                    Sửa video
+                  </Button>
+                </Label>
+                <Input
+                  value={formData.videoLink || ""}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      videoLink: e.target.value,
+                    }))
+                  }
+                  placeholder="https://..."
+                  className="border-2 border-red-200 focus:border-red-400 bg-white"
+                />
               </div>
 
               {/* Caption */}
@@ -722,6 +837,16 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
           </Button>
         </DialogFooter>
       </DialogContent>
+
+      {/* AI DIALOG */}
+      <AiRequirementDialog
+        isOpen={aiPromptOpen}
+        onClose={() => setAiPromptOpen(false)}
+        type={aiPromptType}
+        initialRequirement=""
+        onConfirm={handleConfirmAiEdit}
+        isLoading={isAiLoading}
+      />
     </Dialog>
   );
 };

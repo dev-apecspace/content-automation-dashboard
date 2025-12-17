@@ -21,7 +21,9 @@ export async function getVideoItems(filters?: {
     query = query.contains("platform", [filters.platform]);
   }
 
-  const { data, error } = await query.order("created_at", { ascending: false });
+  const { data, error } = await query
+  .order("created_at", { ascending: false })
+  .order("idea", { ascending: true });
 
   if (error) {
     console.error("Error fetching video items:", error);
@@ -188,6 +190,7 @@ export async function approveVideoIdea(
   idea: string,
   projectId: string,
   projectName: string,
+  createdAt: string,
   platform: Platform[],
   videoDuration?: number,
   existingVideoLink?: string,
@@ -230,6 +233,7 @@ export async function approveVideoIdea(
           videoDuration,
           existingVideoLink,
           imageLink,
+          createdAt,
         },
       }),
     }).catch((webhookError) => {
