@@ -93,6 +93,7 @@ export const statusConfig: Record<
 export interface Project {
   id: string;
   name: string;
+  description: string;
   color: string;
 }
 
