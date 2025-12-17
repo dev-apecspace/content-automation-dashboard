@@ -2,13 +2,20 @@
 
 import { useState, useEffect } from "react";
 import { ScheduleTab } from "@/components/schedule-tab";
-import { getSchedules, getProjects } from "@/lib/api";
+import {
+  getSchedules,
+  getProjects,
+  getContentItems,
+  getVideoItems,
+} from "@/lib/api";
 import { toast } from "sonner";
 import type { Schedule, Project } from "@/lib/types";
 
 export default function SchedulesPage() {
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
+  const [contentItems, setContentItems] = useState<any[]>([]);
+  const [videoItems, setVideoItems] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -18,12 +25,17 @@ export default function SchedulesPage() {
   const loadData = async () => {
     try {
       setIsLoading(true);
-      const [schedulesData, projectsData] = await Promise.all([
-        getSchedules(),
-        getProjects(),
-      ]);
+      const [schedulesData, projectsData, contentData, videoData] =
+        await Promise.all([
+          getSchedules(),
+          getProjects(),
+          getContentItems(),
+          getVideoItems(),
+        ]);
       setSchedules(schedulesData);
       setProjects(projectsData);
+      setContentItems(contentData);
+      setVideoItems(videoData);
     } catch (error) {
       toast.error("Failed to load schedules");
       console.error(error);
@@ -44,8 +56,10 @@ export default function SchedulesPage() {
       <ScheduleTab
         schedules={schedules}
         projects={projects}
+        contentItems={contentItems}
+        videoItems={videoItems}
         isLoading={isLoading}
-        onSchedulesChange={setSchedules}
+        onUpdate={setSchedules}
       />
     </div>
   );

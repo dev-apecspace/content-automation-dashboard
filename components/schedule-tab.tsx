@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -22,14 +22,22 @@ import {
 } from "@/components/ui/select";
 import { Plus, Edit2, Trash2, List, CalendarDays } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { Schedule, Platform, Frequency, Project } from "@/lib/types";
+import {
+  type Schedule,
+  type Platform,
+  type Frequency,
+  type Project,
+  type ContentItem,
+  type VideoItem,
+  platformColors,
+  statusConfig,
+} from "@/lib/types";
 import {
   createSchedule,
   updateSchedule,
   deleteSchedule,
   createActivityLog,
 } from "@/lib/api";
-import { projects as defaultProjects } from "@/lib/mock-data";
 import { toast } from "sonner";
 import {
   format,
@@ -38,14 +46,21 @@ import {
   eachDayOfInterval,
   isSameMonth,
   isSameDay,
+  parseISO,
+  isValid,
 } from "date-fns";
 import { vi } from "date-fns/locale";
+import { ContentDetailModal } from "./content-detail-modal";
+import { VideoDetailModal } from "./video-detail-modal";
 
 interface ScheduleTabProps {
+  // ... props
   schedules: Schedule[];
+  projects: Project[];
+  contentItems: ContentItem[];
+  videoItems: VideoItem[];
   onUpdate: (schedules: Schedule[]) => void;
   isLoading?: boolean;
-  projectsList?: Project[];
 }
 
 const platforms: Platform[] = [
@@ -53,25 +68,16 @@ const platforms: Platform[] = [
   "Facebook Reels",
   "Youtube Shorts",
 ];
-const frequencies: Frequency[] = [
-  "10 phút/lần",
-  "Tuần",
-  "Ngày",
-  "Tháng",
-  "3 ngày/lần",
-];
 
-const platformColors: Record<Platform, string> = {
-  "Facebook Post": "bg-blue-100 text-blue-700 border-blue-300",
-  "Facebook Reels": "bg-pink-100 text-pink-700 border-pink-300",
-  "Youtube Shorts": "bg-red-100 text-red-700 border-red-300",
-};
+const frequencies: Frequency[] = ["Tháng", "Tuần", "Ngày", "3 ngày/lần"];
 
 export function ScheduleTab({
   schedules,
+  projects,
+  contentItems,
+  videoItems,
   onUpdate,
   isLoading,
-  projectsList = [],
 }: ScheduleTabProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -79,6 +85,12 @@ export function ScheduleTab({
   const [formData, setFormData] = useState<Partial<Schedule>>({});
   const [viewMode, setViewMode] = useState<"list" | "calendar">("list");
   const [currentMonth, setCurrentMonth] = useState(new Date());
+
+  // Detail Modal States
+  const [selectedContent, setSelectedContent] = useState<ContentItem | null>(
+    null
+  );
+  const [selectedVideo, setSelectedVideo] = useState<VideoItem | null>(null);
 
   const handleAdd = () => {
     setEditItem(null);
@@ -104,14 +116,14 @@ export function ScheduleTab({
       setIsSaving(true);
       await deleteSchedule(id);
       onUpdate(schedules.filter((s) => s.id !== id));
-      toast.success("Schedule deleted!");
+      toast.success("Đã xóa lịch đăng!");
 
       await createActivityLog("delete", "schedule", id, {
         userId: "user_1",
-        description: "Deleted schedule",
+        description: "Xóa lịch đăng",
       });
     } catch (error) {
-      toast.error("Failed to delete schedule");
+      toast.error("Xóa lịch đăng thất bại");
       console.error(error);
     } finally {
       setIsSaving(false);
@@ -123,7 +135,7 @@ export function ScheduleTab({
       setIsSaving(true);
 
       if (!formData.projectId) {
-        toast.error("Please select a project");
+        toast.error("Vui lòng chọn dự án");
         return;
       }
 
@@ -133,19 +145,19 @@ export function ScheduleTab({
           formData as Partial<Schedule>
         );
         onUpdate(schedules.map((s) => (s.id === editItem.id ? updated : s)));
-        toast.success("Schedule updated!");
+        toast.success("Đã cập nhật lịch đăng!");
 
         await createActivityLog("update", "schedule", editItem.id, {
           userId: "user_1",
           newValues: formData,
-          description: `Updated schedule for ${formData.projectName}`,
+          description: `Cập nhật lịch đăng cho ${formData.projectName}`,
         });
       } else {
         const newSchedule = await createSchedule(
           formData as Omit<Schedule, "id">
         );
         onUpdate([...schedules, newSchedule]);
-        toast.success("Schedule created!");
+        toast.success("Đã tạo lịch đăng!");
 
         await createActivityLog("create", "schedule", newSchedule.id, {
           userId: "user_1",
@@ -153,13 +165,13 @@ export function ScheduleTab({
             projectName: newSchedule.projectName,
             platform: newSchedule.platform,
           },
-          description: `Created schedule for ${newSchedule.projectName}`,
+          description: `Tạo lịch đăng cho ${newSchedule.projectName}`,
         });
       }
 
       setIsModalOpen(false);
     } catch (error) {
-      toast.error("Failed to save schedule");
+      toast.error("Tạo lịch đăng thất bại");
       console.error(error);
     } finally {
       setIsSaving(false);
@@ -167,7 +179,7 @@ export function ScheduleTab({
   };
 
   const handleProjectChange = (projectId: string) => {
-    const project = projectsList.find((p) => p.id === projectId);
+    const project = projects.find((p) => p.id === projectId);
     setFormData((prev) => ({
       ...prev,
       projectId,
@@ -184,29 +196,186 @@ export function ScheduleTab({
     return acc;
   }, {} as Record<string, Schedule[]>);
 
-  // Get schedules for a specific date
-  const getSchedulesForDate = (date: Date) => {
+  // Get merged events for a specific date
+  const getEventsForDate = (date: Date) => {
     const dateStr = format(date, "yyyy-MM-dd");
     const dayName = format(date, "EEEE").toLowerCase();
-    return schedules.filter((schedule) => {
-      if (!schedule.postingDays) return false;
-      const days = schedule.postingDays.toLowerCase();
-      return (
-        days.includes(dayName) ||
-        days.includes("mỗi ngày") ||
-        days.includes("daily")
-      );
+
+    // Helper to check if item matches date based on postingTime or expectedPostDate
+    const isItemOnDate = (item: ContentItem | VideoItem) => {
+      // 1. Try parsing postingTime: "dd/MM/yyyy HH:mm"
+      if (item.postingTime) {
+        const parts = item.postingTime.split(" ");
+        if (parts.length >= 1) {
+          // Check date part "dd/MM/yyyy"
+          const datePart = parts[0];
+          const [day, month, year] = datePart.split("/");
+
+          if (day && month && year) {
+            // Construct target date string to match format(date, "yyyy-MM-dd")
+            // Note: month is 1-indexed in string, output needs 2 digits
+            const itemDateStr = `${year}-${month.padStart(
+              2,
+              "0"
+            )}-${day.padStart(2, "0")}`;
+            if (itemDateStr === dateStr) return true;
+          }
+        }
+      }
+
+      // 2. Fallback to expectedPostDate
+      if (item.expectedPostDate === dateStr) return true;
+
+      return false;
+    };
+
+    // 1. Recurring Schedules (lịch lặp lại dự kiến)
+    const scheduleEvents: {
+      type: "schedule";
+      data: Schedule;
+      time: string;
+    }[] = [];
+
+    const dayOfMonth = date.getDate(); // 1-31
+    const dayOfWeekVi = format(date, "EEEE", { locale: vi }).toLowerCase();
+    // ví dụ: "thứ hai", "chủ nhật"
+
+    const dayMap: Record<string, string> = {
+      "Thứ 2": "thứ hai",
+      "Thứ 3": "thứ ba",
+      "Thứ 4": "thứ tư",
+      "Thứ 5": "thứ năm",
+      "Thứ 6": "thứ sáu",
+      "Thứ 7": "thứ bảy",
+      Cn: "chủ nhật",
+    };
+
+    schedules.forEach((schedule) => {
+      if (!schedule.isActive) return; // bỏ qua nếu không active
+
+      let matches = false;
+      const times: string[] = schedule.postingTime
+        .split(",")
+        .map((t) => t.trim())
+        .filter(Boolean); // tách nhiều giờ, ví dụ "8:00, 11:00, 19:00" → ["8:00", "11:00", "19:00"]
+
+      if (schedule.frequency === "Ngày") {
+        // Mỗi ngày đều đăng
+        matches = true;
+      } else if (schedule.frequency === "Tuần") {
+        const daysStr = schedule.postingDays.trim();
+        if (daysStr === "Mỗi ngày") {
+          matches = true;
+        } else {
+          // "Thứ 2, Thứ 5" → split thành array
+          const scheduleDays = daysStr
+            .split(",")
+            .map((d) => d.trim())
+            .map((d) => dayMap[d])
+            .filter(Boolean);
+
+          if (scheduleDays.includes(dayOfWeekVi)) {
+            matches = true;
+          }
+        }
+      } else if (schedule.frequency === "Tháng") {
+        // postingDays dạng "Ngày 10, ngày 25, ngày 27"
+        const daysStr = schedule.postingDays.trim();
+        const monthlyDays = daysStr
+          .split(",")
+          .map((d) => d.trim())
+          .map((d) => parseInt(d.replace(/^(Ngày|ngày)\s*/i, ""), 10)) // bỏ "Ngày " hoặc "ngày "
+          .filter((n) => !isNaN(n));
+
+        if (monthlyDays.includes(dayOfMonth)) {
+          matches = true;
+        }
+      } else if (schedule.frequency === "3 ngày/lần") {
+        // Ví dụ đơn giản: cứ cách 3 ngày từ một mốc cố định (có thể lấy ngày đầu tiên của tháng làm mốc)
+        // Hoặc nếu cần chính xác hơn, có thể lưu thêm startDate trong schedule sau này
+        const startOfMonth = new Date(date.getFullYear(), date.getMonth(), 1);
+        const daysSinceStart = dayOfMonth - 1;
+        if (daysSinceStart % 3 === 0) {
+          matches = true;
+        }
+      }
+
+      if (matches && times.length > 0) {
+        times.forEach((time) => {
+          scheduleEvents.push({
+            type: "schedule",
+            data: schedule,
+            time,
+          });
+        });
+      }
     });
+
+    // 2. Content Items (Posts)
+    const contentEvents = contentItems
+      .filter((item) => isItemOnDate(item))
+      .map((item) => ({
+        type: "content" as const,
+        data: item,
+        time: item.postingTime?.split(" ")[1] || item.postingTime || "00:00",
+      }));
+
+    // 3. Video Items
+    const videoEvents = videoItems
+      .filter((item) => isItemOnDate(item))
+      .map((item) => ({
+        type: "video" as const,
+        data: item,
+        time: item.postingTime?.split(" ")[1] || item.postingTime || "00:00",
+      }));
+
+    return [...scheduleEvents, ...contentEvents, ...videoEvents].sort((a, b) =>
+      a.time.localeCompare(b.time)
+    );
+  };
+
+  // Thêm hàm này để tạo mảng ngày cho calendar
+  const getCalendarDays = (date: Date) => {
+    const year = date.getFullYear();
+    const month = date.getMonth();
+
+    // Ngày đầu tiên của tháng
+    const firstDay = new Date(year, month, 1);
+    // Ngày cuối cùng của tháng
+    const lastDay = new Date(year, month + 1, 0);
+
+    // Lấy thứ của ngày đầu tiên (0 = Chủ nhật, 1 = Thứ 2, ...)
+    const firstDayOfWeek = firstDay.getDay();
+
+    // Tạo mảng các ngày
+    const days: Date[] = [];
+
+    // Thêm các ngày từ tháng trước để lấp đầy tuần đầu tiên
+    for (let i = firstDayOfWeek - 1; i >= 0; i--) {
+      days.push(new Date(year, month, -i));
+    }
+
+    // Thêm tất cả các ngày trong tháng hiện tại
+    for (let i = 1; i <= lastDay.getDate(); i++) {
+      days.push(new Date(year, month, i));
+    }
+
+    // Thêm các ngày từ tháng sau để lấp đầy tuần cuối cùng
+    const remainingDays = 7 - (days.length % 7);
+    if (remainingDays < 7) {
+      for (let i = 1; i <= remainingDays; i++) {
+        days.push(new Date(year, month + 1, i));
+      }
+    }
+
+    return days;
   };
 
   // Get all days in current month with schedules
-  const daysInMonth = eachDayOfInterval({
-    start: startOfMonth(currentMonth),
-    end: endOfMonth(currentMonth),
-  });
+  const daysInMonth = getCalendarDays(currentMonth);
 
   const daysWithSchedules = daysInMonth.filter(
-    (day) => getSchedulesForDate(day).length > 0
+    (day) => getEventsForDate(day).length > 0
   );
 
   return (
@@ -255,91 +424,99 @@ export function ScheduleTab({
 
       {viewMode === "list" ? (
         <Card>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-muted/50">
-                <tr>
-                  <th className="text-left p-4 font-semibold text-sm">Dự án</th>
-                  <th className="text-left p-4 font-semibold text-sm">
-                    Nền tảng
-                  </th>
-                  <th className="text-left p-4 font-semibold text-sm">
-                    Tần suất
-                  </th>
-                  <th className="text-left p-4 font-semibold text-sm">
-                    Ngày đăng
-                  </th>
-                  <th className="text-left p-4 font-semibold text-sm">
-                    Giờ đăng
-                  </th>
-                  <th className="text-left p-4 font-semibold text-sm">
-                    Hành động
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {schedules.map((item) => {
-                  const project = (
-                    projectsList.length > 0 ? projectsList : defaultProjects
-                  ).find((p) => p.id === item.projectId);
-                  return (
-                    <tr
-                      key={item.id}
-                      className="border-t hover:bg-muted/30 transition-colors"
-                    >
-                      <td className="p-4">
-                        <Badge
-                          variant="outline"
-                          style={{
-                            backgroundColor: `${project?.color}20`,
-                            borderColor: project?.color,
-                            color: project?.color,
-                          }}
-                        >
-                          {item.projectName}
-                        </Badge>
-                      </td>
-                      <td className="p-4">
-                        <Badge
-                          variant="outline"
-                          className={cn(
-                            "border",
-                            platformColors[item.platform]
-                          )}
-                        >
-                          {item.platform}
-                        </Badge>
-                      </td>
-                      <td className="p-4 text-sm">{item.frequency}</td>
-                      <td className="p-4 text-sm">{item.postingDays}</td>
-                      <td className="p-4 text-sm font-medium">
-                        {item.postingTime}
-                      </td>
-                      <td className="p-4">
-                        <div className="flex gap-1">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleEdit(item)}
+          {schedules.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              Không có lịch đăng
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-muted/50">
+                  <tr>
+                    <th className="text-left p-4 font-semibold text-sm">
+                      Dự án
+                    </th>
+                    <th className="text-left p-4 font-semibold text-sm">
+                      Nền tảng
+                    </th>
+                    <th className="text-left p-4 font-semibold text-sm">
+                      Tần suất
+                    </th>
+                    <th className="text-left p-4 font-semibold text-sm">
+                      Ngày đăng
+                    </th>
+                    <th className="text-left p-4 font-semibold text-sm">
+                      Giờ đăng
+                    </th>
+                    <th className="text-left p-4 font-semibold text-sm">
+                      Hành động
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {schedules.map((item) => {
+                    const project = projects.find(
+                      (p) => p.id === item.projectId
+                    );
+                    return (
+                      <tr
+                        key={item.id}
+                        className="border-t hover:bg-muted/30 transition-colors"
+                      >
+                        <td className="p-4">
+                          <Badge
+                            variant="outline"
+                            style={{
+                              backgroundColor: `${project?.color}20`,
+                              borderColor: project?.color,
+                              color: project?.color,
+                            }}
                           >
-                            <Edit2 className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleDelete(item.id)}
-                            className="text-red-600 hover:text-red-700"
+                            {item.projectName}
+                          </Badge>
+                        </td>
+                        <td className="p-4">
+                          <Badge
+                            variant="outline"
+                            className={cn(
+                              "border",
+                              platformColors[item.platform]
+                            )}
                           >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                            {item.platform}
+                          </Badge>
+                        </td>
+                        <td className="p-4 text-sm">{item.frequency}</td>
+                        <td className="p-4 text-sm">{item.postingDays}</td>
+                        <td className="p-4 text-sm font-medium">
+                          {item.postingTime}
+                        </td>
+                        <td className="p-4">
+                          <div className="flex gap-1">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleEdit(item)}
+                            >
+                              <Edit2 className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleDelete(item.id)}
+                              className="text-red-600 hover:text-red-700"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
         </Card>
       ) : (
         <Card>
@@ -380,14 +557,14 @@ export function ScheduleTab({
               {["Cn", "T2", "T3", "T4", "T5", "T6", "T7"].map((day) => (
                 <div
                   key={day}
-                  className="text-center font-semibold text-sm text-muted-foreground py-2"
+                  className="text-center font-semibold text-sm text-muted-foreground py-2 text-orange-600"
                 >
                   {day}
                 </div>
               ))}
 
               {daysInMonth.map((day) => {
-                const daySchedules = getSchedulesForDate(day);
+                const daySchedules = getEventsForDate(day);
                 const isCurrentMonth = isSameMonth(day, currentMonth);
                 const isToday = isSameDay(day, new Date());
 
@@ -406,20 +583,123 @@ export function ScheduleTab({
                       {format(day, "d")}
                     </div>
                     <div className="flex-1 space-y-1 overflow-y-auto">
-                      {daySchedules.map((schedule, idx) => {
-                        const project = (
-                          projectsList.length > 0
-                            ? projectsList
-                            : defaultProjects
-                        ).find((p) => p.id === schedule.projectId);
+                      {daySchedules.map((event, idx) => {
+                        if (event.type === "schedule") {
+                          const sched = event.data;
+                          const project = projects.find(
+                            (p) => p.id === sched.projectId
+                          );
+
+                          // Style based on project color if available
+                          const style = project?.color
+                            ? {
+                                color: project.color,
+                              }
+                            : undefined;
+
+                          // Fallback class if no color
+                          const fallbackClass = !project?.color
+                            ? "bg-indigo-50 text-indigo-700 border-indigo-200"
+                            : "";
+
+                          return (
+                            <div
+                              key={`sched-${sched.id}`}
+                              className={cn(
+                                "p-1 rounded border border-dashed cursor-default truncate text-[10px] transition-all hover:opacity-100 opacity-90",
+                                fallbackClass
+                              )}
+                              style={style}
+                              title={`${sched.projectName} - ${sched.platform} (${sched.frequency})`}
+                            >
+                              <div className="flex items-center gap-1">
+                                <span className="font-bold">{event.time}</span>
+                                <span className="font-semibold truncate">
+                                  {sched.projectName}
+                                </span>
+                              </div>
+                              <div className="flex items-center justify-between opacity-80 text-[9px] mt-1">
+                                <span
+                                  className={cn(
+                                    "px-1 rounded text-[8px] font-medium border",
+                                    platformColors[sched.platform]
+                                  )}
+                                >
+                                  {sched.platform.split(" ")[0]}
+                                </span>
+                                <span>({sched.frequency})</span>
+                              </div>
+                            </div>
+                          );
+                        }
+
+                        // Actual Post/Video
+                        const item = event.data as ContentItem | VideoItem;
+                        const statusColor =
+                          statusConfig[item.status]?.className ||
+                          "bg-gray-100 text-gray-700";
+
+                        const handleClick = (e: React.MouseEvent) => {
+                          e.stopPropagation();
+                          if (event.type === "content") {
+                            setSelectedContent(item as ContentItem);
+                          } else {
+                            setSelectedVideo(item as VideoItem);
+                          }
+                        };
+
                         return (
                           <div
-                            key={`${day.toISOString()}-${idx}`}
-                            className="p-1 rounded bg-blue-100 text-blue-700 cursor-pointer hover:bg-blue-200 transition-colors truncate"
-                            onClick={() => handleEdit(schedule)}
-                            title={`${schedule.projectName} - ${schedule.platform} - ${schedule.postingTime}`}
+                            key={`item-${item.id}`}
+                            className={cn(
+                              "p-1 rounded border cursor-pointer transition-colors truncate text-[10px]",
+                              statusColor
+                            )}
+                            onClick={handleClick}
+                            title={`${item.projectName} - ${
+                              // @ts-ignore
+                              item.platform
+                            }: ${item.idea || "No Idea"}`}
                           >
-                            {schedule.postingTime}
+                            <span className="font-bold mr-1 block">
+                              {item.postingTime || "?"}
+                            </span>
+                            <span className="font-semibold block truncate">
+                              {item.projectName}
+                            </span>
+
+                            {/* Platform Badge */}
+                            <div className="flex flex-wrap gap-1 mt-1 mb-1">
+                              {event.type === "content" ? (
+                                <span
+                                  className={cn(
+                                    "px-1 rounded text-[8px] font-medium border bg-white/50",
+                                    platformColors[
+                                      (item as ContentItem).platform
+                                    ] || "border-gray-300 text-gray-500"
+                                  )}
+                                >
+                                  {(item as ContentItem).platform.split(" ")[0]}
+                                </span>
+                              ) : (
+                                (item as VideoItem).platform.map((p, i) => (
+                                  <span
+                                    key={i}
+                                    className={cn(
+                                      "px-1 rounded text-[8px] font-medium border bg-white/50",
+                                      platformColors[p] ||
+                                        "border-gray-300 text-gray-500"
+                                    )}
+                                  >
+                                    {p.split(" ")[0]}
+                                  </span>
+                                ))
+                              )}
+                            </div>
+
+                            <span className="opacity-80 block truncate">
+                              {item.idea || "No Idea"}
+                            </span>
                           </div>
                         );
                       })}
@@ -458,14 +738,17 @@ export function ScheduleTab({
                   <SelectValue placeholder="Chọn dự án" />
                 </SelectTrigger>
                 <SelectContent>
-                  {(projectsList.length > 0
-                    ? projectsList
-                    : defaultProjects
-                  ).map((p) => (
-                    <SelectItem key={p.id} value={p.id}>
-                      {p.name}
-                    </SelectItem>
-                  ))}
+                  {projects.length === 0 ? (
+                    <div className="p-2 text-sm text-muted-foreground">
+                      Không có dự án
+                    </div>
+                  ) : (
+                    projects.map((p) => (
+                      <SelectItem key={p.id} value={p.id}>
+                        {p.name}
+                      </SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
             </div>
@@ -534,7 +817,8 @@ export function ScheduleTab({
               <Label htmlFor="postingTime">Giờ đăng</Label>
               <Input
                 id="postingTime"
-                type="time"
+                type="text"
+                placeholder="VD: 08:00, 15:30"
                 value={formData.postingTime}
                 onChange={(e) =>
                   setFormData((prev) => ({
@@ -564,6 +848,20 @@ export function ScheduleTab({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      {/* Detail Modals */}
+      <ContentDetailModal
+        key={selectedContent?.id || "content-modal"}
+        isOpen={!!selectedContent}
+        onClose={() => setSelectedContent(null)}
+        item={selectedContent}
+      />
+
+      <VideoDetailModal
+        key={selectedVideo?.id || "video-modal"}
+        isOpen={!!selectedVideo}
+        onClose={() => setSelectedVideo(null)}
+        item={selectedVideo}
+      />
     </div>
   );
 }

@@ -1,7 +1,7 @@
 export type Platform = "Facebook Post" | "Facebook Reels" | "Youtube Shorts";
 
 export const platformColors: Record<Platform, string> = {
-  "Facebook Post": "bg-blue-100 text-blue-700 border-blue-300",
+  "Facebook Post": "bg-blue-500 text-blue-100 border-blue-300",
   "Facebook Reels": "bg-blue-100 text-blue-700 border-blue-300",
   "Youtube Shorts": "bg-red-100 text-red-700 border-red-300",
 };
@@ -13,7 +13,6 @@ export const contentTypes = [
 ];
 
 export type Frequency =
-  | "10 phút/lần"
   | "Tuần"
   | "Ngày"
   | "Tháng"
@@ -94,6 +93,7 @@ export const statusConfig: Record<
 export interface Project {
   id: string;
   name: string;
+  description: string;
   color: string;
 }
 
@@ -105,6 +105,9 @@ export interface Schedule {
   frequency: Frequency;
   postingDays: string;
   postingTime: string;
+  createdAt: string;
+  updatedAt: string;
+  isActive: boolean;
 }
 
 export interface BaseContentItem {

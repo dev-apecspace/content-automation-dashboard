@@ -13,7 +13,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Plus, Edit2, Trash2, Video, Calendar } from "lucide-react";
-import type { Project, ContentItem, Schedule } from "@/lib/types";
+import type { Project, ContentItem, Schedule, VideoItem } from "@/lib/types";
 import {
   createProject,
   updateProject,
@@ -25,6 +25,7 @@ import { toast } from "sonner";
 interface ProjectsTabProps {
   projects: Project[];
   contentItems: ContentItem[];
+  videoItems: VideoItem[];
   schedules: Schedule[];
   onUpdateProjects: (projects: Project[]) => void;
   isLoading?: boolean;
@@ -33,6 +34,7 @@ interface ProjectsTabProps {
 export function ProjectsTab({
   projects,
   contentItems,
+  videoItems,
   schedules,
   onUpdateProjects,
   isLoading,
@@ -44,7 +46,7 @@ export function ProjectsTab({
 
   const handleAdd = () => {
     setEditItem(null);
-    setFormData({ name: "", color: "#3b82f6" });
+    setFormData({ name: "", description: "", color: "#3b82f6" });
     setIsModalOpen(true);
   };
 
@@ -59,14 +61,14 @@ export function ProjectsTab({
       setIsSaving(true);
       await deleteProject(id);
       onUpdateProjects(projects.filter((p) => p.id !== id));
-      toast.success("Project deleted!");
+      toast.success("Đã xóa dự án!");
 
       await createActivityLog("delete", "project", id, {
         userId: "user_1",
         description: "Deleted project",
       });
     } catch (error) {
-      toast.error("Failed to delete project");
+      toast.error("Lỗi khi xóa dự án");
       console.error(error);
     } finally {
       setIsSaving(false);
@@ -78,7 +80,7 @@ export function ProjectsTab({
       setIsSaving(true);
 
       if (!formData.name) {
-        toast.error("Project name is required");
+        toast.error("Tên dự án không được để trống");
         return;
       }
 
@@ -90,28 +92,28 @@ export function ProjectsTab({
         onUpdateProjects(
           projects.map((p) => (p.id === editItem.id ? updated : p))
         );
-        toast.success("Project updated!");
+        toast.success("Đã cập nhật dự án!");
 
         await createActivityLog("update", "project", editItem.id, {
           userId: "user_1",
           newValues: formData,
-          description: `Updated project: ${formData.name}`,
+          description: `Cập nhật dự án: ${formData.name}`,
         });
       } else {
         const newProject = await createProject(formData as Omit<Project, "id">);
         onUpdateProjects([...projects, newProject]);
-        toast.success("Project created!");
+        toast.success("Đã tạo dự án!");
 
         await createActivityLog("create", "project", newProject.id, {
           userId: "user_1",
           newValues: { name: newProject.name, color: newProject.color },
-          description: `Created project: ${newProject.name}`,
+          description: `Tạo dự án: ${newProject.name}`,
         });
       }
 
       setIsModalOpen(false);
     } catch (error) {
-      toast.error("Failed to save project");
+      toast.error("Lỗi khi lưu dự án");
       console.error(error);
     } finally {
       setIsSaving(false);
@@ -120,13 +122,27 @@ export function ProjectsTab({
 
   const getProjectStats = (projectId: string) => {
     const contents = contentItems.filter((c) => c.projectId === projectId);
+    const videos = videoItems.filter((v) => v.projectId === projectId);
     const projectSchedules = schedules.filter((s) => s.projectId === projectId);
+
+    const pendingStatuses = [
+      "idea",
+      "awaiting_content_approval",
+      "media_edited",
+      "ai_generating_content",
+    ];
+    const allContent = [...contents, ...videos];
+    const pendingAll = allContent.filter((item) =>
+      pendingStatuses.includes(item.status)
+    ).length;
+    const publishedAll = allContent.filter(
+      (item) => item.status === "posted_successfully"
+    ).length;
+
     return {
-      totalContent: contents.length,
-      pendingContent: contents.filter((c) => c.status === "cho_duyet").length,
-      publishedContent: contents.filter(
-        (c) => c.status === "da_dang_thanh_cong"
-      ).length,
+      totalContent: allContent.length,
+      pendingContent: pendingAll,
+      publishedContent: publishedAll,
       scheduleCount: projectSchedules.length,
     };
   };
@@ -153,8 +169,9 @@ export function ProjectsTab({
                 className="absolute top-0 left-0 w-1 h-full"
                 style={{ backgroundColor: project.color }}
               />
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle className="text-lg">{project.name}</CardTitle>
+
                 <div className="flex gap-1">
                   <Button
                     variant="ghost"
@@ -173,29 +190,40 @@ export function ProjectsTab({
                   </Button>
                 </div>
               </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="flex items-center gap-2 text-sm">
-                    <Video className="h-4 w-4 text-muted-foreground" />
-                    <span>{stats.totalContent} nội dung</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm">
-                    <Calendar className="h-4 w-4 text-muted-foreground" />
-                    <span>{stats.scheduleCount} lịch đăng</span>
-                  </div>
+              <CardContent className="flex flex-col justify-between h-full">
+                <div>
+                  {project.description && (
+                    <p className="text-sm text-muted-foreground mb-3">
+                      {project.description}
+                    </p>
+                  )}
                 </div>
-                <div className="flex gap-2">
-                  <div className="flex-1 bg-orange-100 rounded p-2 text-center">
-                    <div className="text-lg font-bold text-orange-700">
-                      {stats.pendingContent}
+
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center gap-2 text-sm">
+                      <Video className="h-4 w-4 text-muted-foreground" />
+                      <span>{stats.totalContent} nội dung</span>
                     </div>
-                    <div className="text-xs text-orange-600">Chờ duyệt</div>
+                    <div className="flex items-center gap-2 text-sm">
+                      <Calendar className="h-4 w-4 text-muted-foreground" />
+                      <span>{stats.scheduleCount} lịch đăng</span>
+                    </div>
                   </div>
-                  <div className="flex-1 bg-green-100 rounded p-2 text-center">
-                    <div className="text-lg font-bold text-green-700">
-                      {stats.publishedContent}
+
+                  <div className="flex gap-2">
+                    <div className="flex-1 bg-orange-100 rounded p-2 text-center">
+                      <div className="text-lg font-bold text-orange-700">
+                        {stats.pendingContent}
+                      </div>
+                      <div className="text-xs text-orange-600">Chờ duyệt</div>
                     </div>
-                    <div className="text-xs text-green-600">Đã đăng</div>
+                    <div className="flex-1 bg-green-100 rounded p-2 text-center">
+                      <div className="text-lg font-bold text-green-700">
+                        {stats.publishedContent}
+                      </div>
+                      <div className="text-xs text-green-600">Đã đăng</div>
+                    </div>
                   </div>
                 </div>
               </CardContent>
@@ -223,6 +251,20 @@ export function ProjectsTab({
                   setFormData((prev) => ({ ...prev, name: e.target.value }))
                 }
                 placeholder="Nhập tên dự án"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="description">Mô tả</Label>
+              <Input
+                id="description"
+                value={formData.description || ""}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    description: e.target.value,
+                  }))
+                }
+                placeholder="Nhập mô tả dự án"
               />
             </div>
             <div className="space-y-2">
