@@ -61,6 +61,7 @@ export default function ContentPage() {
   const handleEditClick = (item: ContentItem) => {
     setEditContent(item);
     setIsFormModalOpen(true);
+    setIsDetailModalOpen(false);
   };
 
   const handleViewClick = (item: ContentItem) => {
@@ -113,7 +114,7 @@ export default function ContentPage() {
         item.idea,
         item.projectId,
         item.contentType,
-        item.imageLink
+        item.imageLink || ""
       );
       setContentItems((prev) =>
         prev.map((c) => (c.id === item.id ? updated : c))
@@ -294,6 +295,7 @@ export default function ContentPage() {
         isOpen={isDetailModalOpen}
         onOpenChange={setIsDetailModalOpen}
         content={selectedContent}
+        onEdit={handleEditClick}
       />
     </div>
   );

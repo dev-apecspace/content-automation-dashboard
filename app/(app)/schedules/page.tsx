@@ -60,6 +60,8 @@ export default function SchedulesPage() {
         videoItems={videoItems}
         isLoading={isLoading}
         onUpdate={setSchedules}
+        onUpdateContent={setContentItems}
+        onUpdateVideo={setVideoItems}
       />
     </div>
   );

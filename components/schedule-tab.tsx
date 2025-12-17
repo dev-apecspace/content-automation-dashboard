@@ -52,6 +52,10 @@ import {
 import { vi } from "date-fns/locale";
 import { ContentDetailModal } from "./content-detail-modal";
 import { VideoDetailModal } from "./video-detail-modal";
+import { ContentFormModal } from "./content-form-modal";
+import { VideoFormModal } from "./video-form-modal";
+import { updateContentItem } from "@/lib/api/content-items";
+import { updateVideoItem } from "@/lib/api/video-items";
 
 interface ScheduleTabProps {
   // ... props
@@ -60,6 +64,8 @@ interface ScheduleTabProps {
   contentItems: ContentItem[];
   videoItems: VideoItem[];
   onUpdate: (schedules: Schedule[]) => void;
+  onUpdateContent?: (items: ContentItem[]) => void;
+  onUpdateVideo?: (items: VideoItem[]) => void;
   isLoading?: boolean;
 }
 
@@ -77,6 +83,8 @@ export function ScheduleTab({
   contentItems,
   videoItems,
   onUpdate,
+  onUpdateContent,
+  onUpdateVideo,
   isLoading,
 }: ScheduleTabProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -91,6 +99,80 @@ export function ScheduleTab({
     null
   );
   const [selectedVideo, setSelectedVideo] = useState<VideoItem | null>(null);
+
+  // Edit Form States
+  const [isContentFormOpen, setIsContentFormOpen] = useState(false);
+  const [isVideoFormOpen, setIsVideoFormOpen] = useState(false);
+  const [editContent, setEditContent] = useState<ContentItem | null>(null);
+  const [editVideo, setEditVideo] = useState<VideoItem | null>(null);
+
+  const handleEditContent = (item: ContentItem) => {
+    setEditContent(item);
+    setSelectedContent(null);
+    setTimeout(() => {
+      setIsContentFormOpen(true);
+    }, 100);
+  };
+
+  const handleEditVideo = (item: VideoItem) => {
+    setEditVideo(item);
+    setSelectedVideo(null);
+    setTimeout(() => {
+      setIsVideoFormOpen(true);
+    }, 100);
+  };
+
+  const handleSaveContent = async (data: Partial<ContentItem>) => {
+    try {
+      setIsSaving(true);
+      if (editContent) {
+        const updated = await updateContentItem(editContent.id, data);
+        onUpdateContent?.(
+          contentItems.map((c) => (c.id === editContent.id ? updated : c))
+        );
+        toast.success("Cập nhật bài viết thành công!");
+
+        await createActivityLog("update", "content", editContent.id, {
+          userId: "user_1",
+          newValues: data,
+          description: `Cập nhật từ lịch: ${data.idea || editContent.idea}`,
+        });
+      }
+      setIsContentFormOpen(false);
+      setEditContent(null);
+    } catch (error) {
+      toast.error("Lưu bài viết thất bại");
+      console.error(error);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleSaveVideo = async (data: Partial<VideoItem>) => {
+    try {
+      setIsSaving(true);
+      if (editVideo) {
+        const updated = await updateVideoItem(editVideo.id, data);
+        onUpdateVideo?.(
+          videoItems.map((v) => (v.id === editVideo.id ? updated : v))
+        );
+        toast.success("Cập nhật video thành công!");
+
+        await createActivityLog("update", "video", editVideo.id, {
+          userId: "user_1",
+          newValues: data,
+          description: `Cập nhật từ lịch: ${data.idea || editVideo.idea}`,
+        });
+      }
+      setIsVideoFormOpen(false);
+      setEditVideo(null);
+    } catch (error) {
+      toast.error("Lưu video thất bại");
+      console.error(error);
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   const handleAdd = () => {
     setEditItem(null);
@@ -854,6 +936,7 @@ export function ScheduleTab({
         isOpen={!!selectedContent}
         onClose={() => setSelectedContent(null)}
         item={selectedContent}
+        onEdit={handleEditContent}
       />
 
       <VideoDetailModal
@@ -861,6 +944,23 @@ export function ScheduleTab({
         isOpen={!!selectedVideo}
         onClose={() => setSelectedVideo(null)}
         item={selectedVideo}
+        onEdit={handleEditVideo}
+      />
+
+      <ContentFormModal
+        isOpen={isContentFormOpen}
+        onOpenChange={setIsContentFormOpen}
+        onSave={handleSaveContent}
+        editContent={editContent}
+        isSaving={isSaving}
+      />
+
+      <VideoFormModal
+        isOpen={isVideoFormOpen}
+        onOpenChange={setIsVideoFormOpen}
+        onSave={handleSaveVideo}
+        editVideo={editVideo}
+        isSaving={isSaving}
       />
     </div>
   );
