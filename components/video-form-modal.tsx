@@ -32,12 +32,13 @@ import {
   Play,
   CheckCircle,
   Sparkles,
+  DollarSign,
 } from "lucide-react";
-import { getProjects } from "@/lib/api";
-import { VideoItem, Project } from "@/lib/types";
+import { getProjects, getSetting } from "@/lib/api";
+import { VideoItem, Project, ModelConfig, DEFAULT_MODELS } from "@/lib/types";
 import { uploadImageFile, uploadVideoFile } from "@/app/api/cloudinary";
 import { AiRequirementDialog } from "./ai-requirement-dialog";
-import { getContentItemById } from "@/lib/api/content-items"; // Removed invalid import if exists, wait, getVideoItemById needed
+import { getContentItemById } from "@/lib/api/content-items";
 import { getVideoItemById } from "@/lib/api/video-items";
 import { toast } from "sonner";
 
@@ -65,6 +66,7 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
   isLoading,
 }) => {
   const [projects, setProjects] = useState<Project[]>([]);
+  const [modelsList, setModelsList] = useState<ModelConfig[]>([]);
 
   const [formData, setFormData] = useState<Partial<VideoItem>>({
     idea: "",
@@ -85,16 +87,35 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
 
   const [newImageLink, setNewImageLink] = useState("");
 
+  // Load Projects and AI Models
   useEffect(() => {
-    async function fetchProjects() {
+    async function fetchData() {
       try {
-        const realProjects = await getProjects();
+        const [realProjects, modelRegistry] = await Promise.all([
+          getProjects(),
+          getSetting("ai_models_registry"),
+        ]);
         setProjects(realProjects);
+
+        if (modelRegistry && modelRegistry.value) {
+          try {
+            const parsed = JSON.parse(modelRegistry.value);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              setModelsList(parsed);
+            } else {
+              setModelsList(DEFAULT_MODELS);
+            }
+          } catch {
+            setModelsList(DEFAULT_MODELS);
+          }
+        } else {
+          setModelsList(DEFAULT_MODELS);
+        }
       } catch (error) {
-        console.error("Error loading projects:", error);
+        console.error("Error loading data:", error);
       }
     }
-    fetchProjects();
+    fetchData();
   }, []);
 
   useEffect(() => {
@@ -127,6 +148,72 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
     }
   }, [editVideo, isOpen]);
 
+  // Cost Calculation
+  const calculateEstimatedCost = () => {
+    if (!formData.videoDuration || formData.videoDuration <= 0) return null;
+
+    const duration = formData.videoDuration;
+
+    // Find active models (Defaults: first of each type)
+    const videoModel =
+      modelsList.find((m) => m.type === "video") ||
+      DEFAULT_MODELS.find((m) => m.type === "video");
+    const audioModel =
+      modelsList.find((m) => m.type === "audio") ||
+      DEFAULT_MODELS.find((m) => m.type === "audio");
+    const imageModel =
+      modelsList.find((m) => m.type === "image") ||
+      DEFAULT_MODELS.find((m) => m.type === "image");
+
+    let totalCost = 0;
+    const breakdown: string[] = [];
+
+    if (videoModel) {
+      let cost = 0;
+      if (videoModel.unit === "per_second") {
+        cost = duration * videoModel.cost;
+      } else if (videoModel.unit === "per_run") {
+        cost = videoModel.cost;
+      }
+      totalCost += cost;
+      breakdown.push(`${videoModel.name}`);
+    }
+
+    if (audioModel) {
+      let cost = 0;
+      if (audioModel.unit === "per_second") {
+        cost = duration * audioModel.cost;
+      } else if (audioModel.unit === "per_run") {
+        cost = audioModel.cost;
+      }
+      totalCost += cost;
+      breakdown.push(`${audioModel.name}`);
+    }
+
+    /* Image cost excluded as per user request
+     if (imageModel) {
+        let cost = 0;
+        if (imageModel.unit === "per_megapixel") {
+           cost = imageModel.cost * 1; 
+        } else if (imageModel.unit === "per_run") {
+           cost = imageModel.cost;
+        }
+        // totalCost += cost; 
+        // breakdown.push(`${imageModel.name}`);
+     }
+     */
+
+    return {
+      total: totalCost,
+      breakdown: breakdown.join(" + "),
+      videoModel,
+      audioModel,
+      // imageModel
+    };
+  };
+
+  const estimatedCost = calculateEstimatedCost();
+
   const handleProjectChange = (value: string) => {
     const project = projects.find((p) => p.id === value);
     setFormData((prev) => ({
@@ -138,13 +225,16 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
 
   const handlePlatformToggle = (platform: string) => {
     setFormData((prev) => {
-      const currentPlatforms = Array.isArray(prev.platform)
+      const currentPlatforms: any[] = Array.isArray(prev.platform)
         ? prev.platform
-        : [prev.platform];
-      const updated = currentPlatforms.includes(platform as any)
-        ? currentPlatforms.filter((p) => p !== platform)
-        : [...currentPlatforms, platform];
-      return { ...prev, platform: updated as any };
+        : [];
+
+      const p = platform;
+
+      const updated = currentPlatforms.includes(p)
+        ? currentPlatforms.filter((item) => item !== p)
+        : [...currentPlatforms, p];
+      return { ...prev, platform: updated };
     });
   };
 
@@ -433,10 +523,18 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
 
               {/* Thời lượng */}
               <div className="space-y-3">
-                <Label className="flex items-center gap-2 text-base font-semibold text-slate-700">
-                  <Clock className="w-4 h-4 text-amber-500" />
-                  Thời lượng (giây) <span className="text-red-500">*</span>
-                </Label>
+                <div className="flex items-center justify-between">
+                  <Label className="flex items-center gap-2 text-base font-semibold text-slate-700">
+                    <Clock className="w-4 h-4 text-amber-500" />
+                    Thời lượng (giây) <span className="text-red-500">*</span>
+                  </Label>
+                  {estimatedCost && (
+                    <div className="text-sm font-medium text-gray-700 px-3 flex items-center gap-1.5">
+                      ${estimatedCost.total.toFixed(2)} (~
+                      {(estimatedCost.total * 26000).toLocaleString("vi-VN")}đ)
+                    </div>
+                  )}
+                </div>
                 <Input
                   type="number"
                   value={formData.videoDuration || ""}
@@ -803,21 +901,11 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
             ) : editVideo ? (
               "Cập nhật"
             ) : (
-              "Thêm mới"
+              "Tạo mới"
             )}
           </Button>
         </DialogFooter>
       </DialogContent>
-
-      {/* AI DIALOG */}
-      <AiRequirementDialog
-        isOpen={aiPromptOpen}
-        onClose={() => setAiPromptOpen(false)}
-        type={aiPromptType}
-        initialRequirement=""
-        onConfirm={handleConfirmAiEdit}
-        isLoading={isAiLoading}
-      />
     </Dialog>
   );
 };

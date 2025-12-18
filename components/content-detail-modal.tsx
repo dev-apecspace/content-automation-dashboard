@@ -30,16 +30,24 @@ import {
   Captions,
   RefreshCw,
   Trash2,
+  DollarSign,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { contentTypes, statusConfig, type ContentItem } from "@/lib/types";
-import { projects } from "@/lib/mock-data";
+import {
+  contentTypes,
+  statusConfig,
+  type ContentItem,
+  ModelConfig,
+  DEFAULT_MODELS,
+  Project,
+  platformColors,
+} from "@/lib/types";
 import { format, set } from "date-fns";
 import { toast } from "sonner";
 import { useState, useEffect } from "react";
 import { getContentItemById } from "@/lib/api/content-items";
 import { se } from "date-fns/locale";
-import { createActivityLog } from "@/lib/api";
+import { createActivityLog, getSetting, getProjects } from "@/lib/api";
 
 interface ContentDetailModalProps {
   isOpen: boolean;
@@ -65,14 +73,56 @@ export function ContentDetailModal({
   const [currentItem, setCurrentItem] = useState<ContentItem | null>(
     content ?? item ?? null
   );
+  const [modelsList, setModelsList] = useState<ModelConfig[]>([]);
+  const [projectList, setProjectList] = useState<Project[]>([]);
 
   useEffect(() => {
     setCurrentItem(content ?? item ?? null);
   }, [content, item]);
 
+  // Load AI Models
+  useEffect(() => {
+    async function fetchModels() {
+      try {
+        const modelRegistry = await getSetting("ai_models_registry");
+        if (modelRegistry && modelRegistry.value) {
+          try {
+            const parsed = JSON.parse(modelRegistry.value);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              setModelsList(parsed);
+            } else {
+              setModelsList(DEFAULT_MODELS);
+            }
+          } catch {
+            setModelsList(DEFAULT_MODELS);
+          }
+        } else {
+          setModelsList(DEFAULT_MODELS);
+        }
+      } catch (error) {
+        console.error("Error loading models:", error);
+        setModelsList(DEFAULT_MODELS);
+      }
+    }
+    fetchModels();
+  }, [isOpen]);
+
+  // Load Projects
+  useEffect(() => {
+    async function fetchProjects() {
+      try {
+        const projects = await getProjects();
+        setProjectList(projects);
+      } catch (error) {
+        console.error("Error loading projects:", error);
+      }
+    }
+    fetchProjects();
+  }, [isOpen]);
+
   if (!currentItem) return null;
 
-  const project = projects.find((p) => p.id === currentItem.projectId);
+  const project = projectList.find((p) => p.id === currentItem.projectId);
 
   const formatDate = (dateStr?: string) => {
     if (!dateStr) return "-";
@@ -148,6 +198,33 @@ export function ContentDetailModal({
     }
   };
 
+  // Cost Calculation Logic
+  const calculateEstimatedCost = () => {
+    if (!currentItem) return null;
+
+    // Check if there is an image to calculate cost for
+    if (!currentItem.imageLink) return null;
+
+    const imageModel =
+      modelsList.find((m) => m.type === "image") ||
+      DEFAULT_MODELS.find((m) => m.type === "image");
+
+    if (!imageModel) return null;
+
+    let cost = 0;
+    if (imageModel.unit === "per_megapixel") {
+      cost = imageModel.cost * 1; // Default 1MP
+    } else if (imageModel.unit === "per_run") {
+      cost = imageModel.cost;
+    }
+
+    return {
+      total: cost,
+    };
+  };
+
+  const estimatedCost = calculateEstimatedCost();
+
   // Glassmorphism helper classes (Light Mode)
   const glassCardClass =
     "bg-white/40 backdrop-blur-md border border-white/60 rounded-2xl shadow-sm hover:bg-white/60 transition-all duration-300";
@@ -176,28 +253,52 @@ export function ContentDetailModal({
                 <Badge
                   variant="outline"
                   className={cn(
-                    "border-slate-200/60 bg-white/50 text-slate-700 backdrop-blur-sm px-3 py-1"
+                    "border-slate-200/60 bg-white/50 text-slate-700 backdrop-blur-sm px-3 py-1",
+                    statusConfig[currentItem.status].className
                   )}
                 >
                   {statusConfig[currentItem.status].label}
                 </Badge>
                 <Badge
                   variant="outline"
-                  className="border-slate-200/60 bg-white/50 text-slate-700 backdrop-blur-sm px-3 py-1"
+                  style={{
+                    backgroundColor: project?.color
+                      ? `${project.color}15`
+                      : undefined, // 10% opacity
+                    color: project?.color,
+                    borderColor: project?.color
+                      ? `${project.color}40`
+                      : undefined,
+                  }}
+                  className="backdrop-blur-sm px-3 py-1"
                 >
                   {currentItem.projectName}
                 </Badge>
                 <Badge
                   variant="outline"
-                  className="border-slate-200/60 bg-white/50 text-slate-700 backdrop-blur-sm px-3 py-1"
+                  className={cn("backdrop-blur-sm px-3 py-1", {
+                    "bg-purple-50 text-purple-700 border-purple-200":
+                      currentItem.contentType === "product",
+                    "bg-indigo-50 text-indigo-700 border-indigo-200":
+                      currentItem.contentType === "brand",
+                    "bg-slate-50 text-slate-700 border-slate-200":
+                      currentItem.contentType === "other" ||
+                      !currentItem.contentType,
+                  })}
                 >
                   {contentTypes.find(
                     (type) => type.value === currentItem.contentType
-                  )?.label || currentItem.contentType}
+                  )?.label ||
+                    currentItem.contentType ||
+                    "Khác"}
                 </Badge>
                 <Badge
                   variant="outline"
-                  className="border-slate-200/60 bg-white/50 text-slate-700 backdrop-blur-sm px-3 py-1 flex items-center gap-1"
+                  className={cn(
+                    "backdrop-blur-sm px-3 py-1 flex items-center gap-1",
+                    platformColors[currentItem.platform] ||
+                      "bg-slate-50 text-slate-700 border-slate-200"
+                  )}
                 >
                   {/* We could use icons here if we want content type icons */}
                   {currentItem.platform}
@@ -257,6 +358,30 @@ export function ContentDetailModal({
                     </p>
                   </div>
                 </div>
+
+                {/* Cost Display */}
+                {estimatedCost && estimatedCost.total > 0 && (
+                  <div className="flex items-center gap-4 mb-6">
+                    <div className="p-2 rounded-full bg-white/60 shadow-sm text-emerald-600">
+                      <DollarSign className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <div className={glassLabelClass}>Chi phí ước tính</div>
+                      <div className="inline-flex items-center gap-2">
+                        <span className="font-medium text-slate-900 text-lg">
+                          ${estimatedCost.total.toFixed(3)}
+                        </span>
+                        <span className="text-slate-500 text-sm">
+                          (~
+                          {(estimatedCost.total * 26000).toLocaleString(
+                            "vi-VN"
+                          )}
+                          đ)
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {currentItem.imageLink && (
                   <div className="flex items-start gap-4 mb-6">

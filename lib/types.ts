@@ -148,3 +148,36 @@ export interface VideoItem extends BaseContentItem {
   caption?: string;
   views?: number;
 }
+
+// Inteface for Model Configuration
+export interface ModelConfig {
+  id: string;
+  type: "video" | "audio" | "image";
+  name: string;
+  cost: number;
+  unit: "per_second" | "per_megapixel" | "per_run";
+}
+
+export const DEFAULT_MODELS: ModelConfig[] = [
+  {
+    id: "kling-2.5",
+    type: "video",
+    name: "Kling 2.5 Turbo Pro",
+    cost: 0.07,
+    unit: "per_second",
+  },
+  {
+    id: "mmaudio-v2",
+    type: "audio",
+    name: "mmaudio-v2",
+    cost: 0.001,
+    unit: "per_second",
+  },
+  {
+    id: "flux-1-krea",
+    type: "image",
+    name: "FLUX.1 Krea [dev]",
+    cost: 0.025,
+    unit: "per_megapixel",
+  },
+];

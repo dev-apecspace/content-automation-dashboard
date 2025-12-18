@@ -32,9 +32,16 @@ import {
   X,
   CheckCircle2,
   Maximize2,
+  DollarSign,
 } from "lucide-react";
-import { getProjects } from "@/lib/api";
-import { ContentItem, contentTypes, Project } from "@/lib/types";
+import { getProjects, getSetting } from "@/lib/api";
+import {
+  ContentItem,
+  contentTypes,
+  Project,
+  ModelConfig,
+  DEFAULT_MODELS,
+} from "@/lib/types";
 import { useFullscreen } from "@/stores/useFullscreenStore";
 import { uploadImageFile } from "@/app/api/cloudinary";
 import { AiRequirementDialog } from "./ai-requirement-dialog";
@@ -66,6 +73,7 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
 
   // ------------------- STATE -------------------
   const [projects, setProjects] = useState<Project[]>([]);
+  const [modelsList, setModelsList] = useState<ModelConfig[]>([]);
 
   const [formData, setFormData] = useState<Partial<ContentItem>>({
     idea: "",
@@ -89,17 +97,36 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
   const [aiPromptContent, setAiPromptContent] = useState("");
   const [isAiLoading, setIsAiLoading] = useState(false);
 
-  // ------------------- LOAD PROJECTS -------------------
+  // ------------------- LOAD PROJECTS & MODELS -------------------
   useEffect(() => {
-    async function fetchProjects() {
+    async function fetchData() {
       try {
-        const realProjects = await getProjects();
+        const [realProjects, modelRegistry] = await Promise.all([
+          getProjects(),
+          getSetting("ai_models_registry"),
+        ]);
         setProjects(realProjects);
+
+        if (modelRegistry && modelRegistry.value) {
+          try {
+            const parsed = JSON.parse(modelRegistry.value);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              setModelsList(parsed);
+            } else {
+              setModelsList(DEFAULT_MODELS);
+            }
+          } catch {
+            setModelsList(DEFAULT_MODELS);
+          }
+        } else {
+          setModelsList(DEFAULT_MODELS);
+        }
       } catch (error) {
-        console.error("Error loading projects:", error);
+        console.error("Error loading data:", error);
+        setModelsList(DEFAULT_MODELS);
       }
     }
-    fetchProjects();
+    fetchData();
   }, []);
 
   // ------------------- KHI MỞ MODAL ĐỂ EDIT -------------------
@@ -168,6 +195,37 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
   const handleRemoveImage = () => {
     setFormData((prev) => ({ ...prev, imageLink: undefined }));
   };
+
+  // ------------------- COST CALCULATION -------------------
+  const calculateEstimatedCost = () => {
+    // Only calculate if image link is present or being uploaded/requested
+    // Actually, if it's "Content Approval" phase and there is an image, we can show value.
+    // Or if user is in "Idea" phase and intends to generate image.
+
+    // Let's assume cost is relevant if there is an imageLink or user just wants to see potential cost?
+    // User request: "thêm ước tính chi phí tạo ảnh cho content."
+    // Usually means the cost of generating ONE image.
+
+    const imageModel =
+      modelsList.find((m) => m.type === "image") ||
+      DEFAULT_MODELS.find((m) => m.type === "image");
+
+    if (!imageModel) return null;
+
+    let cost = 0;
+    if (imageModel.unit === "per_megapixel") {
+      cost = imageModel.cost * 1; // Default 1MP
+    } else if (imageModel.unit === "per_run") {
+      cost = imageModel.cost;
+    }
+
+    return {
+      total: cost,
+      modelName: imageModel.name,
+    };
+  };
+
+  const estimatedCost = calculateEstimatedCost();
 
   // ------------------- GỘP NGÀY GIỜ -------------------
   const updatePostingTime = (date: string, time: string) => {
@@ -615,9 +673,24 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
 
                 {/* Ảnh sẽ đăng */}
                 <div className="space-y-4 bg-white/40 backdrop-blur-md border border-white/60 rounded-2xl shadow-sm p-6 hover:bg-white/60 transition-all duration-300">
-                  <Label className="flex items-center gap-2 text-base font-semibold text-slate-700">
-                    <Image className="w-4 h-4 text-emerald-600" />
-                    Ảnh bài đăng <span className="text-red-500">*</span>
+                  <Label className="flex items-center justify-between text-base font-semibold text-slate-700">
+                    <div className="flex items-center gap-2">
+                      <Image className="w-4 h-4 text-emerald-600" />
+                      Ảnh bài đăng <span className="text-red-500">*</span>
+                    </div>
+                    {estimatedCost && estimatedCost.total > 0 && (
+                      <div className="text-sm font-medium text-gray-700 px-3 flex items-center gap-1.5 bg-white/50 rounded-lg border border-white/60 py-1">
+                        <DollarSign className="w-3.5 h-3.5 text-emerald-600" />$
+                        {estimatedCost.total.toFixed(3)}
+                        <span className="text-slate-500 text-xs font-normal">
+                          (~
+                          {(estimatedCost.total * 26000).toLocaleString(
+                            "vi-VN"
+                          )}
+                          đ)
+                        </span>
+                      </div>
+                    )}
                   </Label>
 
                   <div className="flex gap-3">

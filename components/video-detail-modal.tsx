@@ -32,14 +32,26 @@ import {
   Captions,
   ThumbsUp,
   Share2,
+  DollarSign,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { platformColors, statusConfig, type VideoItem } from "@/lib/types";
-import { projects } from "@/lib/mock-data";
+import {
+  platformColors,
+  statusConfig,
+  type VideoItem,
+  ModelConfig,
+  DEFAULT_MODELS,
+} from "@/lib/types";
+import { Project } from "@/lib/types";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { useState, useEffect } from "react";
-import { createActivityLog, getVideoItemById } from "@/lib/api";
+import {
+  createActivityLog,
+  getVideoItemById,
+  getSetting,
+  getProjects,
+} from "@/lib/api";
 
 interface VideoDetailModalProps {
   isOpen: boolean;
@@ -65,14 +77,56 @@ export function VideoDetailModal({
   const [currentItem, setCurrentItem] = useState<VideoItem | null>(
     content ?? item ?? null
   );
+  const [modelsList, setModelsList] = useState<ModelConfig[]>([]);
+  const [projectList, setProjectList] = useState<Project[]>([]);
 
   useEffect(() => {
     setCurrentItem(content ?? item ?? null);
   }, [content, item]);
 
+  // Load AI Models
+  useEffect(() => {
+    async function fetchModels() {
+      try {
+        const modelRegistry = await getSetting("ai_models_registry");
+        if (modelRegistry && modelRegistry.value) {
+          try {
+            const parsed = JSON.parse(modelRegistry.value);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              setModelsList(parsed);
+            } else {
+              setModelsList(DEFAULT_MODELS);
+            }
+          } catch {
+            setModelsList(DEFAULT_MODELS);
+          }
+        } else {
+          setModelsList(DEFAULT_MODELS);
+        }
+      } catch (error) {
+        console.error("Error loading models:", error);
+        setModelsList(DEFAULT_MODELS);
+      }
+    }
+    fetchModels();
+  }, [isOpen]);
+
+  // Load Projects
+  useEffect(() => {
+    async function fetchProjects() {
+      try {
+        const projects = await getProjects();
+        setProjectList(projects);
+      } catch (error) {
+        console.error("Error loading projects:", error);
+      }
+    }
+    fetchProjects();
+  }, [isOpen]);
+
   if (!currentItem) return null;
 
-  const project = projects.find((p) => p.id === currentItem.projectId);
+  const project = projectList.find((p) => p.id === currentItem.projectId);
 
   const formatDate = (dateStr?: string) => {
     if (!dateStr) return "-";
@@ -147,6 +201,53 @@ export function VideoDetailModal({
       setIsLoading(false);
     }
   };
+
+  // Cost Calculation Logic
+  const calculateEstimatedCost = () => {
+    if (
+      !currentItem ||
+      !currentItem.videoDuration ||
+      currentItem.videoDuration <= 0
+    )
+      return null;
+
+    const duration = currentItem.videoDuration;
+
+    const videoModel =
+      modelsList.find((m) => m.type === "video") ||
+      DEFAULT_MODELS.find((m) => m.type === "video");
+    const audioModel =
+      modelsList.find((m) => m.type === "audio") ||
+      DEFAULT_MODELS.find((m) => m.type === "audio");
+
+    let totalCost = 0;
+
+    if (videoModel) {
+      let cost = 0;
+      if (videoModel.unit === "per_second") {
+        cost = duration * videoModel.cost;
+      } else if (videoModel.unit === "per_run") {
+        cost = videoModel.cost;
+      }
+      totalCost += cost;
+    }
+
+    if (audioModel) {
+      let cost = 0;
+      if (audioModel.unit === "per_second") {
+        cost = duration * audioModel.cost;
+      } else if (audioModel.unit === "per_run") {
+        cost = audioModel.cost;
+      }
+      totalCost += cost;
+    }
+
+    return {
+      total: totalCost,
+    };
+  };
+
+  const estimatedCost = calculateEstimatedCost();
 
   // Glassmorphism helper classes (Light Mode)
   const glassCardClass =
@@ -290,6 +391,30 @@ export function VideoDetailModal({
                     </div>
                   </div>
                 </div>
+
+                {/* Cost Display */}
+                {estimatedCost && (
+                  <div className="flex items-center gap-4 mb-6">
+                    <div className="p-2 rounded-full bg-white/60 shadow-sm text-emerald-600">
+                      <DollarSign className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <div className={glassLabelClass}>Chi phí ước tính</div>
+                      <div className="inline-flex items-center gap-2">
+                        <span className="font-medium text-slate-900 text-lg">
+                          ${estimatedCost.total.toFixed(2)}
+                        </span>
+                        <span className="text-slate-500 text-sm">
+                          (~
+                          {(estimatedCost.total * 26000).toLocaleString(
+                            "vi-VN"
+                          )}
+                          đ)
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {currentItem.videoLink && (
                   <div className="flex items-start gap-4 mb-6">
