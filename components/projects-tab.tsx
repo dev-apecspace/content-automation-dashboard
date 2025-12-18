@@ -151,10 +151,17 @@ export function ProjectsTab({
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold">Dự án</h2>
-          <p className="text-muted-foreground">Quản lý các dự án nội dung</p>
+          <h2 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-cyan-600 drop-shadow-sm pb-1">
+            Dự án
+          </h2>
+          <p className="text-slate-500 font-medium mt-1">
+            Quản lý các dự án nội dung
+          </p>
         </div>
-        <Button onClick={handleAdd} className="bg-[#1a365d] hover:bg-[#2a4a7d]">
+        <Button
+          onClick={handleAdd}
+          className="bg-gradient-to-r from-indigo-600 to-cyan-600 hover:from-indigo-700 hover:to-cyan-700 text-white shadow-md shadow-indigo-200 border-0"
+        >
           <Plus className="h-4 w-4 mr-2" />
           Thêm dự án
         </Button>
@@ -164,19 +171,23 @@ export function ProjectsTab({
         {projects.map((project) => {
           const stats = getProjectStats(project.id);
           return (
-            <Card key={project.id} className="relative overflow-hidden">
+            <Card
+              key={project.id}
+              className="relative overflow-hidden bg-white/60 backdrop-blur-xl border-white/60 shadow-lg rounded-2xl hover:shadow-xl transition-all duration-300 group py-6"
+            >
               <div
-                className="absolute top-0 left-0 w-1 h-full"
+                className="absolute top-0 left-0 w-1.5 h-full opacity-80"
                 style={{ backgroundColor: project.color }}
               />
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle className="text-lg">{project.name}</CardTitle>
 
-                <div className="flex gap-1">
+                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                   <Button
                     variant="ghost"
                     size="icon"
                     onClick={() => handleEdit(project)}
+                    className="hover:bg-white/60 hover:text-indigo-600 h-8 w-8"
                   >
                     <Edit2 className="h-4 w-4" />
                   </Button>

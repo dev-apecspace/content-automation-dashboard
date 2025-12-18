@@ -241,15 +241,13 @@ export default function VideoPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Quản Lý Video</h1>
-          <p className="text-gray-600 mt-1">
+          <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-cyan-600 drop-shadow-sm pb-1">
+            Quản Lý Video
+          </h1>
+          <p className="text-slate-500 font-medium mt-1">
             Quản lý video (Reels, Shorts) và phê duyệt
           </p>
         </div>
-        <Button onClick={handleCreateClick} className="gap-2">
-          <Plus className="h-4 w-4" />
-          Tạo Video
-        </Button>
       </div>
 
       <VideoTable

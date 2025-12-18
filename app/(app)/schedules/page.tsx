@@ -46,13 +46,6 @@ export default function SchedulesPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900">Lịch Đăng</h1>
-        <p className="text-gray-600 mt-1">
-          Quản lý lịch đăng nội dung trên các nền tảng
-        </p>
-      </div>
-
       <ScheduleTab
         schedules={schedules}
         projects={projects}

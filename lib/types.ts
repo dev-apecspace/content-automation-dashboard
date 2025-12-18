@@ -9,14 +9,10 @@ export const platformColors: Record<Platform, string> = {
 export const contentTypes = [
   { value: "product", label: "Sản phẩm" },
   { value: "brand", label: "Brand" },
-  { value: "other", label: "Khác" }
+  { value: "other", label: "Khác" },
 ];
 
-export type Frequency =
-  | "Tuần"
-  | "Ngày"
-  | "Tháng"
-  | "3 ngày/lần";
+export type Frequency = "Tuần" | "Ngày" | "Tháng" | "3 ngày/lần";
 
 export type ActiveTab =
   | "bai-viet"
@@ -138,7 +134,7 @@ export interface ContentItem extends BaseContentItem {
   platform: "Facebook Post";
   contentType: string;
   imageLink?: string;
-  editRequest?: string;     // Không lưu db
+  editRequest?: string; // Không lưu db
   caption?: string;
 }
 

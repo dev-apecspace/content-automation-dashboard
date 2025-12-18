@@ -20,7 +20,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Edit2, Trash2, List, CalendarDays } from "lucide-react";
+import {
+  Plus,
+  Edit2,
+  Trash2,
+  List,
+  CalendarDays,
+  FileImage,
+  Video,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   type Schedule,
@@ -464,19 +472,23 @@ export function ScheduleTab({
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold">Lịch đăng</h2>
-          <p className="text-muted-foreground">
+          <h2 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-cyan-600 drop-shadow-sm">
+            Lịch đăng
+          </h2>
+          <p className="text-slate-500 font-medium">
             Quản lý lịch đăng bài cho các dự án
           </p>
         </div>
-        <div className="flex gap-2">
-          <div className="flex bg-muted rounded-lg p-1">
+        <div className="flex gap-3 bg-white/40 p-1.5 rounded-xl border border-white/60 shadow-sm backdrop-blur-sm">
+          <div className="flex bg-slate-100/50 rounded-lg p-1">
             <Button
               variant={viewMode === "list" ? "default" : "ghost"}
               size="sm"
               onClick={() => setViewMode("list")}
               className={
-                viewMode === "list" ? "bg-[#1a365d] hover:bg-[#2a4a7d]" : ""
+                viewMode === "list"
+                  ? "bg-white text-indigo-600 shadow-sm font-semibold"
+                  : "text-slate-500 hover:text-indigo-600"
               }
             >
               <List className="h-4 w-4 mr-1" />
@@ -487,7 +499,9 @@ export function ScheduleTab({
               size="sm"
               onClick={() => setViewMode("calendar")}
               className={
-                viewMode === "calendar" ? "bg-[#1a365d] hover:bg-[#2a4a7d]" : ""
+                viewMode === "calendar"
+                  ? "bg-white text-indigo-600 shadow-sm font-semibold"
+                  : "text-slate-500 hover:text-indigo-600"
               }
             >
               <CalendarDays className="h-4 w-4 mr-1" />
@@ -496,7 +510,7 @@ export function ScheduleTab({
           </div>
           <Button
             onClick={handleAdd}
-            className="bg-[#1a365d] hover:bg-[#2a4a7d]"
+            className="bg-gradient-to-r from-indigo-600 to-cyan-600 hover:from-indigo-700 hover:to-cyan-700 text-white shadow-md shadow-indigo-200 border-0"
           >
             <Plus className="h-4 w-4 mr-2" />
             Thêm lịch đăng
@@ -505,37 +519,40 @@ export function ScheduleTab({
       </div>
 
       {viewMode === "list" ? (
-        <Card>
+        <Card className="bg-white/60 backdrop-blur-xl border-white/60 shadow-lg rounded-2xl overflow-hidden">
           {schedules.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              Không có lịch đăng
+            <div className="text-center py-12 text-slate-500">
+              <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4 border border-slate-100">
+                <CalendarDays className="w-8 h-8 text-slate-300" />
+              </div>
+              Chưa có lịch đăng nào được tạo.
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full">
-                <thead className="bg-muted/50">
+                <thead className="bg-gray-200">
                   <tr>
-                    <th className="text-left p-4 font-semibold text-sm">
+                    <th className="text-left p-4 font-semibold text-sm text-slate-600">
                       Dự án
                     </th>
-                    <th className="text-left p-4 font-semibold text-sm">
+                    <th className="text-left p-4 font-semibold text-sm text-slate-600">
                       Nền tảng
                     </th>
-                    <th className="text-left p-4 font-semibold text-sm">
+                    <th className="text-left p-4 font-semibold text-sm text-slate-600">
                       Tần suất
                     </th>
-                    <th className="text-left p-4 font-semibold text-sm">
+                    <th className="text-left p-4 font-semibold text-sm text-slate-600">
                       Ngày đăng
                     </th>
-                    <th className="text-left p-4 font-semibold text-sm">
+                    <th className="text-left p-4 font-semibold text-sm text-slate-600">
                       Giờ đăng
                     </th>
-                    <th className="text-left p-4 font-semibold text-sm">
+                    <th className="text-left p-4 font-semibold text-sm text-slate-600">
                       Hành động
                     </th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className="divide-y divide-white/40">
                   {schedules.map((item) => {
                     const project = projects.find(
                       (p) => p.id === item.projectId
@@ -543,14 +560,15 @@ export function ScheduleTab({
                     return (
                       <tr
                         key={item.id}
-                        className="border-t hover:bg-muted/30 transition-colors"
+                        className="hover:bg-indigo-50/30 transition-colors"
                       >
                         <td className="p-4">
                           <Badge
                             variant="outline"
+                            className="bg-white/50 backdrop-blur-sm shadow-sm"
                             style={{
-                              backgroundColor: `${project?.color}20`,
-                              borderColor: project?.color,
+                              backgroundColor: `${project?.color}15`,
+                              borderColor: `${project?.color}40`,
                               color: project?.color,
                             }}
                           >
@@ -561,16 +579,20 @@ export function ScheduleTab({
                           <Badge
                             variant="outline"
                             className={cn(
-                              "border",
+                              "border shadow-sm bg-white/50 backdrop-blur-sm",
                               platformColors[item.platform]
                             )}
                           >
                             {item.platform}
                           </Badge>
                         </td>
-                        <td className="p-4 text-sm">{item.frequency}</td>
-                        <td className="p-4 text-sm">{item.postingDays}</td>
-                        <td className="p-4 text-sm font-medium">
+                        <td className="p-4 text-sm text-slate-700 font-medium">
+                          {item.frequency}
+                        </td>
+                        <td className="p-4 text-sm text-slate-600">
+                          {item.postingDays}
+                        </td>
+                        <td className="p-4 text-sm font-semibold text-indigo-600 font-mono tracking-tight">
                           {item.postingTime}
                         </td>
                         <td className="p-4">
@@ -579,6 +601,7 @@ export function ScheduleTab({
                               variant="ghost"
                               size="icon"
                               onClick={() => handleEdit(item)}
+                              className="hover:bg-white/60 hover:text-indigo-600"
                             >
                               <Edit2 className="h-4 w-4" />
                             </Button>
@@ -586,7 +609,7 @@ export function ScheduleTab({
                               variant="ghost"
                               size="icon"
                               onClick={() => handleDelete(item.id)}
-                              className="text-red-600 hover:text-red-700"
+                              className="text-red-400 hover:text-red-600 hover:bg-white/60"
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
@@ -695,7 +718,7 @@ export function ScheduleTab({
                               title={`${sched.projectName} - ${sched.platform} (${sched.frequency})`}
                             >
                               <div className="flex items-center gap-1">
-                                <span className="font-bold">{event.time}</span>
+                                <span className="font-bold">{event.time} - </span>
                                 <span className="font-semibold truncate">
                                   {sched.projectName}
                                 </span>
@@ -802,21 +825,23 @@ export function ScheduleTab({
 
       {/* Add/Edit Modal */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-md bg-white/80 backdrop-blur-xl border-white/60 shadow-2xl rounded-2xl">
           <DialogHeader>
-            <DialogTitle>
-              {editItem ? "Chỉnh sửa lịch đăng" : "Thêm lịch đăng mới"}
+            <DialogTitle className="text-xl font-bold text-slate-800">
+              {editItem ? "Chỉnh sửa lịch đăng" : "Tạo lịch đăng mới"}
             </DialogTitle>
           </DialogHeader>
 
           <div className="grid gap-4 py-4">
-            <div className="space-y-2">
-              <Label>Dự án</Label>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="project" className="text-right text-slate-600">
+                Dự án
+              </Label>
               <Select
                 value={formData.projectId}
                 onValueChange={handleProjectChange}
               >
-                <SelectTrigger>
+                <SelectTrigger className="col-span-3 bg-white/50 border-slate-200 focus:ring-indigo-500/20">
                   <SelectValue placeholder="Chọn dự án" />
                 </SelectTrigger>
                 <SelectContent>
@@ -835,16 +860,18 @@ export function ScheduleTab({
               </Select>
             </div>
 
-            <div className="space-y-2">
-              <Label>Nền tảng</Label>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="platform" className="text-right text-slate-600">
+                Nền tảng
+              </Label>
               <Select
                 value={formData.platform}
                 onValueChange={(v) =>
                   setFormData((prev) => ({ ...prev, platform: v as Platform }))
                 }
               >
-                <SelectTrigger>
-                  <SelectValue />
+                <SelectTrigger className="col-span-3 bg-white/50 border-slate-200 focus:ring-indigo-500/20">
+                  <SelectValue placeholder="Chọn nền tảng" />
                 </SelectTrigger>
                 <SelectContent>
                   {platforms.map((p) => (
@@ -856,8 +883,10 @@ export function ScheduleTab({
               </Select>
             </div>
 
-            <div className="space-y-2">
-              <Label>Tần suất</Label>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="frequency" className="text-right text-slate-600">
+                Tần suất
+              </Label>
               <Select
                 value={formData.frequency}
                 onValueChange={(v) =>
@@ -867,8 +896,8 @@ export function ScheduleTab({
                   }))
                 }
               >
-                <SelectTrigger>
-                  <SelectValue />
+                <SelectTrigger className="col-span-3 bg-white/50 border-slate-200 focus:ring-indigo-500/20">
+                  <SelectValue placeholder="Chọn tần suất" />
                 </SelectTrigger>
                 <SelectContent>
                   {frequencies.map((f) => (
@@ -880,10 +909,12 @@ export function ScheduleTab({
               </Select>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="postingDays">Ngày đăng</Label>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="days" className="text-right text-slate-600">
+                Ngày
+              </Label>
               <Input
-                id="postingDays"
+                id="days"
                 value={formData.postingDays}
                 onChange={(e) =>
                   setFormData((prev) => ({
@@ -891,16 +922,19 @@ export function ScheduleTab({
                     postingDays: e.target.value,
                   }))
                 }
-                placeholder="VD: Mỗi ngày, Thứ 2 Thứ 6, Ngày 5 ngày 20..."
+                className="col-span-3 bg-white/50 border-slate-200 focus:border-indigo-400"
+                placeholder='Ví dụ: "Thứ 2, Thứ 5" hoặc "Ngày 10"'
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="postingTime">Giờ đăng</Label>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="time" className="text-right text-slate-600">
+                Giờ
+              </Label>
               <Input
-                id="postingTime"
+                id="time"
                 type="text"
-                placeholder="VD: 08:00, 15:30"
+                placeholder='Ví dụ: "9:00, 20:00"'
                 value={formData.postingTime}
                 onChange={(e) =>
                   setFormData((prev) => ({
@@ -908,7 +942,27 @@ export function ScheduleTab({
                     postingTime: e.target.value,
                   }))
                 }
+                className="col-span-3 bg-white/50 border-slate-200 focus:border-indigo-400"
               />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="active" className="text-right text-slate-600">
+                Trạng thái
+              </Label>
+              <div className="col-span-3 flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="active"
+                  checked={formData.isActive ?? true}
+                  onChange={(e) =>
+                    setFormData({ ...formData, isActive: e.target.checked })
+                  }
+                  className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                />
+                <label htmlFor="active" className="text-sm text-slate-600">
+                  Đang hoạt động
+                </label>
+              </div>
             </div>
           </div>
 
@@ -917,15 +971,20 @@ export function ScheduleTab({
               variant="outline"
               onClick={() => setIsModalOpen(false)}
               disabled={isSaving}
+              className="border-slate-200 text-slate-600 hover:bg-slate-50"
             >
               Hủy
             </Button>
             <Button
               onClick={handleSave}
               disabled={isSaving}
-              className="bg-[#1a365d] hover:bg-[#2a4a7d] disabled:opacity-50"
+              className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-200"
             >
-              {isSaving ? "Đang lưu..." : editItem ? "Cập nhật" : "Thêm mới"}
+              {isSaving
+                ? "Đang lưu..."
+                : editItem
+                ? "Cập nhật"
+                : "Lưu lịch đăng"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -937,6 +996,9 @@ export function ScheduleTab({
         onClose={() => setSelectedContent(null)}
         item={selectedContent}
         onEdit={handleEditContent}
+        onApprove={(item) => {
+          handleEditContent(item);
+        }}
       />
 
       <VideoDetailModal
