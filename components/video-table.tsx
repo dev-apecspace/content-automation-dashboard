@@ -99,19 +99,19 @@ export function VideoTable({
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {/* Filters */}
-      <Card className="p-4">
+      <div className="bg-white/40 backdrop-blur-sm border border-white/60 shadow-sm rounded-xl p-4">
         <div className="flex flex-wrap gap-4 items-center">
           <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-muted-foreground">
+            <span className="text-sm font-medium text-slate-600">
               Trạng thái:
             </span>
             <Select
               value={filterStatus}
               onValueChange={(v) => onFilterChange(v as Status | "all")}
             >
-              <SelectTrigger className="w-[220px]">
+              <SelectTrigger className="w-[220px] bg-white/60 border-white/60 focus:ring-indigo-500">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -125,11 +125,9 @@ export function VideoTable({
             </Select>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-muted-foreground">
-              Dự án:
-            </span>
+            <span className="text-sm font-medium text-slate-600">Dự án:</span>
             <Select value={filterProject} onValueChange={onProjectFilterChange}>
-              <SelectTrigger className="w-[180px]">
+              <SelectTrigger className="w-[180px] bg-white/60 border-white/60 focus:ring-indigo-500">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -144,7 +142,7 @@ export function VideoTable({
           </div>
           <Button
             onClick={onAdd}
-            className="ml-auto bg-[#1a365d] hover:bg-[#2a4a7d] cursor-pointer"
+            className="ml-auto bg-gradient-to-r from-indigo-600 to-cyan-600 hover:from-indigo-700 hover:to-cyan-700 text-white shadow-md shadow-indigo-200 border-0"
           >
             <Plus className="h-4 w-4 mr-2" />
             Thêm ý tưởng
@@ -152,65 +150,73 @@ export function VideoTable({
           <Button
             onClick={triggerAiSearchIdeas}
             disabled={loading}
-            className={`flex items-center gap-2 p-3 font-medium transition-all duration-200 cursor-pointer
-              ${
-                loading
-                  ? "bg-gray-100 text-gray-400"
-                  : "bg-amber-100 hover:bg-yellow-300 text-black border border-amber-300 shadow-md"
-              }`}
+            className={`flex items-center gap-2 font-medium transition-all duration-200 cursor-pointer border-0 shadow-md ${
+              loading
+                ? "bg-gray-100 text-gray-400"
+                : "bg-gradient-to-r from-amber-200 to-yellow-400 hover:from-amber-300 hover:to-yellow-500 text-amber-900"
+            }`}
           >
             {loading ? <>✨ Đang tạo...</> : <>✨ AI tạo ý tưởng</>}
           </Button>
         </div>
-      </Card>
+      </div>
 
       {/* Table */}
-      <Card>
+      <Card className="bg-white/60 backdrop-blur-xl border-white/60 shadow-lg rounded-2xl overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-muted/50">
+            <thead className="bg-gray-200/80 backdrop-blur-sm">
               <tr>
-                <th className="text-left p-4 font-semibold text-sm">
+                <th className="text-left p-4 font-semibold text-sm text-slate-600">
                   Trạng thái
                 </th>
-                <th className="text-left p-4 font-semibold text-sm">Ý tưởng</th>
-                <th className="text-left p-4 font-semibold text-sm">Dự án</th>
-                <th className="text-left p-4 font-semibold text-sm">
+                <th className="text-left p-4 font-semibold text-sm text-slate-600">
+                  Ý tưởng
+                </th>
+                <th className="text-left p-4 font-semibold text-sm text-slate-600">
+                  Dự án
+                </th>
+                <th className="text-left p-4 font-semibold text-sm text-slate-600">
                   Nền tảng
                 </th>
-                <th className="text-left p-4 font-semibold text-sm">
+                <th className="text-left p-4 font-semibold text-sm text-slate-600">
                   Thời lượng
                 </th>
-                <th className="text-left p-4 font-semibold text-sm">
+                <th className="text-left p-4 font-semibold text-sm text-slate-600">
                   Thời gian đăng
                 </th>
-                <th className="text-left p-4 font-semibold text-sm">
+                <th className="text-left p-4 font-semibold text-sm text-slate-600">
                   Hành động
                 </th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-white/40">
               {data.length === 0 ? (
                 <tr>
                   <td
                     colSpan={7}
-                    className="p-8 text-center text-muted-foreground"
+                    className="p-12 text-center text-slate-500 font-medium"
                   >
-                    Không có dữ liệu
+                    <div className="flex flex-col items-center justify-center gap-2">
+                      <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mb-2">
+                        <Image className="w-6 h-6 text-slate-400" />
+                      </div>
+                      Không có dữ liệu
+                    </div>
                   </td>
                 </tr>
               ) : (
                 data.map((item) => (
                   <tr
                     key={item.id}
-                    className="border-t hover:bg-muted/30 transition-colors"
+                    className="hover:bg-indigo-50/30 transition-colors"
                   >
                     {/* Trạng thái */}
                     <td className="p-4">
                       <Badge
                         variant="outline"
                         className={cn(
-                          "border",
+                          "border shadow-sm bg-white/50 backdrop-blur-sm py-1",
                           statusConfig[item.status].className
                         )}
                       >
@@ -219,7 +225,7 @@ export function VideoTable({
                     </td>
                     {/* Ý tưởng */}
                     <td
-                      className="p-4 font-medium max-w-[200px] truncate"
+                      className="p-4 font-medium text-slate-700 max-w-[250px] truncate"
                       title={item.idea}
                     >
                       {item.idea}
@@ -234,10 +240,11 @@ export function VideoTable({
                         return (
                           <Badge
                             variant="outline"
+                            className="bg-white/50 backdrop-blur-sm shadow-sm"
                             style={{
-                              backgroundColor: `${projectColor}20`,
+                              backgroundColor: `${projectColor}15`,
                               color: projectColor,
-                              borderColor: projectColor,
+                              borderColor: `${projectColor}40`,
                             }}
                           >
                             {item.projectName}
@@ -253,7 +260,10 @@ export function VideoTable({
                             <Badge
                               key={p}
                               variant="outline"
-                              className={cn("border", platformColors[p])}
+                              className={cn(
+                                "border shadow-sm bg-white/50 backdrop-blur-sm",
+                                platformColors[p]
+                              )}
                             >
                               {p}
                             </Badge>
@@ -262,7 +272,7 @@ export function VideoTable({
                           <Badge
                             variant="outline"
                             className={cn(
-                              "border",
+                              "border shadow-sm bg-white/50 backdrop-blur-sm",
                               platformColors[item.platform]
                             )}
                           >
@@ -272,13 +282,17 @@ export function VideoTable({
                       </div>
                     </td>
                     {/* Thời lượng */}
-                    <td className="p-4 text-sm">
-                      {item.videoDuration
-                        ? `${item.videoDuration}s`
-                        : "Chưa cập nhật"}
+                    <td className="p-4 text-sm font-medium text-slate-600">
+                      {item.videoDuration ? (
+                        <Badge variant="secondary" className="bg-slate-100">
+                          {item.videoDuration}s
+                        </Badge>
+                      ) : (
+                        "Chưa cập nhật"
+                      )}
                     </td>
                     {/* Thời gian đăng */}
-                    <td className="p-4 text-sm">
+                    <td className="p-4 text-sm tracking-tight">
                       <span>{item.postingTime || ""}</span>
                     </td>
                     <td className="p-4">
@@ -289,7 +303,7 @@ export function VideoTable({
                           size="icon"
                           onClick={() => onViewDetails(item)}
                           title="Xem chi tiết"
-                          className="cursor-pointer"
+                          className="hover:bg-white/60 hover:text-indigo-600"
                         >
                           <Eye className="h-4 w-4" />
                         </Button>
@@ -304,7 +318,7 @@ export function VideoTable({
                             size="icon"
                             onClick={() => onEdit(item)}
                             title="Chỉnh sửa"
-                            className="cursor-pointer"
+                            className="hover:bg-white/60 hover:text-indigo-600"
                           >
                             <Edit2 className="h-4 w-4" />
                           </Button>
@@ -316,7 +330,7 @@ export function VideoTable({
                             variant="ghost"
                             size="icon"
                             onClick={() => onApproveIdea?.(item)}
-                            className="text-green-600 hover:text-green-700 cursor-pointer"
+                            className="text-green-600 hover:text-green-700 hover:bg-green-50"
                             title="Phê duyệt ý tưởng"
                           >
                             <CheckCircle className="h-4 w-4" />
@@ -329,7 +343,7 @@ export function VideoTable({
                             variant="ghost"
                             size="icon"
                             onClick={() => onApproveContent?.(item)}
-                            className="text-green-600 hover:text-green-700 cursor-pointer"
+                            className="text-green-600 hover:text-green-700 hover:bg-green-50"
                             title="Phê duyệt nội dung"
                           >
                             <CheckCircle className="h-4 w-4" />
@@ -343,7 +357,7 @@ export function VideoTable({
                             size="icon"
                             onClick={() => onViewImage(item)}
                             title="Xem ảnh"
-                            className="cursor-pointer"
+                            className="hover:bg-white/60 hover:text-indigo-600"
                           >
                             <Image className="h-4 w-4" />
                           </Button>
@@ -357,7 +371,7 @@ export function VideoTable({
                               variant="ghost"
                               size="icon"
                               onClick={() => onViewPost(item)}
-                              className="text-blue-600 hover:text-blue-700 cursor-pointer"
+                              className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
                               title={`Xem post\nViews: ${
                                 item.views || 0
                               }\nReactions: ${item.reactions || 0}\nComments: ${
@@ -374,7 +388,7 @@ export function VideoTable({
                             variant="ghost"
                             size="icon"
                             onClick={() => onDelete(item.id)}
-                            className="text-red-600 hover:text-red-700 cursor-pointer"
+                            className="text-red-400 hover:text-red-600 hover:bg-red-50"
                             title="Xóa ý tưởng"
                           >
                             <X className="h-4 w-4" />

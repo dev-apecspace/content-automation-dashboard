@@ -32,14 +32,26 @@ import {
   Captions,
   ThumbsUp,
   Share2,
+  DollarSign,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { statusConfig, type VideoItem } from "@/lib/types";
-import { projects } from "@/lib/mock-data";
+import {
+  platformColors,
+  statusConfig,
+  type VideoItem,
+  ModelConfig,
+  DEFAULT_MODELS,
+} from "@/lib/types";
+import { Project } from "@/lib/types";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { useState, useEffect } from "react";
-import { createActivityLog, getVideoItemById } from "@/lib/api";
+import {
+  createActivityLog,
+  getVideoItemById,
+  getSetting,
+  getProjects,
+} from "@/lib/api";
 
 interface VideoDetailModalProps {
   isOpen: boolean;
@@ -65,14 +77,56 @@ export function VideoDetailModal({
   const [currentItem, setCurrentItem] = useState<VideoItem | null>(
     content ?? item ?? null
   );
+  const [modelsList, setModelsList] = useState<ModelConfig[]>([]);
+  const [projectList, setProjectList] = useState<Project[]>([]);
 
   useEffect(() => {
     setCurrentItem(content ?? item ?? null);
   }, [content, item]);
 
+  // Load AI Models
+  useEffect(() => {
+    async function fetchModels() {
+      try {
+        const modelRegistry = await getSetting("ai_models_registry");
+        if (modelRegistry && modelRegistry.value) {
+          try {
+            const parsed = JSON.parse(modelRegistry.value);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              setModelsList(parsed);
+            } else {
+              setModelsList(DEFAULT_MODELS);
+            }
+          } catch {
+            setModelsList(DEFAULT_MODELS);
+          }
+        } else {
+          setModelsList(DEFAULT_MODELS);
+        }
+      } catch (error) {
+        console.error("Error loading models:", error);
+        setModelsList(DEFAULT_MODELS);
+      }
+    }
+    fetchModels();
+  }, [isOpen]);
+
+  // Load Projects
+  useEffect(() => {
+    async function fetchProjects() {
+      try {
+        const projects = await getProjects();
+        setProjectList(projects);
+      } catch (error) {
+        console.error("Error loading projects:", error);
+      }
+    }
+    fetchProjects();
+  }, [isOpen]);
+
   if (!currentItem) return null;
 
-  const project = projects.find((p) => p.id === currentItem.projectId);
+  const project = projectList.find((p) => p.id === currentItem.projectId);
 
   const formatDate = (dateStr?: string) => {
     if (!dateStr) return "-";
@@ -148,394 +202,519 @@ export function VideoDetailModal({
     }
   };
 
+  // Cost Calculation Logic
+  const calculateEstimatedCost = () => {
+    if (
+      !currentItem ||
+      !currentItem.videoDuration ||
+      currentItem.videoDuration <= 0
+    )
+      return null;
+
+    const duration = currentItem.videoDuration;
+
+    const videoModel =
+      modelsList.find((m) => m.type === "video") ||
+      DEFAULT_MODELS.find((m) => m.type === "video");
+    const audioModel =
+      modelsList.find((m) => m.type === "audio") ||
+      DEFAULT_MODELS.find((m) => m.type === "audio");
+
+    let totalCost = 0;
+
+    if (videoModel) {
+      let cost = 0;
+      if (videoModel.unit === "per_second") {
+        cost = duration * videoModel.cost;
+      } else if (videoModel.unit === "per_run") {
+        cost = videoModel.cost;
+      }
+      totalCost += cost;
+    }
+
+    if (audioModel) {
+      let cost = 0;
+      if (audioModel.unit === "per_second") {
+        cost = duration * audioModel.cost;
+      } else if (audioModel.unit === "per_run") {
+        cost = audioModel.cost;
+      }
+      totalCost += cost;
+    }
+
+    return {
+      total: totalCost,
+    };
+  };
+
+  const estimatedCost = calculateEstimatedCost();
+
+  // Glassmorphism helper classes (Light Mode)
+  const glassCardClass =
+    "bg-white/40 backdrop-blur-md border border-white/60 rounded-2xl shadow-sm hover:bg-white/60 transition-all duration-300";
+  const glassTextClass = "text-slate-900";
+  const glassTextMutedClass = "text-slate-600";
+  const glassLabelClass =
+    "text-slate-500 text-xs uppercase tracking-wider font-semibold";
+
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange || onClose}>
-      <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader className="space-y-4">
-          <DialogTitle className="font-bold leading-tight pr-8">
-            {currentItem.idea}
-          </DialogTitle>
-          <div className="space-y-3">
-            {/* Các badge */}
-            <div className="flex flex-wrap items-center gap-2">
-              <Badge
-                variant="outline"
-                className={cn(
-                  "border",
-                  statusConfig[currentItem.status].className
+      <DialogContent
+        className="max-w-5xl max-h-[90vh] overflow-y-auto bg-white/80 backdrop-blur-2xl border-white/60 shadow-2xl rounded-[32px] p-0 sm:max-w-5xl [&>button]:text-slate-600 [&>button]:hover:text-slate-900"
+        showCloseButton={true}
+      >
+        {/* Vibrant Gradient Background Layer */}
+        <div className="absolute inset-0 -z-10 bg-gradient-to-br from-[#a8c0ff]/40 via-[#3f2b96]/10 to-[#ffafbd]/40 blur-3xl pointer-events-none" />
+
+        <div className="p-8 relative z-10">
+          <DialogHeader className="space-y-6">
+            <DialogTitle className="text-2xl font-bold leading-tight pr-8 text-slate-900 tracking-wide">
+              {currentItem.idea}
+            </DialogTitle>
+            <div className="space-y-3">
+              {/* Các badge */}
+              <div className="flex flex-wrap items-center gap-3">
+                <Badge
+                  variant="outline"
+                  className={cn(
+                    "border-slate-200/60 bg-white/50 text-slate-700 backdrop-blur-sm px-3 py-1",
+                    statusConfig[currentItem.status].className
+                  )}
+                >
+                  {statusConfig[currentItem.status].label}
+                </Badge>
+                <Badge
+                  variant="outline"
+                  style={{
+                    backgroundColor: `${project?.color}15`,
+                    borderColor: `${project?.color}40`,
+                    color: project?.color,
+                  }}
+                  className="backdrop-blur-sm shadow-sm px-3 py-1"
+                >
+                  {currentItem.projectName}
+                </Badge>
+                {Array.isArray(currentItem.platform) && (
+                  <>
+                    {currentItem.platform.map((p) => (
+                      <Badge
+                        key={p}
+                        variant="outline"
+                        className={`border-slate-200/60 bg-white/50 text-slate-700 backdrop-blur-sm px-3 py-1 flex items-center gap-1 ${platformColors[p]}`}
+                      >
+                        {p}
+                      </Badge>
+                    ))}
+                  </>
                 )}
-              >
-                {statusConfig[currentItem.status].label}
-              </Badge>
-              <Badge
-                variant="outline"
-                style={{
-                  backgroundColor: `${project?.color}20`,
-                  borderColor: project?.color,
-                  color: project?.color,
-                }}
-              >
-                {currentItem.projectName}
-              </Badge>
-              {Array.isArray(currentItem.platform) && (
-                <>
-                  {currentItem.platform.map((p) => (
-                    <Badge
-                      key={p}
-                      variant="outline"
-                      className="border-pink-300 text-pink-700"
-                    >
-                      {p}
-                    </Badge>
-                  ))}
-                </>
-              )}
+              </div>
             </div>
-          </div>
-        </DialogHeader>
+          </DialogHeader>
 
-        <Tabs defaultValue="info" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="info">Thông tin</TabsTrigger>
-            <TabsTrigger value="interaction">Thống kê</TabsTrigger>
-            <TabsTrigger value="ai">AI phân tích</TabsTrigger>
-          </TabsList>
+          <Tabs defaultValue="info" className="w-full mt-8">
+            <TabsList className="bg-slate-100/50 border border-white/50 p-1 rounded-xl w-full max-w-md mx-auto grid grid-cols-3 mb-8 shadow-inner">
+              <TabsTrigger
+                value="info"
+                className="data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm text-slate-500 rounded-lg transition-all"
+              >
+                Thông tin
+              </TabsTrigger>
+              <TabsTrigger
+                value="interaction"
+                className="data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm text-slate-500 rounded-lg transition-all"
+              >
+                Thống kê
+              </TabsTrigger>
+              <TabsTrigger
+                value="ai"
+                className="data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm text-slate-500 rounded-lg transition-all"
+              >
+                AI phân tích
+              </TabsTrigger>
+            </TabsList>
 
-          {/* Tab 1: Thông tin */}
-          <TabsContent value="info" className="space-y-6 mt-6">
-            <Card>
-              <CardContent className="space-y-6">
+            {/* Tab 1: Thông tin */}
+            <TabsContent
+              value="info"
+              className="space-y-6 focus-visible:outline-none"
+            >
+              <div className={cn(glassCardClass, "p-6")}>
                 {/* Tiêu đề & Thời lượng */}
-                <div className="flex items-start gap-3">
-                  <Film className="h-5 w-5 text-muted-foreground mt-1" />
+                <div className="flex items-start gap-4 mb-6">
+                  <div className="p-2 rounded-full bg-white/60 shadow-sm text-blue-600">
+                    <Film className="h-5 w-5" />
+                  </div>
                   <div>
-                    <div className="text-sm text-muted-foreground">Tiêu đề</div>
-                    <p className="font-medium">{currentItem.title || "-"}</p>
+                    <div className={glassLabelClass}>Tiêu đề</div>
+                    <p className="font-medium text-slate-900 text-lg">
+                      {currentItem.title || "-"}
+                    </p>
                   </div>
                 </div>
 
                 {/* Thời gian đăng */}
-                <div className="flex items-center gap-4 pb-4 border-b">
-                  <Clock className="h-5 w-5 text-muted-foreground" />
+                <div className="flex items-center gap-4 mb-6">
+                  <div className="p-2 rounded-full bg-white/60 shadow-sm text-blue-600">
+                    <Clock className="h-5 w-5" />
+                  </div>
                   <div>
-                    <p className="text-xs text-muted-foreground">
-                      Thời gian đăng
-                    </p>
-                    <p className="text-base font-medium">
+                    <p className={glassLabelClass}>Thời gian đăng</p>
+                    <p className="text-lg font-medium text-slate-900">
                       {currentItem.postingTime || "-"}
                     </p>
                   </div>
                 </div>
 
                 {/* Caption */}
-                <div>
-                  <div className="flex items-center gap-3 mb-2">
-                    <Captions className="h-5 w-5 text-muted-foreground" />
-                    <h4 className="font-semibold">Caption</h4>
+                <div className="mb-6">
+                  <div className="flex items-center gap-3 mb-3">
+                    <Captions className="h-5 w-5 text-slate-500" />
+                    <h4 className="font-semibold text-slate-900">Caption</h4>
                   </div>
-                  <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-                    {currentItem.caption || "Chưa có caption"}
-                  </p>
-                </div>
-
-                <div className="flex items-start gap-3">
-                  <Clock className="h-5 w-5 text-muted-foreground mt-1" />
-                  <div>
-                    <div className="text-sm text-muted-foreground">
-                      Thời lượng
-                    </div>
-                    <p className="font-medium">
-                      {currentItem.videoDuration
-                        ? `${currentItem.videoDuration}s`
-                        : "-"}
+                  <div className="bg-white/50 rounded-xl p-4 border border-white/60 shadow-inner">
+                    <p className="text-slate-700 whitespace-pre-wrap leading-relaxed">
+                      {currentItem.caption || "Chưa có caption"}
                     </p>
                   </div>
                 </div>
 
-                {/* Video links */}
-                {/* {currentItem.existingVideoLink && (
-                  <div className="flex items-start gap-3">
-                    <Play className="h-5 w-5 text-muted-foreground mt-1" />
-                    <div>
-                      <div className="text-sm text-muted-foreground mb-1">
-                        Link video có sẵn
-                      </div>
-                      <a
-                        href={currentItem.existingVideoLink}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-sm text-blue-600 hover:underline break-all"
-                      >
-                        {currentItem.existingVideoLink}
-                      </a>
+                <div className="flex items-center gap-4 mb-6">
+                  <div className="p-2 rounded-full bg-white/60 shadow-sm text-blue-600">
+                    <Clock className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <div className={glassLabelClass}>Thời lượng</div>
+                    <div className="inline-flex items-center px-2.5 py-1 rounded-md bg-white/50 text-slate-700 border border-white/60 text-sm font-medium shadow-sm">
+                      {currentItem.videoDuration
+                        ? `${currentItem.videoDuration}s`
+                        : "-"}
                     </div>
                   </div>
-                )} */}
+                </div>
+
+                {/* Cost Display */}
+                {estimatedCost && (
+                  <div className="flex items-center gap-4 mb-6">
+                    <div className="p-2 rounded-full bg-white/60 shadow-sm text-emerald-600">
+                      <DollarSign className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <div className={glassLabelClass}>Chi phí ước tính</div>
+                      <div className="inline-flex items-center gap-2">
+                        <span className="font-medium text-slate-900 text-lg">
+                          ${estimatedCost.total.toFixed(2)}
+                        </span>
+                        <span className="text-slate-500 text-sm">
+                          (~
+                          {(estimatedCost.total * 26000).toLocaleString(
+                            "vi-VN"
+                          )}
+                          đ)
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {currentItem.videoLink && (
-                  <div className="flex items-start gap-3">
-                    <Play className="h-5 w-5 text-muted-foreground mt-1" />
-                    <div>
-                      <div className="text-sm text-muted-foreground mb-1">
-                        Video
+                  <div className="flex items-start gap-4 mb-6">
+                    <div className="p-2 rounded-full bg-white/60 shadow-sm text-red-500">
+                      <Play className="h-5 w-5" />
+                    </div>
+                    <div className="w-full">
+                      <div className={cn(glassLabelClass, "mb-2")}>Video</div>
+                      <div className="bg-black/5 rounded-xl border border-black/10 overflow-hidden">
+                        <div className="p-3 bg-white/40 flex items-center justify-between">
+                          <span className="text-sm text-slate-600 truncate max-w-[200px]">
+                            {currentItem.videoLink}
+                          </span>
+                          <a
+                            href={currentItem.videoLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs bg-red-50 text-red-600 px-3 py-1.5 rounded-lg border border-red-100 hover:bg-red-100 transition-colors font-medium"
+                          >
+                            Xem video
+                          </a>
+                        </div>
                       </div>
-                      <a
-                        href={currentItem.videoLink}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-sm text-blue-600 hover:underline break-all"
-                      >
-                        {currentItem.videoLink}
-                      </a>
                     </div>
                   </div>
                 )}
 
                 {/* Ảnh */}
                 {currentItem.imageLink && (
-                  <div className="flex items-start gap-3">
-                    <Eye className="h-5 w-5 text-muted-foreground mt-1" />
-                    <div>
-                      <div className="text-sm text-muted-foreground mb-1">
+                  <div className="flex items-start gap-4 mb-6">
+                    <div className="p-2 rounded-full bg-white/60 shadow-sm mt-1 text-blue-600">
+                      <Eye className="h-5 w-5" />
+                    </div>
+                    <div className="flex-1">
+                      <div className={cn(glassLabelClass, "mb-2")}>
                         Ảnh thumbnail
                       </div>
-                      <a
-                        href={currentItem.imageLink}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-sm text-blue-600 hover:underline break-all"
-                      >
-                        {currentItem.imageLink}
-                      </a>
-                      <img
-                        src={currentItem.imageLink}
-                        alt="Preview"
-                        className="max-w-full h-72 mt-3 rounded-lg border border-gray-300 shadow-sm"
-                      />
+                      <div className="relative group overflow-hidden rounded-xl shadow-md border border-white/60">
+                        <img
+                          src={currentItem.imageLink}
+                          alt="Preview"
+                          className="w-full object-cover max-h-[400px] transition-transform duration-500 group-hover:scale-105"
+                        />
+                        <a
+                          href={currentItem.imageLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center p-4"
+                        >
+                          <span className="bg-white/90 text-slate-900 px-4 py-2 rounded-full text-sm font-medium shadow-lg backdrop-blur-sm">
+                            Xem kích thước đầy đủ
+                          </span>
+                        </a>
+                      </div>
                     </div>
                   </div>
                 )}
 
                 {/* Post URL */}
                 {currentItem.postUrl && (
-                  <div className="flex items-start gap-3">
-                    <Globe className="h-5 w-5 text-muted-foreground mt-1" />
+                  <div className="flex items-center gap-4">
+                    <div className="p-2 rounded-full bg-white/60 shadow-sm text-blue-600">
+                      <Globe className="h-5 w-5" />
+                    </div>
                     <div>
-                      <div className="text-sm text-muted-foreground mb-1">
-                        Link bài đăng
-                      </div>
+                      <div className={glassLabelClass}>Link bài đăng</div>
                       <a
                         href={currentItem.postUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-sm text-blue-600 hover:underline"
+                        className="text-blue-600 hover:text-blue-700 hover:underline font-medium flex items-center gap-1"
                       >
-                        Xem bài đăng
+                        Xem bài đăng <Share2 className="w-3 h-3" />
                       </a>
                     </div>
                   </div>
                 )}
-              </CardContent>
-            </Card>
+              </div>
 
-            {/* Metadata */}
-            <Card>
-              <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="flex items-center gap-3">
-                  <User className="h-5 w-5 text-muted-foreground" />
+              {/* Metadata */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div
+                  className={cn(glassCardClass, "p-4 flex items-center gap-4")}
+                >
+                  <div className="p-2 rounded-full bg-white/60 shadow-sm text-slate-600">
+                    <User className="h-4 w-4" />
+                  </div>
                   <div>
-                    <div className="text-sm text-muted-foreground">
-                      Người duyệt
-                    </div>
-                    <div className="font-medium">
+                    <div className={glassLabelClass}>Người duyệt</div>
+                    <div className="font-medium text-slate-900">
                       {currentItem.approvedBy || "-"}
                     </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  <Calendar className="h-5 w-5 text-muted-foreground" />
+                <div
+                  className={cn(glassCardClass, "p-4 flex items-center gap-4")}
+                >
+                  <div className="p-2 rounded-full bg-white/60 shadow-sm text-slate-600">
+                    <Clock className="h-4 w-4" />
+                  </div>
                   <div>
-                    <div className="text-sm text-muted-foreground">
-                      Thời gian duyệt
-                    </div>
-                    <div className="font-medium">
+                    <div className={glassLabelClass}>Thời gian duyệt</div>
+                    <div className="font-medium text-slate-900">
                       {formatDate(currentItem.approvedAt)}
                     </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  <Calendar className="h-5 w-5 text-muted-foreground" />
+                <div
+                  className={cn(glassCardClass, "p-4 flex items-center gap-4")}
+                >
+                  <div className="p-2 rounded-full bg-white/60 shadow-sm text-slate-600">
+                    <Clock className="h-4 w-4" />
+                  </div>
                   <div>
-                    <div className="text-sm text-muted-foreground">
-                      Thời gian tạo
-                    </div>
-                    <div className="font-medium">
+                    <div className={glassLabelClass}>Thời gian tạo</div>
+                    <div className="font-medium text-slate-900">
                       {formatDate(currentItem.createdAt)}
                     </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  <Calendar className="h-5 w-5 text-muted-foreground" />
+                <div
+                  className={cn(glassCardClass, "p-4 flex items-center gap-4")}
+                >
+                  <div className="p-2 rounded-full bg-white/60 shadow-sm text-slate-600">
+                    <Clock className="h-4 w-4" />
+                  </div>
                   <div>
-                    <div className="text-sm text-muted-foreground">
-                      Cập nhật cuối
-                    </div>
-                    <div className="font-medium">
+                    <div className={glassLabelClass}>Cập nhật cuối</div>
+                    <div className="font-medium text-slate-900">
                       {formatDate(currentItem.updatedAt)}
                     </div>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
+              </div>
+            </TabsContent>
 
-          {/* Tab 2: Lượt tương tác */}
-          <TabsContent value="interaction" className="mt-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg flex justify-between">
-                  <div className="flex items-center gap-2">
-                    <BarChart3 className="h-5 w-5" /> Lượt tương tác
+            {/* Tab 2: Lượt tương tác */}
+            <TabsContent
+              value="interaction"
+              className="mt-6 focus-visible:outline-none"
+            >
+              <div className={cn(glassCardClass, "p-6")}>
+                <div className="flex items-center justify-between mb-8 border-b border-slate-200/50 pb-4">
+                  <div className="flex items-center gap-3">
+                    <BarChart3 className="h-6 w-6 text-slate-800" />
+                    <span className="text-xl font-bold text-slate-900">
+                      Thống kê hiệu quả
+                    </span>
                   </div>
                   <Button
-                    variant="outline"
+                    variant="ghost"
                     size="sm"
                     onClick={triggerEngagementTracker}
-                    className="cursor-pointer"
+                    className="text-slate-600 hover:text-slate-900 hover:bg-white/50"
                   >
                     <RefreshCw
-                      className={`h-4 w-4 text-blue-500 ${
+                      className={`h-4 w-4 mr-2 ${
                         isSpinning ? "animate-spin" : ""
                       }`}
                     />
+                    Cập nhật
                   </Button>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
+                </div>
+
                 <div className="grid grid-cols-4 gap-4 text-center">
-                  <div className="p-4 border rounded-lg">
-                    <Eye className="h-8 w-8 mx-auto text-black mb-2" />
-                    <div className="text-2xl font-bold">
+                  <div className="p-6 rounded-2xl bg-white/60 border border-white/60 shadow-sm hover:shadow-md transition-all">
+                    <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-3 text-slate-600">
+                      <Eye className="h-6 w-6" />
+                    </div>
+                    <div className="text-3xl font-bold text-slate-900 mb-1">
                       {currentItem.views ?? 0}
                     </div>
-                    <div className="text-sm text-muted-foreground">Views</div>
+                    <div className="text-sm text-slate-500">Views</div>
                   </div>
-                  <div className="p-4 border rounded-lg">
-                    <ThumbsUp className="h-8 w-8 mx-auto text-blue-600 mb-2" />
-                    <div className="text-2xl font-bold">
+                  <div className="p-6 rounded-2xl bg-white/60 border border-white/60 shadow-sm hover:shadow-md transition-all">
+                    <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center mx-auto mb-3 text-blue-600">
+                      <ThumbsUp className="h-6 w-6" />
+                    </div>
+                    <div className="text-3xl font-bold text-slate-900 mb-1">
                       {currentItem.reactions ?? 0}
                     </div>
-                    <div className="text-sm text-muted-foreground">
-                      Reactions
-                    </div>
+                    <div className="text-sm text-slate-500">Reactions</div>
                   </div>
-                  <div className="p-4 border rounded-lg">
-                    <MessageCircle className="h-8 w-8 mx-auto text-green-600 mb-2" />
-                    <div className="text-2xl font-bold">
+                  <div className="p-6 rounded-2xl bg-white/60 border border-white/60 shadow-sm hover:shadow-md transition-all">
+                    <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-3 text-green-600">
+                      <MessageCircle className="h-6 w-6" />
+                    </div>
+                    <div className="text-3xl font-bold text-slate-900 mb-1">
                       {currentItem.comments ?? 0}
                     </div>
-                    <div className="text-sm text-muted-foreground">
-                      Comments
-                    </div>
+                    <div className="text-sm text-slate-500">Comments</div>
                   </div>
-                  <div className="p-4 border rounded-lg">
-                    <Share2 className="h-8 w-8 mx-auto text-purple-600 mb-2" />
-                    <div className="text-2xl font-bold">
+                  <div className="p-6 rounded-2xl bg-white/60 border border-white/60 shadow-sm hover:shadow-md transition-all">
+                    <div className="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center mx-auto mb-3 text-purple-600">
+                      <Share2 className="h-6 w-6" />
+                    </div>
+                    <div className="text-3xl font-bold text-slate-900 mb-1">
                       {currentItem.shares ?? 0}
                     </div>
-                    <div className="text-sm text-muted-foreground">Shares</div>
+                    <div className="text-sm text-slate-500">Shares</div>
                   </div>
                 </div>
-                <div className="flex items-center gap-3 pt-4 border-t">
-                  <Calendar className="h-5 w-5 text-muted-foreground" />
-                  <div>
-                    <div className="text-sm text-muted-foreground">
-                      Thời gian thống kê
-                    </div>
-                    <div className="font-medium">
-                      {currentItem.statsAt
-                        ? formatDate(currentItem.statsAt)
-                        : "Chưa có dữ liệu"}
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
 
-          {/* Tab 3: AI phân tích */}
-          <TabsContent value="ai" className="space-y-6 mt-6">
-            <Card>
-              <CardContent className="space-y-6">
-                <div className="flex items-start gap-3">
-                  <FileText className="h-5 w-5 text-muted-foreground mt-1" />
+                <div className="flex items-center justify-center gap-2 mt-8 text-slate-400 text-sm">
+                  <Calendar className="h-4 w-4" />
+                  <span>
+                    Dữ liệu cập nhật lúc:{" "}
+                    {currentItem.statsAt
+                      ? formatDate(currentItem.statsAt)
+                      : "Chưa có dữ liệu"}
+                  </span>
+                </div>
+              </div>
+            </TabsContent>
+
+            {/* Tab 3: AI phân tích */}
+            <TabsContent
+              value="ai"
+              className="space-y-6 mt-6 focus-visible:outline-none"
+            >
+              <div className={cn(glassCardClass, "p-6 space-y-6")}>
+                <div className="flex items-start gap-4">
+                  <div className="p-2 rounded-full bg-white/60 shadow-sm mt-1 text-slate-600">
+                    <FileText className="h-5 w-5" />
+                  </div>
                   <div className="flex-1">
-                    <h4 className="font-semibold text-sm text-muted-foreground mb-1">
-                      Chủ đề
-                    </h4>
-                    <p className="text-sm">
+                    <h4 className={cn(glassLabelClass, "mb-1")}>Chủ đề</h4>
+                    <p className="text-slate-800 text-base leading-relaxed">
                       {currentItem.topic || "Chưa xác định"}
                     </p>
                   </div>
                 </div>
-                <div className="flex items-start gap-3">
-                  <Target className="h-5 w-5 text-muted-foreground mt-1" />
+
+                <div className="w-full h-px bg-slate-200/50" />
+
+                <div className="flex items-start gap-4">
+                  <div className="p-2 rounded-full bg-white/60 shadow-sm mt-1 text-slate-600">
+                    <Target className="h-5 w-5" />
+                  </div>
                   <div className="flex-1">
-                    <h4 className="font-semibold text-sm text-muted-foreground mb-1">
+                    <h4 className={cn(glassLabelClass, "mb-1")}>
                       Đối tượng tiếp cận
                     </h4>
-                    <p className="text-sm">
+                    <p className="text-slate-800 text-base leading-relaxed">
                       {currentItem.targetAudience || "Chưa xác định"}
                     </p>
                   </div>
                 </div>
-                <div className="flex items-start gap-3">
-                  <Notebook className="h-5 w-5 text-muted-foreground mt-1" />
+
+                <div className="w-full h-px bg-slate-200/50" />
+
+                <div className="flex items-start gap-4">
+                  <div className="p-2 rounded-full bg-white/60 shadow-sm mt-1 text-slate-600">
+                    <Notebook className="h-5 w-5" />
+                  </div>
                   <div className="flex-1">
-                    <h4 className="font-semibold text-sm text-muted-foreground mb-1">
+                    <h4 className={cn(glassLabelClass, "mb-1")}>
                       Lưu ý nghiên cứu
                     </h4>
-                    <p className="text-sm">
+                    <p className="text-slate-800 text-base leading-relaxed">
                       {currentItem.researchNotes || "Chưa có ghi chú"}
                     </p>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+              </div>
+            </TabsContent>
+          </Tabs>
 
-        <DialogFooter className="flex flex-col sm:flex-row gap-3 mt-8">
-          <Button
-            variant="outline"
-            onClick={() => onEdit?.(currentItem)}
-            className="text-blue-600 border-blue-200 hover:bg-blue-50 cursor-pointer"
-          >
-            <Edit2 className="h-4 w-4 mr-2" />
-            Chỉnh sửa
-          </Button>
-          {currentItem.status === "posted_successfully" && (
+          <DialogFooter className="flex flex-col sm:flex-row gap-3 mt-10 border-t border-slate-200/50 pt-6">
             <Button
               variant="outline"
-              onClick={handleRemovePost}
-              disabled={isLoading}
-              className="text-red-500 hover:text-red-600 hover:bg-red-100 border-red-400 cursor-pointer"
+              onClick={() => onEdit?.(currentItem)}
+              className="bg-white/50 hover:bg-white/80 border-slate-200 text-slate-700 hover:text-slate-900 backdrop-blur-sm"
             >
-              <Trash2 className="h-4 w-4 text-red-500" />
-              {isLoading ? "Đang xóa..." : "Xóa bài đăng"}
+              <Edit2 className="h-4 w-4 mr-2" />
+              Chỉnh sửa
             </Button>
-          )}
-          {currentItem.status === "awaiting_content_approval" && (
-            <Button
-              onClick={() => onApprove?.(currentItem)}
-              disabled={isLoading}
-              className="bg-green-600 hover:bg-green-700 text-white"
-            >
-              <CheckCircle className="h-4 w-4 mr-2" />
-              {isLoading ? "Đang duyệt..." : "Duyệt"}
-            </Button>
-          )}
-        </DialogFooter>
+            {currentItem.status === "posted_successfully" && (
+              <Button
+                variant="outline"
+                onClick={handleRemovePost}
+                disabled={isLoading}
+                className="bg-red-50 hover:bg-red-100 border-red-200 text-red-600 hover:text-red-700 backdrop-blur-sm"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                {isLoading ? "Đang xóa..." : "Xóa bài đăng"}
+              </Button>
+            )}
+            {currentItem.status === "awaiting_content_approval" && (
+              <Button
+                onClick={() => onApprove?.(currentItem)}
+                disabled={isLoading}
+                className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white border-none shadow-lg shadow-emerald-500/20"
+              >
+                <CheckCircle className="h-4 w-4 mr-2" />
+                {isLoading ? "Đang duyệt..." : "Duyệt nội dung"}
+              </Button>
+            )}
+          </DialogFooter>
+        </div>
       </DialogContent>
     </Dialog>
   );

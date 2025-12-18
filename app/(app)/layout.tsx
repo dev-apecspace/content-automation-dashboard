@@ -1,24 +1,20 @@
-"use client"
+"use client";
 
-import type React from "react"
-import { useState } from "react"
-import { Sidebar } from "@/components/sidebar"
-import { ThemeProvider } from "@/components/theme-provider"
-import { Toaster } from "sonner"
-import { useFullscreen } from "@/stores/useFullscreenStore"
-import { ImageFullscreenViewer } from "@/components/ImageFullScreenViewer"
+import type React from "react";
+import { useState } from "react";
+import { Sidebar } from "@/components/sidebar";
+import { ThemeProvider } from "@/components/theme-provider";
+import { Toaster } from "sonner";
+import { useFullscreen } from "@/stores/useFullscreenStore";
+import { ImageFullscreenViewer } from "@/components/ImageFullScreenViewer";
 
-export default function AppLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
-  const [sidebarOpen, setSidebarOpen] = useState(false)
-  const { imageSrc, close } = useFullscreen()
+export default function AppLayout({ children }: { children: React.ReactNode }) {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { imageSrc, close } = useFullscreen();
 
   return (
     <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
-      <div className="flex h-screen bg-gray-50">
+      <div className="flex h-screen bg-gradient-to-br from-slate-50 via-white to-cyan-50/50">
         <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
         <main className="flex-1 flex flex-col overflow-hidden">
           <div className="flex-1 overflow-auto">
@@ -35,5 +31,5 @@ export default function AppLayout({
         onClose={close}
       />
     </ThemeProvider>
-  )
+  );
 }

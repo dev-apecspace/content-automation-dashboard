@@ -32,12 +32,13 @@ import {
   Play,
   CheckCircle,
   Sparkles,
+  DollarSign,
 } from "lucide-react";
-import { getProjects } from "@/lib/api";
-import { VideoItem, Project } from "@/lib/types";
+import { getProjects, getSetting } from "@/lib/api";
+import { VideoItem, Project, ModelConfig, DEFAULT_MODELS } from "@/lib/types";
 import { uploadImageFile, uploadVideoFile } from "@/app/api/cloudinary";
 import { AiRequirementDialog } from "./ai-requirement-dialog";
-import { getContentItemById } from "@/lib/api/content-items"; // Removed invalid import if exists, wait, getVideoItemById needed
+import { getContentItemById } from "@/lib/api/content-items";
 import { getVideoItemById } from "@/lib/api/video-items";
 import { toast } from "sonner";
 
@@ -65,6 +66,7 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
   isLoading,
 }) => {
   const [projects, setProjects] = useState<Project[]>([]);
+  const [modelsList, setModelsList] = useState<ModelConfig[]>([]);
 
   const [formData, setFormData] = useState<Partial<VideoItem>>({
     idea: "",
@@ -85,16 +87,35 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
 
   const [newImageLink, setNewImageLink] = useState("");
 
+  // Load Projects and AI Models
   useEffect(() => {
-    async function fetchProjects() {
+    async function fetchData() {
       try {
-        const realProjects = await getProjects();
+        const [realProjects, modelRegistry] = await Promise.all([
+          getProjects(),
+          getSetting("ai_models_registry"),
+        ]);
         setProjects(realProjects);
+
+        if (modelRegistry && modelRegistry.value) {
+          try {
+            const parsed = JSON.parse(modelRegistry.value);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              setModelsList(parsed);
+            } else {
+              setModelsList(DEFAULT_MODELS);
+            }
+          } catch {
+            setModelsList(DEFAULT_MODELS);
+          }
+        } else {
+          setModelsList(DEFAULT_MODELS);
+        }
       } catch (error) {
-        console.error("Error loading projects:", error);
+        console.error("Error loading data:", error);
       }
     }
-    fetchProjects();
+    fetchData();
   }, []);
 
   useEffect(() => {
@@ -127,6 +148,72 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
     }
   }, [editVideo, isOpen]);
 
+  // Cost Calculation
+  const calculateEstimatedCost = () => {
+    if (!formData.videoDuration || formData.videoDuration <= 0) return null;
+
+    const duration = formData.videoDuration;
+
+    // Find active models (Defaults: first of each type)
+    const videoModel =
+      modelsList.find((m) => m.type === "video") ||
+      DEFAULT_MODELS.find((m) => m.type === "video");
+    const audioModel =
+      modelsList.find((m) => m.type === "audio") ||
+      DEFAULT_MODELS.find((m) => m.type === "audio");
+    const imageModel =
+      modelsList.find((m) => m.type === "image") ||
+      DEFAULT_MODELS.find((m) => m.type === "image");
+
+    let totalCost = 0;
+    const breakdown: string[] = [];
+
+    if (videoModel) {
+      let cost = 0;
+      if (videoModel.unit === "per_second") {
+        cost = duration * videoModel.cost;
+      } else if (videoModel.unit === "per_run") {
+        cost = videoModel.cost;
+      }
+      totalCost += cost;
+      breakdown.push(`${videoModel.name}`);
+    }
+
+    if (audioModel) {
+      let cost = 0;
+      if (audioModel.unit === "per_second") {
+        cost = duration * audioModel.cost;
+      } else if (audioModel.unit === "per_run") {
+        cost = audioModel.cost;
+      }
+      totalCost += cost;
+      breakdown.push(`${audioModel.name}`);
+    }
+
+    /* Image cost excluded as per user request
+     if (imageModel) {
+        let cost = 0;
+        if (imageModel.unit === "per_megapixel") {
+           cost = imageModel.cost * 1; 
+        } else if (imageModel.unit === "per_run") {
+           cost = imageModel.cost;
+        }
+        // totalCost += cost; 
+        // breakdown.push(`${imageModel.name}`);
+     }
+     */
+
+    return {
+      total: totalCost,
+      breakdown: breakdown.join(" + "),
+      videoModel,
+      audioModel,
+      // imageModel
+    };
+  };
+
+  const estimatedCost = calculateEstimatedCost();
+
   const handleProjectChange = (value: string) => {
     const project = projects.find((p) => p.id === value);
     setFormData((prev) => ({
@@ -138,13 +225,16 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
 
   const handlePlatformToggle = (platform: string) => {
     setFormData((prev) => {
-      const currentPlatforms = Array.isArray(prev.platform)
+      const currentPlatforms: any[] = Array.isArray(prev.platform)
         ? prev.platform
-        : [prev.platform];
-      const updated = currentPlatforms.includes(platform as any)
-        ? currentPlatforms.filter((p) => p !== platform)
-        : [...currentPlatforms, platform];
-      return { ...prev, platform: updated as any };
+        : [];
+
+      const p = platform;
+
+      const updated = currentPlatforms.includes(p)
+        ? currentPlatforms.filter((item) => item !== p)
+        : [...currentPlatforms, p];
+      return { ...prev, platform: updated };
     });
   };
 
@@ -318,24 +408,27 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange || handleClose}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto bg-gradient-to-br from-white to-blue-50">
-        <DialogHeader className="border-b pb-4">
-          <div className="flex items-center gap-3">
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto bg-white/80 backdrop-blur-2xl border-white/60 shadow-2xl rounded-[32px] p-0">
+        {/* Vibrant Gradient Background Layer */}
+        <div className="absolute inset-0 -z-10 bg-gradient-to-br from-[#a8c0ff]/40 via-[#3f2b96]/10 to-[#ffafbd]/40 blur-3xl pointer-events-none" />
+
+        <DialogHeader className="border-b border-white/40 pb-6 pt-6 px-6 bg-white/40 sticky top-0 z-10 backdrop-blur-md">
+          <div className="flex items-center gap-4">
             {canEditIdeaFields && (
-              <div className="p-2 bg-amber-100 rounded-lg">
-                <Lightbulb className="w-6 h-6 text-amber-600" />
+              <div className="p-3 bg-white/60 rounded-2xl shadow-sm border border-white/60">
+                <Lightbulb className="w-6 h-6 text-amber-500" />
               </div>
             )}
             {canEditContentApprovalFields && (
-              <div className="p-2 bg-green-100 rounded-lg">
-                <CheckCircle2 className="w-6 h-6 text-green-600" />
+              <div className="p-3 bg-white/60 rounded-2xl shadow-sm border border-white/60">
+                <CheckCircle2 className="w-6 h-6 text-green-500" />
               </div>
             )}
             <div>
-              <DialogTitle className="text-2xl font-bold text-gray-800">
+              <DialogTitle className="text-2xl font-bold text-slate-900 tracking-wide">
                 {editVideo ? "Chỉnh sửa video" : "Tạo video mới"}
               </DialogTitle>
-              <p className="text-sm text-gray-500 mt-1">
+              <p className="text-sm text-slate-500 mt-1 font-medium">
                 {canEditIdeaFields && "Giai đoạn: Ý tưởng ban đầu"}
                 {canEditContentApprovalFields && "Giai đoạn: Duyệt nội dung"}
               </p>
@@ -343,14 +436,14 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
           </div>
         </DialogHeader>
 
-        <div className="grid gap-6 py-4">
+        <div className="grid gap-6 py-6 px-6">
           {canEditIdeaFields && (
             <div className="space-y-6">
               {/* Ý tưởng */}
-              <div className="space-y-2">
+              <div className="space-y-3">
                 <Label
                   htmlFor="idea"
-                  className="flex items-center gap-2 text-base font-semibold text-gray-700"
+                  className="flex items-center gap-2 text-base font-semibold text-slate-700"
                 >
                   <Lightbulb className="w-4 h-4 text-amber-500" />Ý tưởng{" "}
                   <span className="text-red-500">*</span>
@@ -364,14 +457,14 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
                   placeholder="Mô tả ý tưởng video của bạn..."
                   rows={3}
                   required
-                  className="border-2 border-amber-200 focus:border-amber-400 bg-white"
+                  className="border-white/60 bg-white/50 focus:bg-white/80 focus:border-amber-400 focus:ring-amber-100 rounded-xl resize-none transition-all duration-200 shadow-sm"
                 />
               </div>
 
               {/* Dự án & Tiêu đề */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label className="flex items-center gap-2 text-base font-semibold text-gray-700">
+              <div className="grid grid-cols-2 gap-6">
+                <div className="space-y-3">
+                  <Label className="flex items-center gap-2 text-base font-semibold text-slate-700">
                     <Folder className="w-4 h-4 text-blue-500" />
                     Dự án <span className="text-red-500">*</span>
                   </Label>
@@ -380,12 +473,16 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
                     onValueChange={handleProjectChange}
                     required
                   >
-                    <SelectTrigger className="border-2 border-blue-200 bg-white">
+                    <SelectTrigger className="border-white/60 bg-white/50 focus:bg-white/80 focus:ring-blue-100 rounded-xl h-11 shadow-sm">
                       <SelectValue placeholder="Chọn dự án" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="rounded-xl border-white/60 bg-white/90 backdrop-blur-xl shadow-lg">
                       {projects.map((p) => (
-                        <SelectItem key={p.id} value={p.id}>
+                        <SelectItem
+                          key={p.id}
+                          value={p.id}
+                          className="focus:bg-blue-50 cursor-pointer rounded-lg"
+                        >
                           {p.name}
                         </SelectItem>
                       ))}
@@ -395,12 +492,12 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
               </div>
 
               {/* Nền tảng */}
-              <div className="space-y-2">
+              <div className="space-y-3">
                 <Label className="flex items-center gap-2 text-base font-semibold text-gray-700">
                   <Monitor className="w-4 h-4 text-blue-500" />
                   Nền tảng <span className="text-red-500">*</span>
                 </Label>
-                <div className="flex flex-wrap gap-4 p-4 border-2 border-blue-200 rounded-lg bg-white">
+                <div className="flex flex-wrap gap-4 p-4 border border-white/60 bg-white/40 backdrop-blur-md rounded-2xl shadow-sm">
                   {["Facebook Reels", "Youtube Shorts"].map((platform) => (
                     <div key={platform} className="flex items-center gap-2">
                       <Checkbox
@@ -411,10 +508,11 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
                             : false
                         }
                         onCheckedChange={() => handlePlatformToggle(platform)}
+                        className="data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600 border-slate-300"
                       />
                       <label
                         htmlFor={platform}
-                        className="text-sm font-medium cursor-pointer"
+                        className="text-sm font-medium cursor-pointer text-slate-700"
                       >
                         {platform}
                       </label>
@@ -424,11 +522,19 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
               </div>
 
               {/* Thời lượng */}
-              <div className="space-y-2">
-                <Label className="flex items-center gap-2 text-base font-semibold text-gray-700">
-                  <Clock className="w-4 h-4 text-orange-500" />
-                  Thời lượng (giây) <span className="text-red-500">*</span>
-                </Label>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <Label className="flex items-center gap-2 text-base font-semibold text-slate-700">
+                    <Clock className="w-4 h-4 text-amber-500" />
+                    Thời lượng (giây) <span className="text-red-500">*</span>
+                  </Label>
+                  {estimatedCost && (
+                    <div className="text-sm font-medium text-gray-700 px-3 flex items-center gap-1.5">
+                      ${estimatedCost.total.toFixed(2)} (~
+                      {(estimatedCost.total * 26000).toLocaleString("vi-VN")}đ)
+                    </div>
+                  )}
+                </div>
                 <Input
                   type="number"
                   value={formData.videoDuration || ""}
@@ -441,57 +547,14 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
                     }))
                   }
                   placeholder="0"
-                  className="border-2 border-orange-200 focus:border-orange-400 bg-white"
+                  className="border-white/60 bg-white/50 focus:bg-white/80 focus:border-amber-400 rounded-xl h-11 shadow-sm"
                 />
               </div>
 
-              {/* Link video có sẵn */}
-              {/* <div className="space-y-4 p-5 rounded-xl border-2 border-indigo-200">
-                <Label className="flex items-center gap-2 text-base font-semibold text-gray-700">
-                  <Film className="w-4 h-4 text-indigo-500" />
-                  Link video có sẵn (tùy chọn)
-                </Label>
-
-                <div className="flex gap-3">
-                  <Input
-                    placeholder="Dán link video hoặc tải lên..."
-                    value={formData.existingVideoLink || ""}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        existingVideoLink: e.target.value,
-                      }))
-                    }
-                    className="flex-1 border-2 border-indigo-300 focus:border-indigo-500 bg-white"
-                  />
-                  <label>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="border-indigo-600 text-indigo-600 hover:bg-indigo-50 cursor-pointer"
-                      onClick={() =>
-                        document
-                          .getElementById("file-upload-existing-video")
-                          ?.click()
-                      }
-                    >
-                      <Upload className="w-4 h-4" />
-                    </Button>
-                    <input
-                      id="file-upload-existing-video"
-                      type="file"
-                      accept="video/*"
-                      onChange={handleVideoUpload}
-                      className="hidden"
-                    />
-                  </label>
-                </div>
-              </div> */}
-
               {/* Ảnh */}
-              <div className="space-y-4 p-5 rounded-xl border-2 border-green-200">
-                <Label className="flex items-center gap-2 text-base font-semibold text-gray-700">
-                  <ImageIcon className="w-4 h-4 text-green-500" />
+              <div className="space-y-4 bg-white/40 backdrop-blur-md border border-white/60 rounded-2xl shadow-sm p-6 hover:bg-white/60 transition-all duration-300">
+                <Label className="flex items-center gap-2 text-base font-semibold text-slate-700">
+                  <ImageIcon className="w-4 h-4 text-emerald-500" />
                   Ảnh (tùy chọn)
                 </Label>
 
@@ -509,13 +572,13 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
                         }));
                       }
                     }}
-                    className="flex-1 border-2 border-green-300 focus:border-green-500 bg-white"
+                    className="flex-1 border-white/60 bg-white/50 focus:bg-white/80 focus:border-emerald-500 rounded-xl shadow-sm"
                   />
                   <label>
                     <Button
                       type="button"
                       variant="outline"
-                      className="border-green-600 text-green-600 hover:bg-green-50 cursor-pointer"
+                      className="bg-white/50 border-emerald-200 text-emerald-600 hover:bg-white/80 hover:border-emerald-300 rounded-xl shadow-sm"
                       onClick={() =>
                         document
                           .getElementById("file-upload-idea-image")
@@ -535,26 +598,26 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
                 </div>
 
                 {formData.imageLink && (
-                  <div className="relative group inline-block">
+                  <div className="relative group inline-block rounded-xl overflow-hidden shadow-md border border-white/60">
                     <img
                       src={formData.imageLink}
                       alt="Preview"
-                      className="max-h-64 rounded-lg border-2 border-green-300"
+                      className="max-h-64 object-cover"
                     />
-                    <div className="absolute top-2 right-2 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
                       <button
                         onClick={handleRemoveImage}
-                        className="p-2 bg-red-500 text-white rounded-full hover:bg-red-600 cursor-pointer"
+                        className="p-3 bg-white/20 backdrop-blur-md border border-white/50 text-red-500 rounded-full hover:bg-white/40 transition-colors"
                         title="Xóa"
                       >
-                        <X className="w-4 h-4" />
+                        <X className="w-5 h-5" />
                       </button>
                     </div>
                   </div>
                 )}
               </div>
-              <div className="space-y-2">
-                <Label className="text-sm font-semibold text-gray-700">
+              <div className="space-y-3">
+                <Label className="text-sm font-semibold text-slate-700">
                   Ghi chú (tùy chọn)
                 </Label>
                 <Textarea
@@ -567,7 +630,7 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
                   }
                   placeholder="Ghi chú về video..."
                   rows={2}
-                  className="border-2 border-gray-300 bg-white"
+                  className="border-white/60 bg-white/50 focus:bg-white/80 focus:border-slate-400 rounded-xl resize-none shadow-sm"
                 />
               </div>
             </div>
@@ -576,8 +639,8 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
           {canEditContentApprovalFields && (
             <div className="space-y-6">
               {/* Thời gian đăng */}
-              <div>
-                <Label className="flex items-center justify-between text-base font-semibold text-gray-700 mb-4">
+              <div className="bg-white/40 backdrop-blur-md border border-white/60 rounded-2xl shadow-sm p-6 hover:bg-white/60 transition-all duration-300">
+                <Label className="flex items-center justify-between text-base font-semibold text-slate-700 mb-4">
                   <div className="flex items-center gap-2">
                     <Clock className="w-4 h-4 text-blue-500" />
                     Thời gian đăng <span className="text-red-500">*</span>
@@ -586,35 +649,37 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
                     variant="ghost"
                     size="sm"
                     onClick={() => handleEditWithAI("schedule")}
-                    className="h-6 text-xs text-yellow-600 hover:text-yellow-800 hover:bg-yellow-50"
+                    className="h-8 text-xs bg-amber-50 text-amber-600 hover:text-amber-800 hover:bg-amber-100 border border-amber-200 rounded-lg shadow-sm"
                   >
-                    <Sparkles className="w-3 h-3 mr-1" />
+                    <Sparkles className="w-3.5 h-3.5 mr-1.5" />
                     AI xếp lịch
                   </Button>
                 </Label>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-600 mb-1">
+                    <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
                       Ngày đăng
                     </label>
-                    <Input
-                      type="date"
-                      value={formData.expectedPostDate || ""}
-                      onChange={(e) => {
-                        setFormData((prev) => ({
-                          ...prev,
-                          expectedPostDate: e.target.value,
-                        }));
-                        updatePostingTime(
-                          e.target.value,
-                          formData.postingTime?.split(" ")[1] || ""
-                        );
-                      }}
-                      className="border-2 border-blue-200 focus:border-blue-400 bg-white"
-                    />
+                    <div className="relative">
+                      <Input
+                        type="date"
+                        value={formData.expectedPostDate || ""}
+                        onChange={(e) => {
+                          setFormData((prev) => ({
+                            ...prev,
+                            expectedPostDate: e.target.value,
+                          }));
+                          updatePostingTime(
+                            e.target.value,
+                            formData.postingTime?.split(" ")[1] || ""
+                          );
+                        }}
+                        className="border-white/60 bg-white/50 focus:bg-white/80 focus:border-blue-400 rounded-xl h-11 shadow-sm"
+                      />
+                    </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-600 mb-1">
+                    <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
                       Giờ đăng
                     </label>
                     <Input
@@ -626,7 +691,7 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
                           e.target.value
                         )
                       }
-                      className="border-2 border-blue-200 focus:border-blue-400 bg-white"
+                      className="border-white/60 bg-white/50 focus:bg-white/80 focus:border-blue-400 rounded-xl h-11 shadow-sm"
                     />
                   </div>
                 </div>
@@ -634,8 +699,8 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
 
               {/* Tiêu đề & Video link */}
               {formData.platform?.includes("Youtube Shorts") && (
-                <div className="space-y-2">
-                  <Label className="flex items-center gap-2 text-base font-semibold text-gray-700">
+                <div className="space-y-3">
+                  <Label className="flex items-center gap-2 text-base font-semibold text-slate-700">
                     <Film className="w-4 h-4 text-indigo-500" />
                     Tiêu đề <span className="text-red-500">*</span>
                   </Label>
@@ -648,13 +713,13 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
                       }))
                     }
                     placeholder="Nhập tiêu đề video..."
-                    className="border-2 border-indigo-200 focus:border-indigo-400 bg-white"
+                    className="border-white/60 bg-white/50 focus:bg-white/80 focus:border-indigo-400 rounded-xl h-11 shadow-sm"
                   />
                 </div>
               )}
 
-              <div className="space-y-2">
-                <Label className="flex items-center justify-between text-base font-semibold text-gray-700">
+              <div className="space-y-3">
+                <Label className="flex items-center justify-between text-base font-semibold text-slate-700">
                   <div className="flex items-center gap-2">
                     <Play className="w-4 h-4 text-red-500" />
                     Video sẽ đăng
@@ -663,9 +728,9 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
                     variant="ghost"
                     size="sm"
                     onClick={() => handleEditWithAI("video-edit")}
-                    className="h-6 text-xs text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50"
+                    className="h-8 text-xs bg-indigo-50 text-indigo-600 hover:text-indigo-800 hover:bg-indigo-100 border border-indigo-200 rounded-lg shadow-sm"
                   >
-                    <Sparkles className="w-3 h-3 mr-1" />
+                    <Sparkles className="w-3.5 h-3.5 mr-1.5" />
                     Sửa video
                   </Button>
                 </Label>
@@ -678,13 +743,13 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
                     }))
                   }
                   placeholder="https://..."
-                  className="border-2 border-red-200 focus:border-red-400 bg-white"
+                  className="border-white/60 bg-white/50 focus:bg-white/80 focus:border-red-400 rounded-xl h-11 shadow-sm"
                 />
               </div>
 
               {/* Caption */}
-              <div className="space-y-2">
-                <Label className="flex items-center gap-2 text-base font-semibold text-gray-700">
+              <div className="space-y-3">
+                <Label className="flex items-center gap-2 text-base font-semibold text-slate-700">
                   <MessageSquare className="w-4 h-4 text-purple-500" />
                   Caption <span className="text-red-500">*</span>
                 </Label>
@@ -699,13 +764,14 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
                   placeholder="Nhập caption cho video..."
                   rows={4}
                   required
-                  className="border-2 border-purple-200 focus:border-purple-400 bg-white"
+                  className="border-white/60 bg-white/50 focus:bg-white/80 focus:border-purple-400 rounded-xl resize-none shadow-sm custom-scrollbar"
                 />
               </div>
 
               {/* Ảnh */}
-              <div className="space-y-4 p-5 rounded-xl border-2 border-green-200">
-                <Label className="flex items-center gap-2 text-base font-semibold text-gray-700">
+              <div className="space-y-4 bg-white/40 backdrop-blur-md border border-white/60 rounded-2xl shadow-sm p-6 hover:bg-white/60 transition-all duration-300">
+                <Label className="flex items-center gap-2 text-base font-semibold text-slate-700">
+                  <ImageIcon className="w-4 h-4 text-emerald-500" />
                   Ảnh (tùy chọn)
                 </Label>
 
@@ -723,13 +789,13 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
                         }));
                       }
                     }}
-                    className="flex-1 border-2 border-green-300 focus:border-green-500 bg-white"
+                    className="flex-1 border-white/60 bg-white/50 focus:bg-white/80 focus:border-emerald-500 rounded-xl shadow-sm"
                   />
                   <label>
                     <Button
                       type="button"
                       variant="outline"
-                      className="border-green-600 text-green-600 hover:bg-green-50 cursor-pointer"
+                      className="bg-white/50 border-emerald-200 text-emerald-600 hover:bg-white/80 hover:border-emerald-300 rounded-xl shadow-sm"
                       onClick={() =>
                         document.getElementById("file-upload-video")?.click()
                       }
@@ -747,19 +813,19 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
                 </div>
 
                 {formData.imageLink && (
-                  <div className="relative group inline-block">
+                  <div className="relative group inline-block rounded-xl overflow-hidden shadow-md border border-white/60">
                     <img
                       src={formData.imageLink}
                       alt="Preview"
-                      className="max-h-64 rounded-lg border-2 border-green-300"
+                      className="max-h-64 object-cover"
                     />
-                    <div className="absolute top-2 right-2 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
                       <button
                         onClick={handleRemoveImage}
-                        className="p-2 bg-red-500 text-white rounded-full hover:bg-red-600 cursor-pointer"
+                        className="p-3 bg-white/20 backdrop-blur-md border border-white/50 text-red-500 rounded-full hover:bg-white/40 transition-colors"
                         title="Xóa"
                       >
-                        <X className="w-4 h-4" />
+                        <X className="w-5 h-5" />
                       </button>
                     </div>
                   </div>
@@ -769,20 +835,23 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
           )}
 
           {!canEditIdeaFields && !canEditContentApprovalFields && (
-            <div className="flex items-center justify-center gap-3 py-8">
-              <p className="font-semibold text-orange-600">
+            <div className="flex flex-col items-center justify-center gap-3 py-10 text-slate-400">
+              <div className="p-4 bg-slate-50 rounded-full">
+                <CheckCircle2 className="w-8 h-8" />
+              </div>
+              <p className="font-medium">
                 Không thể chỉnh sửa ở trạng thái hiện tại
               </p>
             </div>
           )}
         </div>
 
-        <DialogFooter className="border-t pt-4 gap-2">
+        <DialogFooter className="border-t border-white/40 p-6 bg-white/40 backdrop-blur-sm sticky bottom-0 z-10">
           <Button
             variant="outline"
             onClick={handleClose}
             disabled={isLoading || isSaving}
-            className="cursor-pointer"
+            className="cursor-pointer bg-white/50 hover:bg-white/80 border-slate-200 text-slate-700 hover:text-slate-900 rounded-xl px-6 backdrop-blur-sm"
           >
             Hủy
           </Button>
@@ -791,7 +860,7 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
             <Button
               onClick={() => onApproveIdea?.(editVideo)}
               disabled={isLoading || isSaving || !isIdeaValid}
-              className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-lg cursor-pointer"
+              className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg shadow-blue-200/50 rounded-xl px-8"
             >
               {isSaving || isLoading ? (
                 <span className="flex items-center gap-2">
@@ -832,21 +901,11 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
             ) : editVideo ? (
               "Cập nhật"
             ) : (
-              "Thêm mới"
+              "Tạo mới"
             )}
           </Button>
         </DialogFooter>
       </DialogContent>
-
-      {/* AI DIALOG */}
-      <AiRequirementDialog
-        isOpen={aiPromptOpen}
-        onClose={() => setAiPromptOpen(false)}
-        type={aiPromptType}
-        initialRequirement=""
-        onConfirm={handleConfirmAiEdit}
-        isLoading={isAiLoading}
-      />
     </Dialog>
   );
 };

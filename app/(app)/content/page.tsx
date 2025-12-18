@@ -198,7 +198,7 @@ export default function ContentPage() {
         if (updated.postingTime) {
           const oldTime = editContent.postingTime?.trim() || "";
           const newTime = updated.postingTime.trim();
-          
+
           if (oldTime !== newTime) {
             await schedulePost(updated);
           }
@@ -255,15 +255,13 @@ export default function ContentPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Quản Lý Bài Viết</h1>
-          <p className="text-gray-600 mt-1">
+          <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-cyan-600 drop-shadow-sm pb-1">
+            Quản Lý Bài Viết
+          </h1>
+          <p className="text-slate-500 font-medium mt-1">
             Quản lý bài viết cho các nền tảng mạng xã hội
           </p>
         </div>
-        <Button onClick={handleCreateClick} className="gap-2">
-          <Plus className="h-4 w-4" />
-          Tạo Bài Viết
-        </Button>
       </div>
 
       <ContentTable

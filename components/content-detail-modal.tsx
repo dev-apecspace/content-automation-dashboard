@@ -30,16 +30,24 @@ import {
   Captions,
   RefreshCw,
   Trash2,
+  DollarSign,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { contentTypes, statusConfig, type ContentItem } from "@/lib/types";
-import { projects } from "@/lib/mock-data";
+import {
+  contentTypes,
+  statusConfig,
+  type ContentItem,
+  ModelConfig,
+  DEFAULT_MODELS,
+  Project,
+  platformColors,
+} from "@/lib/types";
 import { format, set } from "date-fns";
 import { toast } from "sonner";
 import { useState, useEffect } from "react";
 import { getContentItemById } from "@/lib/api/content-items";
 import { se } from "date-fns/locale";
-import { createActivityLog } from "@/lib/api";
+import { createActivityLog, getSetting, getProjects } from "@/lib/api";
 
 interface ContentDetailModalProps {
   isOpen: boolean;
@@ -65,14 +73,56 @@ export function ContentDetailModal({
   const [currentItem, setCurrentItem] = useState<ContentItem | null>(
     content ?? item ?? null
   );
+  const [modelsList, setModelsList] = useState<ModelConfig[]>([]);
+  const [projectList, setProjectList] = useState<Project[]>([]);
 
   useEffect(() => {
     setCurrentItem(content ?? item ?? null);
   }, [content, item]);
 
+  // Load AI Models
+  useEffect(() => {
+    async function fetchModels() {
+      try {
+        const modelRegistry = await getSetting("ai_models_registry");
+        if (modelRegistry && modelRegistry.value) {
+          try {
+            const parsed = JSON.parse(modelRegistry.value);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              setModelsList(parsed);
+            } else {
+              setModelsList(DEFAULT_MODELS);
+            }
+          } catch {
+            setModelsList(DEFAULT_MODELS);
+          }
+        } else {
+          setModelsList(DEFAULT_MODELS);
+        }
+      } catch (error) {
+        console.error("Error loading models:", error);
+        setModelsList(DEFAULT_MODELS);
+      }
+    }
+    fetchModels();
+  }, [isOpen]);
+
+  // Load Projects
+  useEffect(() => {
+    async function fetchProjects() {
+      try {
+        const projects = await getProjects();
+        setProjectList(projects);
+      } catch (error) {
+        console.error("Error loading projects:", error);
+      }
+    }
+    fetchProjects();
+  }, [isOpen]);
+
   if (!currentItem) return null;
 
-  const project = projects.find((p) => p.id === currentItem.projectId);
+  const project = projectList.find((p) => p.id === currentItem.projectId);
 
   const formatDate = (dateStr?: string) => {
     if (!dateStr) return "-";
@@ -148,320 +198,448 @@ export function ContentDetailModal({
     }
   };
 
+  // Cost Calculation Logic
+  const calculateEstimatedCost = () => {
+    if (!currentItem) return null;
+
+    // Check if there is an image to calculate cost for
+    if (!currentItem.imageLink) return null;
+
+    const imageModel =
+      modelsList.find((m) => m.type === "image") ||
+      DEFAULT_MODELS.find((m) => m.type === "image");
+
+    if (!imageModel) return null;
+
+    let cost = 0;
+    if (imageModel.unit === "per_megapixel") {
+      cost = imageModel.cost * 1; // Default 1MP
+    } else if (imageModel.unit === "per_run") {
+      cost = imageModel.cost;
+    }
+
+    return {
+      total: cost,
+    };
+  };
+
+  const estimatedCost = calculateEstimatedCost();
+
+  // Glassmorphism helper classes (Light Mode)
+  const glassCardClass =
+    "bg-white/40 backdrop-blur-md border border-white/60 rounded-2xl shadow-sm hover:bg-white/60 transition-all duration-300";
+  const glassTextClass = "text-slate-900";
+  const glassTextMutedClass = "text-slate-600";
+  const glassLabelClass =
+    "text-slate-500 text-xs uppercase tracking-wider font-semibold";
+
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange || onClose}>
-      <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader className="space-y-4">
-          <DialogTitle className="font-bold leading-tight pr-8">
-            {currentItem.idea}
-          </DialogTitle>
-          <div className="space-y-3">
-            {/* Các badge */}
-            <div className="flex flex-wrap items-center gap-2">
-              <Badge
-                variant="outline"
-                className={cn(
-                  "border",
-                  statusConfig[currentItem.status].className
-                )}
-              >
-                {statusConfig[currentItem.status].label}
-              </Badge>
-              <Badge
-                variant="outline"
-                style={{
-                  backgroundColor: `${project?.color}20`,
-                  borderColor: project?.color,
-                  color: project?.color,
-                }}
-              >
-                {currentItem.projectName}
-              </Badge>
-              <Badge
-                variant="outline"
-                className="border-emerald-300 text-emerald-700"
-              >
-                {contentTypes.find(
-                  (type) => type.value === currentItem.contentType
-                )?.label || currentItem.contentType}
-              </Badge>
-              <Badge
-                variant="outline"
-                className="border-blue-300 text-blue-700"
-              >
-                {currentItem.platform}
-              </Badge>
+      <DialogContent
+        className="max-w-5xl max-h-[90vh] overflow-y-auto bg-white/80 backdrop-blur-2xl border-white/60 shadow-2xl rounded-[32px] p-0 sm:max-w-5xl [&>button]:text-slate-600 [&>button]:hover:text-slate-900"
+        showCloseButton={true}
+      >
+        {/* Vibrant Gradient Background Layer (Lighter/Pastel for Light Mode) */}
+        <div className="absolute inset-0 -z-10 bg-gradient-to-br from-[#a8c0ff]/40 via-[#3f2b96]/10 to-[#ffafbd]/40 blur-3xl pointer-events-none" />
+
+        <div className="p-8 relative z-10">
+          <DialogHeader className="space-y-6">
+            <DialogTitle className="text-2xl font-bold leading-tight pr-8 text-slate-900 tracking-wide">
+              {currentItem.idea}
+            </DialogTitle>
+            <div className="space-y-3">
+              {/* Các badge */}
+              <div className="flex flex-wrap items-center gap-3">
+                <Badge
+                  variant="outline"
+                  className={cn(
+                    "border-slate-200/60 bg-white/50 text-slate-700 backdrop-blur-sm px-3 py-1",
+                    statusConfig[currentItem.status].className
+                  )}
+                >
+                  {statusConfig[currentItem.status].label}
+                </Badge>
+                <Badge
+                  variant="outline"
+                  style={{
+                    backgroundColor: project?.color
+                      ? `${project.color}15`
+                      : undefined, // 10% opacity
+                    color: project?.color,
+                    borderColor: project?.color
+                      ? `${project.color}40`
+                      : undefined,
+                  }}
+                  className="backdrop-blur-sm px-3 py-1"
+                >
+                  {currentItem.projectName}
+                </Badge>
+                <Badge
+                  variant="outline"
+                  className={cn("backdrop-blur-sm px-3 py-1", {
+                    "bg-purple-50 text-purple-700 border-purple-200":
+                      currentItem.contentType === "product",
+                    "bg-indigo-50 text-indigo-700 border-indigo-200":
+                      currentItem.contentType === "brand",
+                    "bg-slate-50 text-slate-700 border-slate-200":
+                      currentItem.contentType === "other" ||
+                      !currentItem.contentType,
+                  })}
+                >
+                  {contentTypes.find(
+                    (type) => type.value === currentItem.contentType
+                  )?.label ||
+                    currentItem.contentType ||
+                    "Khác"}
+                </Badge>
+                <Badge
+                  variant="outline"
+                  className={cn(
+                    "backdrop-blur-sm px-3 py-1 flex items-center gap-1",
+                    platformColors[currentItem.platform] ||
+                      "bg-slate-50 text-slate-700 border-slate-200"
+                  )}
+                >
+                  {/* We could use icons here if we want content type icons */}
+                  {currentItem.platform}
+                </Badge>
+              </div>
             </div>
-          </div>
-        </DialogHeader>
+          </DialogHeader>
 
-        <Tabs defaultValue="info" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="info">Thông tin</TabsTrigger>
-            <TabsTrigger value="interaction">Lượt tương tác</TabsTrigger>
-            <TabsTrigger value="ai">AI phân tích</TabsTrigger>
-          </TabsList>
+          <Tabs defaultValue="info" className="w-full mt-8">
+            <TabsList className="bg-slate-100/50 border border-white/50 p-1 rounded-xl w-full max-w-md mx-auto grid grid-cols-3 mb-8 shadow-inner">
+              <TabsTrigger
+                value="info"
+                className="data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm text-slate-500 rounded-lg transition-all"
+              >
+                Thông tin
+              </TabsTrigger>
+              <TabsTrigger
+                value="interaction"
+                className="data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm text-slate-500 rounded-lg transition-all"
+              >
+                Tương tác
+              </TabsTrigger>
+              <TabsTrigger
+                value="ai"
+                className="data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm text-slate-500 rounded-lg transition-all"
+              >
+                AI Phân tích
+              </TabsTrigger>
+            </TabsList>
 
-          {/* Tab 1: Thông tin */}
-          <TabsContent value="info" className="space-y-6 mt-6">
-            <Card>
-              <CardContent className="space-y-6">
-                <div className="flex items-center gap-4">
-                  <Clock className="h-5 w-5 text-muted-foreground" />
+            {/* Tab 1: Thông tin */}
+            <TabsContent
+              value="info"
+              className="space-y-6 focus-visible:outline-none"
+            >
+              <div className={cn(glassCardClass, "p-6")}>
+                <div className="flex items-center gap-4 mb-6">
+                  <div className="p-2 rounded-full bg-white/60 shadow-sm text-blue-600">
+                    <Clock className="h-5 w-5" />
+                  </div>
                   <div>
-                    <p className="text-xs text-muted-foreground">
-                      Thời gian đăng
-                    </p>
-                    <p className="text-base font-medium">
+                    <p className={glassLabelClass}>Thời gian đăng</p>
+                    <p className="text-lg font-medium text-slate-900">
                       {currentItem.postingTime || "-"}
                     </p>
                   </div>
                 </div>
 
-                <div>
-                  <div className="flex items-center gap-3 mb-2">
-                    <Captions className="h-5 w-5 text-muted-foreground" />
-                    <h4 className="font-semibold">Caption</h4>
+                <div className="mb-6">
+                  <div className="flex items-center gap-3 mb-3">
+                    <Captions className="h-5 w-5 text-slate-500" />
+                    <h4 className="font-semibold text-slate-900">Caption</h4>
                   </div>
-                  <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-                    {currentItem.caption || "Chưa có caption"}
-                  </p>
+                  <div className="bg-white/50 rounded-xl p-4 border border-white/60 shadow-inner">
+                    <p className="text-slate-700 whitespace-pre-wrap leading-relaxed">
+                      {currentItem.caption || "Chưa có caption"}
+                    </p>
+                  </div>
                 </div>
-                {currentItem.imageLink && (
-                  <div className="flex items-start gap-3">
-                    <Link className="h-5 w-5 text-muted-foreground mt-1" />
+
+                {/* Cost Display */}
+                {estimatedCost && estimatedCost.total > 0 && (
+                  <div className="flex items-center gap-4 mb-6">
+                    <div className="p-2 rounded-full bg-white/60 shadow-sm text-emerald-600">
+                      <DollarSign className="h-5 w-5" />
+                    </div>
                     <div>
-                      <div className="text-sm text-muted-foreground mb-1">
-                        Ảnh
+                      <div className={glassLabelClass}>Chi phí ước tính</div>
+                      <div className="inline-flex items-center gap-2">
+                        <span className="font-medium text-slate-900 text-lg">
+                          ${estimatedCost.total.toFixed(3)}
+                        </span>
+                        <span className="text-slate-500 text-sm">
+                          (~
+                          {(estimatedCost.total * 26000).toLocaleString(
+                            "vi-VN"
+                          )}
+                          đ)
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {currentItem.imageLink && (
+                  <div className="flex items-start gap-4 mb-6">
+                    <div className="p-2 rounded-full bg-white/60 shadow-sm mt-1 text-blue-600">
+                      <Link className="h-4 w-4" />
+                    </div>
+                    <div className="flex-1">
+                      <div className={cn(glassLabelClass, "mb-2")}>
+                        Ảnh đính kèm
                       </div>
                       <a
                         href={currentItem.imageLink}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-sm text-blue-600 hover:underline break-all"
+                        className="text-blue-600 hover:text-blue-700 hover:underline break-all text-sm mb-3 block truncate"
                       >
                         {currentItem.imageLink}
                       </a>
                       <img
                         src={currentItem.imageLink}
                         alt="Preview"
-                        className="max-w-full h-72 mt-3 rounded-lg border border-gray-300 shadow-sm"
+                        className="max-h-[380px]"
                       />
                     </div>
                   </div>
                 )}
 
                 {currentItem.postUrl && (
-                  <div className="flex items-start gap-3">
-                    <Globe className="h-5 w-5 text-muted-foreground mt-1" />
+                  <div className="flex items-center gap-4">
+                    <div className="p-2 rounded-full bg-white/60 shadow-sm text-blue-600">
+                      <Globe className="h-4 w-4" />
+                    </div>
                     <div>
-                      <div className="text-sm text-muted-foreground mb-1">
-                        Link post
-                      </div>
+                      <div className={glassLabelClass}>Link bài đăng</div>
                       <a
                         href={currentItem.postUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-sm text-blue-600 hover:underline"
+                        className="text-blue-600 hover:text-blue-700 hover:underline font-medium"
                       >
-                        Xem bài đăng
+                        Truy cập bài viết
                       </a>
                     </div>
                   </div>
                 )}
-              </CardContent>
-            </Card>
+              </div>
 
-            <Card>
-              <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="flex items-center gap-3">
-                  <User className="h-5 w-5 text-muted-foreground" />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div
+                  className={cn(glassCardClass, "p-4 flex items-center gap-4")}
+                >
+                  <div className="p-2 rounded-full bg-white/60 shadow-sm text-slate-600">
+                    <User className="h-4 w-4" />
+                  </div>
                   <div>
-                    <div className="text-sm text-muted-foreground">
-                      Người duyệt
-                    </div>
-                    <div className="font-medium">
+                    <div className={glassLabelClass}>Người duyệt</div>
+                    <div className="font-medium text-slate-900">
                       {currentItem.approvedBy || "-"}
                     </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  <Calendar className="h-5 w-5 text-muted-foreground" />
+                <div
+                  className={cn(glassCardClass, "p-4 flex items-center gap-4")}
+                >
+                  <div className="p-2 rounded-full bg-white/60 shadow-sm text-slate-600">
+                    <CheckCircle className="h-4 w-4" />
+                  </div>
                   <div>
-                    <div className="text-sm text-muted-foreground">
-                      Thời gian duyệt
-                    </div>
-                    <div className="font-medium">
+                    <div className={glassLabelClass}>Thời gian duyệt</div>
+                    <div className="font-medium text-slate-900">
                       {formatDate(currentItem.approvedAt)}
                     </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  <Calendar className="h-5 w-5 text-muted-foreground" />
+                <div
+                  className={cn(glassCardClass, "p-4 flex items-center gap-4")}
+                >
+                  <div className="p-2 rounded-full bg-white/60 shadow-sm text-slate-600">
+                    <Clock className="h-4 w-4" />
+                  </div>
                   <div>
-                    <div className="text-sm text-muted-foreground">
-                      Thời gian tạo
-                    </div>
-                    <div className="font-medium">
+                    <div className={glassLabelClass}>Thời gian tạo</div>
+                    <div className="font-medium text-slate-900">
                       {formatDate(currentItem.createdAt)}
                     </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  <Calendar className="h-5 w-5 text-muted-foreground" />
+                <div
+                  className={cn(glassCardClass, "p-4 flex items-center gap-4")}
+                >
+                  <div className="p-2 rounded-full bg-white/60 shadow-sm text-slate-600">
+                    <RefreshCw className="h-4 w-4" />
+                  </div>
                   <div>
-                    <div className="text-sm text-muted-foreground">
-                      Cập nhật cuối
-                    </div>
-                    <div className="font-medium">
+                    <div className={glassLabelClass}>Cập nhật cuối</div>
+                    <div className="font-medium text-slate-900">
                       {formatDate(currentItem.updatedAt)}
                     </div>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
+              </div>
+            </TabsContent>
 
-          {/* Tab 2: Lượt tương tác */}
-          <TabsContent value="interaction" className="mt-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg flex justify-between">
-                  <div className="flex items-center gap-2">
-                    <BarChart3 className="h-5 w-5" /> Lượt tương tác
+            {/* Tab 2: Lượt tương tác */}
+            <TabsContent
+              value="interaction"
+              className="mt-6 focus-visible:outline-none"
+            >
+              <div className={cn(glassCardClass, "p-6")}>
+                <div className="flex items-center justify-between mb-8 border-b border-slate-200/50 pb-4">
+                  <div className="flex items-center gap-3">
+                    <BarChart3 className="h-6 w-6 text-slate-800" />
+                    <span className="text-xl font-bold text-slate-900">
+                      Thống kê hiệu quả
+                    </span>
                   </div>
                   <Button
-                    variant="outline"
+                    variant="ghost"
                     size="sm"
                     onClick={triggerEngagementTracker}
-                    className="cursor-pointer"
+                    className="text-slate-600 hover:text-slate-900 hover:bg-white/50"
                   >
                     <RefreshCw
-                      className={`h-4 w-4 text-blue-500 ${
+                      className={`h-4 w-4 mr-2 ${
                         isSpinning ? "animate-spin" : ""
                       }`}
                     />
+                    Cập nhật
                   </Button>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="grid grid-cols-3 gap-4 text-center">
-                  <div className="p-4 border rounded-lg">
-                    <ThumbsUp className="h-8 w-8 mx-auto text-blue-600 mb-2" />
-                    <div className="text-2xl font-bold">
+                </div>
+
+                <div className="grid grid-cols-3 gap-6 text-center">
+                  <div className="p-6 rounded-2xl bg-white/60 border border-white/60 shadow-sm hover:shadow-md transition-all">
+                    <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center mx-auto mb-3 text-blue-600">
+                      <ThumbsUp className="h-6 w-6" />
+                    </div>
+                    <div className="text-3xl font-bold text-slate-900 mb-1">
                       {currentItem.reactions ?? 0}
                     </div>
-                    <div className="text-sm text-muted-foreground">
-                      Reactions
-                    </div>
+                    <div className="text-sm text-slate-500">Reactions</div>
                   </div>
-                  <div className="p-4 border rounded-lg">
-                    <MessageCircle className="h-8 w-8 mx-auto text-green-600 mb-2" />
-                    <div className="text-2xl font-bold">
+                  <div className="p-6 rounded-2xl bg-white/60 border border-white/60 shadow-sm hover:shadow-md transition-all">
+                    <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-3 text-green-600">
+                      <MessageCircle className="h-6 w-6" />
+                    </div>
+                    <div className="text-3xl font-bold text-slate-900 mb-1">
                       {currentItem.comments ?? 0}
                     </div>
-                    <div className="text-sm text-muted-foreground">
-                      Comments
-                    </div>
+                    <div className="text-sm text-slate-500">Comments</div>
                   </div>
-                  <div className="p-4 border rounded-lg">
-                    <Share2 className="h-8 w-8 mx-auto text-purple-600 mb-2" />
-                    <div className="text-2xl font-bold">
+                  <div className="p-6 rounded-2xl bg-white/60 border border-white/60 shadow-sm hover:shadow-md transition-all">
+                    <div className="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center mx-auto mb-3 text-purple-600">
+                      <Share2 className="h-6 w-6" />
+                    </div>
+                    <div className="text-3xl font-bold text-slate-900 mb-1">
                       {currentItem.shares ?? 0}
                     </div>
-                    <div className="text-sm text-muted-foreground">Shares</div>
+                    <div className="text-sm text-slate-500">Shares</div>
                   </div>
                 </div>
-                <div className="flex items-center gap-3 pt-4 border-t">
-                  <Calendar className="h-5 w-5 text-muted-foreground" />
-                  <div>
-                    <div className="text-sm text-muted-foreground">
-                      Thời gian thống kê
-                    </div>
-                    <div className="font-medium">
-                      {currentItem.statsAt
-                        ? formatDate(currentItem.statsAt)
-                        : "Chưa có dữ liệu"}
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
 
-          {/* Tab 3: AI phân tích */}
-          <TabsContent value="ai" className="space-y-6 mt-6">
-            <Card>
-              <CardContent className="space-y-6">
-                <div className="flex items-start gap-3">
-                  <FileText className="h-5 w-5 text-muted-foreground mt-1" />
+                <div className="flex items-center justify-center gap-2 mt-8 text-slate-400 text-sm">
+                  <Calendar className="h-4 w-4" />
+                  <span>
+                    Dữ liệu cập nhật lúc:{" "}
+                    {currentItem.statsAt
+                      ? formatDate(currentItem.statsAt)
+                      : "Chưa có dữ liệu"}
+                  </span>
+                </div>
+              </div>
+            </TabsContent>
+
+            {/* Tab 3: AI phân tích */}
+            <TabsContent
+              value="ai"
+              className="space-y-6 mt-6 focus-visible:outline-none"
+            >
+              <div className={cn(glassCardClass, "p-6 space-y-6")}>
+                <div className="flex items-start gap-4">
+                  <div className="p-2 rounded-full bg-white/60 shadow-sm mt-1 text-slate-600">
+                    <FileText className="h-5 w-5" />
+                  </div>
                   <div className="flex-1">
-                    <h4 className="font-semibold text-sm text-muted-foreground mb-1">
-                      Chủ đề
-                    </h4>
-                    <p className="text-sm">
+                    <h4 className={cn(glassLabelClass, "mb-1")}>Chủ đề</h4>
+                    <p className="text-slate-800 text-base leading-relaxed">
                       {currentItem.topic || "Chưa xác định"}
                     </p>
                   </div>
                 </div>
-                <div className="flex items-start gap-3">
-                  <Target className="h-5 w-5 text-muted-foreground mt-1" />
+
+                <div className="w-full h-px bg-slate-200/50" />
+
+                <div className="flex items-start gap-4">
+                  <div className="p-2 rounded-full bg-white/60 shadow-sm mt-1 text-slate-600">
+                    <Target className="h-5 w-5" />
+                  </div>
                   <div className="flex-1">
-                    <h4 className="font-semibold text-sm text-muted-foreground mb-1">
+                    <h4 className={cn(glassLabelClass, "mb-1")}>
                       Đối tượng tiếp cận
                     </h4>
-                    <p className="text-sm">
+                    <p className="text-slate-800 text-base leading-relaxed">
                       {currentItem.targetAudience || "Chưa xác định"}
                     </p>
                   </div>
                 </div>
-                <div className="flex items-start gap-3">
-                  <Notebook className="h-5 w-5 text-muted-foreground mt-1" />
+
+                <div className="w-full h-px bg-slate-200/50" />
+
+                <div className="flex items-start gap-4">
+                  <div className="p-2 rounded-full bg-white/60 shadow-sm mt-1 text-slate-600">
+                    <Notebook className="h-5 w-5" />
+                  </div>
                   <div className="flex-1">
-                    <h4 className="font-semibold text-sm text-muted-foreground mb-1">
+                    <h4 className={cn(glassLabelClass, "mb-1")}>
                       Lưu ý nghiên cứu
                     </h4>
-                    <p className="text-sm">
+                    <p className="text-slate-800 text-base leading-relaxed">
                       {currentItem.researchNotes || "Chưa có ghi chú"}
                     </p>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+              </div>
+            </TabsContent>
+          </Tabs>
 
-        <DialogFooter className="flex flex-col sm:flex-row gap-3 mt-8">
-          <Button
-            variant="outline"
-            onClick={() => onEdit?.(currentItem)}
-            className="text-blue-600 border-blue-200 hover:bg-blue-50 cursor-pointer"
-          >
-            <Edit2 className="h-4 w-4 mr-2" />
-            Chỉnh sửa
-          </Button>
-          {currentItem.status === "posted_successfully" && (
+          <DialogFooter className="flex flex-col sm:flex-row gap-3 mt-10 border-t border-slate-200/50 pt-6">
             <Button
               variant="outline"
-              onClick={handleRemovePost}
-              disabled={isLoading}
-              className="text-red-500 hover:text-red-600 hover:bg-red-100 border-red-400 cursor-pointer"
+              onClick={() => onEdit?.(currentItem)}
+              className="bg-white/50 hover:bg-white/80 border-slate-200 text-slate-700 hover:text-slate-900 backdrop-blur-sm"
             >
-              <Trash2 className="h-4 w-4 text-red-500" />
-              {isLoading ? "Đang xóa..." : "Xóa bài đăng"}
+              <Edit2 className="h-4 w-4 mr-2" />
+              Chỉnh sửa
             </Button>
-          )}
-          {currentItem.status === "awaiting_content_approval" && (
-            <Button
-              onClick={() => onApprove?.(currentItem)}
-              disabled={isLoading}
-              className="bg-green-600 hover:bg-green-700 text-white"
-            >
-              <CheckCircle className="h-4 w-4 mr-2" />
-              {isLoading ? "Đang duyệt..." : "Duyệt"}
-            </Button>
-          )}
-        </DialogFooter>
+            {currentItem.status === "posted_successfully" && (
+              <Button
+                variant="outline"
+                onClick={handleRemovePost}
+                disabled={isLoading}
+                className="bg-red-50 hover:bg-red-100 border-red-200 text-red-600 hover:text-red-700 backdrop-blur-sm"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                {isLoading ? "Đang xóa..." : "Xóa bài đăng"}
+              </Button>
+            )}
+            {currentItem.status === "awaiting_content_approval" && (
+              <Button
+                onClick={() => onApprove?.(currentItem)}
+                disabled={isLoading}
+                className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white border-none shadow-lg shadow-emerald-500/20"
+              >
+                <CheckCircle className="h-4 w-4 mr-2" />
+                {isLoading ? "Đang duyệt..." : "Duyệt bài"}
+              </Button>
+            )}
+          </DialogFooter>
+        </div>
       </DialogContent>
     </Dialog>
   );

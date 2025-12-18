@@ -29,6 +29,10 @@ import {
   Bell,
   Shield,
   Loader2,
+  Plus,
+  Trash2,
+  Edit2,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -40,6 +44,22 @@ import {
   getNotificationSettings,
   updateNotificationSettings,
 } from "@/lib/api";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { ModelConfig, DEFAULT_MODELS } from "@/lib/types";
 
 export function SettingsTab() {
   // Sheet Settings
@@ -48,13 +68,27 @@ export function SettingsTab() {
   const [autoSync, setAutoSync] = useState(true);
   const [syncInterval, setSyncInterval] = useState("5");
 
-  // AI Settings
+  // AI Settings (Text Generation)
   const [aiModel, setAiModel] = useState("gpt-4");
   const [aiPrompt, setAiPrompt] = useState(
     "Bạn là chuyên gia sáng tạo nội dung video ngắn cho mạng xã hội..."
   );
   const [maxTokens, setMaxTokens] = useState(2000);
   const [temperature, setTemperature] = useState(0.7);
+
+  // AI Settings (Media Models Registry)
+  const [modelsList, setModelsList] = useState<ModelConfig[]>([]);
+  const [isModelsLoaded, setIsModelsLoaded] = useState(false);
+
+  // Model Dialog State
+  const [isModelDialogOpen, setIsModelDialogOpen] = useState(false);
+  const [editingModel, setEditingModel] = useState<ModelConfig | null>(null);
+  const [modelForm, setModelForm] = useState<Partial<ModelConfig>>({
+    type: "video",
+    name: "",
+    cost: 0,
+    unit: "per_second",
+  });
 
   // Notification Settings
   const [notifyEmail, setNotifyEmail] = useState("");
@@ -74,7 +108,7 @@ export function SettingsTab() {
   const loadSettings = async () => {
     try {
       setIsLoading(true);
-      const [sheet, ai, notifications] = await Promise.all([
+      const [sheet, ai, notifications, modelRegistry] = await Promise.all([
         getSettings([
           "google_sheet_url",
           "google_api_key",
@@ -83,6 +117,7 @@ export function SettingsTab() {
         ]),
         getAIConfig(),
         getNotificationSettings("user_1"),
+        getSetting("ai_models_registry"),
       ]);
 
       if (sheet) {
@@ -98,6 +133,26 @@ export function SettingsTab() {
         setMaxTokens(ai.max_tokens);
         setTemperature(ai.temperature);
       }
+
+      // Load Model Registry
+      if (modelRegistry && modelRegistry.value) {
+        try {
+          const parsed = JSON.parse(modelRegistry.value);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setModelsList(parsed);
+          } else {
+            console.log("Empty registry, using defaults");
+            setModelsList(DEFAULT_MODELS);
+          }
+        } catch (e) {
+          console.error("Failed to parse models registry, using defaults");
+          setModelsList(DEFAULT_MODELS);
+        }
+      } else {
+        console.log("No registry found, using defaults");
+        setModelsList(DEFAULT_MODELS);
+      }
+      setIsModelsLoaded(true);
 
       if (notifications && notifications.length > 0) {
         const notif = notifications[0];
@@ -139,12 +194,19 @@ export function SettingsTab() {
   const saveAISettings = async () => {
     try {
       setIsSaving(true);
-      await updateAIConfig({
-        model_name: aiModel,
-        system_prompt: aiPrompt,
-        max_tokens: maxTokens,
-        temperature: temperature,
-      });
+      await Promise.all([
+        updateAIConfig({
+          model_name: aiModel,
+          system_prompt: aiPrompt,
+          max_tokens: maxTokens,
+          temperature: temperature,
+        }),
+        updateSetting(
+          "ai_models_registry",
+          JSON.stringify(modelsList),
+          "user_1"
+        ),
+      ]);
       toast.success("AI settings saved!");
     } catch (error) {
       toast.error("Failed to save AI settings");
@@ -169,6 +231,52 @@ export function SettingsTab() {
     } finally {
       setIsSaving(false);
     }
+  };
+
+  // --- Model Management Handlers ---
+  const handleOpenModelDialog = (model?: ModelConfig) => {
+    if (model) {
+      setEditingModel(model);
+      setModelForm(model);
+    } else {
+      setEditingModel(null);
+      setModelForm({
+        type: "video",
+        name: "",
+        cost: 0,
+        unit: "per_second",
+      });
+    }
+    setIsModelDialogOpen(true);
+  };
+
+  const handleSaveModel = () => {
+    if (!modelForm.name || modelForm.cost === undefined) {
+      toast.error("Vui lòng điền đầy đủ thông tin");
+      return;
+    }
+
+    const newModel: ModelConfig = {
+      id: editingModel ? editingModel.id : crypto.randomUUID(),
+      type: modelForm.type as "video" | "audio" | "image",
+      name: modelForm.name,
+      cost: Number(modelForm.cost),
+      unit: modelForm.unit as "per_second" | "per_megapixel" | "per_run",
+    };
+
+    setModelsList((prev) => {
+      if (editingModel) {
+        return prev.map((m) => (m.id === editingModel.id ? newModel : m));
+      } else {
+        return [...prev, newModel];
+      }
+    });
+
+    setIsModelDialogOpen(false);
+  };
+
+  const handleDeleteModel = (id: string) => {
+    setModelsList((prev) => prev.filter((m) => m.id !== id));
   };
 
   return (
@@ -201,7 +309,7 @@ export function SettingsTab() {
         </TabsList>
 
         <TabsContent value="sheet" className="space-y-4 mt-4">
-          <Card>
+          <Card className="py-6">
             <CardHeader>
               <CardTitle>Kết nối Google Sheet</CardTitle>
               <CardDescription>
@@ -352,11 +460,11 @@ export function SettingsTab() {
         </TabsContent>
 
         <TabsContent value="ai" className="space-y-4 mt-4">
-          <Card>
+          <Card className="py-6">
             <CardHeader>
-              <CardTitle>Cấu hình AI</CardTitle>
+              <CardTitle>Cấu hình Text AI</CardTitle>
               <CardDescription>
-                Thiết lập AI để tự động tạo kịch bản và nội dung
+                Thiết lập AI để tự động tạo kịch bản và nội dung văn bản
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -405,24 +513,107 @@ export function SettingsTab() {
                   />
                 </div>
               </div>
-              <Button
-                onClick={saveAISettings}
-                disabled={isSaving}
-                className="bg-[#1a365d] hover:bg-[#2a4a7d] disabled:opacity-50"
-              >
-                {isSaving ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                ) : (
-                  <Save className="h-4 w-4 mr-2" />
-                )}
-                {isSaving ? "Đang lưu..." : "Lưu cấu hình AI"}
-              </Button>
             </CardContent>
           </Card>
+
+          {/* Media Models Pricing Section */}
+          <Card  className="py-6">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle>Cấu hình Media Models</CardTitle>
+                <CardDescription>
+                  Quản lý giá và thông tin các model tạo Video/Audio/Image
+                </CardDescription>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleOpenModelDialog()}
+                className="gap-2"
+              >
+                <Plus className="h-4 w-4" /> Thêm Model
+              </Button>
+            </CardHeader>
+            <CardContent>
+              <div className="border rounded-md">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Loại</TableHead>
+                      <TableHead>Tên Model</TableHead>
+                      <TableHead>Chi phí</TableHead>
+                      <TableHead>Đơn vị</TableHead>
+                      <TableHead className="text-right">Hành động</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {modelsList.length === 0 ? (
+                      <TableRow>
+                        <TableCell
+                          colSpan={5}
+                          className="text-center h-24 text-muted-foreground"
+                        >
+                          Chưa có model nào. Hãy thêm model mới.
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      modelsList.map((model) => (
+                        <TableRow key={model.id}>
+                          <TableCell className="font-medium capitalize">
+                            {model.type}
+                          </TableCell>
+                          <TableCell>{model.name}</TableCell>
+                          <TableCell>${model.cost}</TableCell>
+                          <TableCell className="text-muted-foreground text-sm">
+                            {model.unit === "per_second"
+                              ? "/ giây"
+                              : model.unit === "per_megapixel"
+                              ? "/ MP"
+                              : "/ lượt"}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex justify-end gap-2">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleOpenModelDialog(model)}
+                              >
+                                <Edit2 className="h-4 w-4 text-blue-500" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleDeleteModel(model.id)}
+                              >
+                                <Trash2 className="h-4 w-4 text-red-500" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Button
+            onClick={saveAISettings}
+            disabled={isSaving}
+            className="w-full bg-[#1a365d] hover:bg-[#2a4a7d] disabled:opacity-50"
+          >
+            {isSaving ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <Save className="h-4 w-4 mr-2" />
+            )}
+            {isSaving ? "Đang lưu..." : "Lưu tất cả cấu hình AI"}
+          </Button>
         </TabsContent>
 
         <TabsContent value="notify" className="space-y-4 mt-4">
-          <Card>
+          <Card className="py-6">
             <CardHeader>
               <CardTitle>Cài đặt thông báo</CardTitle>
               <CardDescription>
@@ -498,7 +689,7 @@ export function SettingsTab() {
         </TabsContent>
 
         <TabsContent value="security" className="space-y-4 mt-4">
-          <Card>
+          <Card className="py-6">
             <CardHeader>
               <CardTitle>Bảo mật</CardTitle>
               <CardDescription>
@@ -526,6 +717,90 @@ export function SettingsTab() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Dialog Add/Edit Model */}
+      <Dialog open={isModelDialogOpen} onOpenChange={setIsModelDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {editingModel ? "Chỉnh sửa Model" : "Thêm Model Mới"}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="space-y-2">
+              <Label>Loại Model</Label>
+              <Select
+                value={modelForm.type}
+                onValueChange={(val) =>
+                  setModelForm({ ...modelForm, type: val as any })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="video">Video</SelectItem>
+                  <SelectItem value="audio">Audio</SelectItem>
+                  <SelectItem value="image">Image</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Tên Model</Label>
+              <Input
+                value={modelForm.name}
+                onChange={(e) =>
+                  setModelForm({ ...modelForm, name: e.target.value })
+                }
+                placeholder="Ví dụ: Kling 2.5 Turbo"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Chi phí ($)</Label>
+                <Input
+                  type="number"
+                  step="0.001"
+                  value={modelForm.cost}
+                  onChange={(e) =>
+                    setModelForm({
+                      ...modelForm,
+                      cost: parseFloat(e.target.value),
+                    })
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Đơn vị tính</Label>
+                <Select
+                  value={modelForm.unit}
+                  onValueChange={(val) =>
+                    setModelForm({ ...modelForm, unit: val as any })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="per_second">/ giây</SelectItem>
+                    <SelectItem value="per_megapixel">/ Megapixel</SelectItem>
+                    <SelectItem value="per_run">/ lượt (run)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsModelDialogOpen(false)}
+            >
+              Hủy
+            </Button>
+            <Button onClick={handleSaveModel}>Lưu Model</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -2,7 +2,12 @@
 
 import { useState, useEffect } from "react";
 import { ProjectsTab } from "@/components/projects-tab";
-import { getProjects, getContentItems, getSchedules, getVideoItems } from "@/lib/api";
+import {
+  getProjects,
+  getContentItems,
+  getSchedules,
+  getVideoItems,
+} from "@/lib/api";
 import { toast } from "sonner";
 import type { Project, ContentItem, Schedule, VideoItem } from "@/lib/types";
 
@@ -20,12 +25,13 @@ export default function ProjectsPage() {
   const loadData = async () => {
     try {
       setIsLoading(true);
-      const [projectsData, contentData, videoData, schedulesData] = await Promise.all([
-        getProjects(),
-        getContentItems(),
-        getVideoItems(),
-        getSchedules(),
-      ]);
+      const [projectsData, contentData, videoData, schedulesData] =
+        await Promise.all([
+          getProjects(),
+          getContentItems(),
+          getVideoItems(),
+          getSchedules(),
+        ]);
       setProjects(projectsData);
       setContentItems(contentData);
       setVideoItems(videoData);
@@ -40,11 +46,6 @@ export default function ProjectsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900">Quản Lý Dự Án</h1>
-        <p className="text-gray-600 mt-1">Quản lý các dự án và nhóm nội dung</p>
-      </div>
-
       <ProjectsTab
         projects={projects}
         contentItems={contentItems}
