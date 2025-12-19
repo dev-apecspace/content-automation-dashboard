@@ -1,33 +1,5 @@
 import { supabase } from "@/lib/supabase";
-
-export type ActivityType =
-  | "create"
-  | "update"
-  | "delete"
-  | "approve"
-  | "publish"
-  | "schedule"
-  | "remove-post";
-
-export type EntityType =
-  | "content"
-  | "schedule"
-  | "project"
-  | "user"
-  | "settings"
-  | "video";
-
-export interface ActivityLog {
-  id: number;
-  user_id: string | null;
-  activity_type: ActivityType;
-  entity_type: EntityType;
-  entity_id: string;
-  old_values: Record<string, any> | null;
-  new_values: Record<string, any> | null;
-  description: string | null;
-  created_at: string;
-}
+import { ActivityLog, ActivityType, EntityType } from "@/lib/types";
 
 export async function createActivityLog(
   activityType: ActivityType,

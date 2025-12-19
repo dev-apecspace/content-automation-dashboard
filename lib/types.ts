@@ -193,16 +193,6 @@ export interface DashboardStats {
   totalReactions: number;
 }
 
-export interface ActivityLog {
-  id: string;
-  type: "content" | "video" | "project";
-  action: "created" | "updated" | "deleted" | "status_change";
-  description: string;
-  timestamp: string;
-  user?: string; // If we track users
-  metadata?: any;
-}
-
 // Detailed Analytics Types
 export interface PlatformDistribution {
   platform: Platform | "Other";
@@ -271,6 +261,35 @@ export interface ChartDataPoint {
   comments: number;
   shares: number;
   posts: number;
+}
+
+export type ActivityType =
+  | "create"
+  | "update"
+  | "delete"
+  | "approve"
+  | "publish"
+  | "schedule"
+  | "remove-post";
+
+export type EntityType =
+  | "content"
+  | "schedule"
+  | "project"
+  | "user"
+  | "settings"
+  | "video";
+
+export interface ActivityLog {
+  id: number;
+  user_id: string | null;
+  activity_type: ActivityType;
+  entity_type: EntityType;
+  entity_id: string;
+  old_values: Record<string, any> | null;
+  new_values: Record<string, any> | null;
+  description: string | null;
+  created_at: string;
 }
 
 export interface DashboardData {

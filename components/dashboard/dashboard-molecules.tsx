@@ -1,4 +1,4 @@
-import { ActivityLog, DashboardStats, ScheduleStats } from "@/lib/types";
+import { DashboardStats, ScheduleStats, ActivityLog } from "@/lib/types";
 import { GlassContainer, StatsCard } from "./dashboard-atoms";
 import {
   LayoutGrid,
@@ -10,6 +10,7 @@ import {
   BarChart3,
   Users,
   Calendar,
+  Folder,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { vi } from "date-fns/locale";
@@ -121,13 +122,13 @@ interface ActivityItemProps {
 
 function ActivityItem({ activity }: ActivityItemProps) {
   const getIcon = () => {
-    switch (activity.type) {
+    switch (activity.entity_type) {
       case "video":
-        return <FileVideo className="text-blue-500" size={18} />;
+        return <FileVideo className="text-red-500" size={18} />;
       case "content":
-        return <FileText className="text-emerald-500" size={18} />;
+        return <FileText className="text-blue-500" size={18} />;
       case "project":
-        return <LayoutGrid className="text-indigo-500" size={18} />;
+        return <Folder className="text-green-700" size={18} />;
       default:
         return <AlertCircle className="text-slate-400" size={18} />;
     }
@@ -144,14 +145,14 @@ function ActivityItem({ activity }: ActivityItemProps) {
         </p>
         <div className="flex items-center text-xs text-slate-500">
           <span>
-            {formatDistanceToNow(new Date(activity.timestamp), {
+            {formatDistanceToNow(new Date(activity.created_at), {
               addSuffix: true,
               locale: vi,
             })}
           </span>
           <span className="mx-1">•</span>
           <span className="capitalize">
-            {activity.action.replace("_", " ")}
+            {activity.activity_type.replace("_", " ")}
           </span>
         </div>
       </div>
@@ -170,12 +171,6 @@ export function RecentActivityList({
 }: RecentActivityListProps) {
   return (
     <GlassContainer className="h-full flex flex-col" intensity="medium">
-      <div className="p-6 border-b border-white/20">
-        <h3 className="text-lg font-bold text-slate-800 flex items-center">
-          <Clock className="mr-2 text-slate-500" size={20} />
-          Hoạt Động Gần Đây
-        </h3>
-      </div>
       <div className="p-4 flex-1 overflow-y-auto max-h-[400px]">
         {loading ? (
           <div className="space-y-4">
@@ -192,10 +187,7 @@ export function RecentActivityList({
         ) : activities.length > 0 ? (
           <div className="space-y-1">
             {activities.map((activity) => (
-              <ActivityItem
-                key={activity.id + activity.timestamp}
-                activity={activity}
-              />
+              <ActivityItem key={activity.id} activity={activity} />
             ))}
           </div>
         ) : (

@@ -1,7 +1,6 @@
 import { supabase } from "@/lib/supabase";
 import camelcaseKeys from "camelcase-keys";
 import {
-  ActivityLog,
   ChartDataPoint,
   DashboardStats,
   ContentItem,
@@ -12,6 +11,7 @@ import {
   PlatformDistribution,
   Platform,
   StatusDistribution,
+  ActivityLog,
 } from "@/lib/types";
 import {
   startOfDay,
@@ -186,66 +186,16 @@ export const DashboardService = {
     };
   },
 
-  // Mock activity log for now since we don't have a dedicated table
-  // Real implementation would query an 'audit_logs' table or union generic 'updated_at' fields
+  // Create real activity logs
   getRecentActivity: async (): Promise<ActivityLog[]> => {
-    // supabase imported from module scope
+    const { getActivityLogs } = await import("@/lib/api/activity-logs");
 
-    // Fetch recent 5 items from both tables
-    const [contentRes, videoRes] = await Promise.all([
-      supabase
-        .from("content_items")
-        .select("*")
-        .order("updated_at", { ascending: false })
-        .limit(5),
-      supabase
-        .from("video_items")
-        .select("*")
-        .order("updated_at", { ascending: false })
-        .limit(5),
-    ]);
-
-    // Transform snake_case to camelCase
-    const contentItems = camelcaseKeys(contentRes.data || [], {
-      deep: true,
-    }) as ContentItem[];
-    const videoItems = camelcaseKeys(videoRes.data || [], {
-      deep: true,
-    }) as VideoItem[];
-
-    const activities: ActivityLog[] = [];
-
-    contentItems.forEach((item: ContentItem) => {
-      activities.push({
-        id: item.id,
-        type: "content",
-        action: item.createdAt === item.updatedAt ? "created" : "updated",
-        description: `Content "${(item.idea || "").substring(
-          0,
-          30
-        )}..." updated`,
-        timestamp: item.updatedAt || new Date().toISOString(),
-        metadata: { status: item.status },
-      });
-    });
-
-    videoItems.forEach((item: VideoItem) => {
-      activities.push({
-        id: item.id,
-        type: "video",
-        action: item.createdAt === item.updatedAt ? "created" : "updated",
-        description: `Video "${(item.idea || "").substring(0, 30)}..." updated`,
-        timestamp: item.updatedAt || new Date().toISOString(),
-        metadata: { status: item.status },
-      });
-    });
-
-    return activities
-      .sort(
-        (a, b) =>
-          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-      )
-      .slice(0, 10);
+    try {
+      return await getActivityLogs({ limit: 10 });
+    } catch (error) {
+      console.error("Failed to fetch activity logs", error);
+      return [];
+    }
   },
 
   // Mock performance metrics for charts (since we might not have historical tracking yet)
