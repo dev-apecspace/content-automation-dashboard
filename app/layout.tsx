@@ -2,6 +2,7 @@ import type React from "react";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
+import { Providers } from "@/components/providers";
 import "./globals.css";
 
 const _geist = Geist({ subsets: ["latin"] });
@@ -40,7 +41,7 @@ export default function RootLayout({
     // <CHANGE> Updated lang to 'vi' for Vietnamese
     <html lang="vi" suppressHydrationWarning>
       <body className={`font-sans antialiased`}>
-        {children}
+        <Providers>{children}</Providers>
         <Analytics />
       </body>
     </html>

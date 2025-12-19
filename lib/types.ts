@@ -149,35 +149,161 @@ export interface VideoItem extends BaseContentItem {
   views?: number;
 }
 
-// Inteface for Model Configuration
-export interface ModelConfig {
-  id: string;
-  type: "video" | "audio" | "image";
+export type ModelType = "video" | "image" | "audio" | "text";
+
+export interface AIModel {
+  id: number;
   name: string;
-  cost: number;
-  unit: "per_second" | "per_megapixel" | "per_run";
+  modelType: ModelType;
+  costPerUnit: number;
+  unitType: "per_second" | "per_megapixel" | "per_run";
+  currency?: string;
+  isActive?: boolean;
+  notes?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
-export const DEFAULT_MODELS: ModelConfig[] = [
-  {
-    id: "kling-2.5",
-    type: "video",
-    name: "Kling 2.5 Turbo Pro",
-    cost: 0.07,
-    unit: "per_second",
-  },
-  {
-    id: "mmaudio-v2",
-    type: "audio",
-    name: "mmaudio-v2",
-    cost: 0.001,
-    unit: "per_second",
-  },
-  {
-    id: "flux-1-krea",
-    type: "image",
-    name: "FLUX.1 Krea [dev]",
-    cost: 0.025,
-    unit: "per_megapixel",
-  },
-];
+export type ItemType = "video" | "content";
+
+export type CostType = "generate" | "edit";
+
+export interface CostLog {
+  id: number;
+  itemId: string;
+  itemType: ItemType;
+  costType: CostType;
+  amount: number;
+  currency?: string;
+  description?: string | null;
+  aiModelId?: number | null;
+  loggedAt?: string;
+  aiModels?: AIModel;
+}
+
+// Dashboard Types
+export interface DashboardStats {
+  totalProjects: number;
+  totalPosts: number; // status !== 'post_removed'
+  pendingApprovals: number; // awaiting_content_approval + idea (if needed)
+  scheduledPosts: number; // posted_successfully but in future? Or simply 'posted_successfully' count for now or distinct status?
+  // Let's stick to status counts for now
+  totalViews: number; // derived from video views
+  totalReactions: number;
+}
+
+// Detailed Analytics Types
+export interface PlatformDistribution {
+  platform: Platform | "Other";
+  count: number;
+  percentage: number;
+}
+
+export interface StatusDistribution {
+  status: Status;
+  count: number;
+  label: string;
+}
+
+export interface ProjectStats {
+  projectId: string;
+  projectName: string;
+  total: number;
+  posted: number;
+  waiting: number; // content_approved
+  pending: number; // idea or awaiting_content_approval
+}
+
+export interface ContentStats {
+  totalItems: number;
+  pendingApproval: number;
+  readyToPost: number;
+  overdue: number;
+  byPlatform: PlatformDistribution[];
+  byStatus: StatusDistribution[];
+  byProject: ProjectStats[];
+  topPerforming: ContentItem[];
+}
+
+export interface VideoStats {
+  totalVideos: number;
+  totalViews: number;
+  avgDuration: number;
+  pendingApproval: number;
+  readyToPost: number;
+  overdue: number;
+  posted: number;
+  byPlatform: PlatformDistribution[]; // Some videos are multi-platform
+  byProject: ProjectStats[];
+  topPerforming: VideoItem[];
+}
+
+// Cost Analytics Types
+export interface CostStats {
+  totalCost: number;
+  byType: {
+    video: { cost: number; count: number; duration: number }; // duration in seconds
+    image: { cost: number; count: number };
+    audio: { cost: number; count: number };
+  };
+  dailyCosts: {
+    date: string;
+    cost: number;
+  }[];
+}
+
+export interface ScheduleStats {
+  week: number;
+  month: number;
+  year: number;
+}
+
+export interface DetailedDashboardData extends DashboardData {
+  contentStats: ContentStats;
+  videoStats: VideoStats;
+  costStats: CostStats;
+}
+
+export interface ChartDataPoint {
+  date: string;
+  views: number;
+  reactions: number;
+  comments: number;
+  shares: number;
+  posts: number;
+}
+
+export type ActivityType =
+  | "create"
+  | "update"
+  | "delete"
+  | "approve"
+  | "publish"
+  | "schedule"
+  | "remove-post";
+
+export type EntityType =
+  | "content"
+  | "schedule"
+  | "project"
+  | "user"
+  | "settings"
+  | "video";
+
+export interface ActivityLog {
+  id: number;
+  user_id: string | null;
+  activity_type: ActivityType;
+  entity_type: EntityType;
+  entity_id: string;
+  old_values: Record<string, any> | null;
+  new_values: Record<string, any> | null;
+  description: string | null;
+  created_at: string;
+}
+
+export interface DashboardData {
+  stats: DashboardStats;
+  recentActivity: ActivityLog[];
+  performanceHistory: ChartDataPoint[];
+}
