@@ -24,6 +24,7 @@ interface SidebarProps {
 }
 
 const menuItems: { route: string; label: string; icon: React.ElementType }[] = [
+  { route: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { route: "/content", label: "Bài viết + ảnh", icon: FileImage },
   { route: "/video", label: "Video", icon: Video },
   { route: "/schedules", label: "Lịch đăng", icon: Calendar },

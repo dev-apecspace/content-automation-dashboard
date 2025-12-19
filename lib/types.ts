@@ -181,3 +181,100 @@ export const DEFAULT_MODELS: ModelConfig[] = [
     unit: "per_megapixel",
   },
 ];
+
+// Dashboard Types
+export interface DashboardStats {
+  totalProjects: number;
+  totalPosts: number; // status !== 'post_removed'
+  pendingApprovals: number; // awaiting_content_approval + idea (if needed)
+  scheduledPosts: number; // posted_successfully but in future? Or simply 'posted_successfully' count for now or distinct status?
+  // Let's stick to status counts for now
+  totalViews: number; // derived from video views
+  totalReactions: number;
+}
+
+export interface ActivityLog {
+  id: string;
+  type: "content" | "video" | "project";
+  action: "created" | "updated" | "deleted" | "status_change";
+  description: string;
+  timestamp: string;
+  user?: string; // If we track users
+  metadata?: any;
+}
+
+// Detailed Analytics Types
+export interface PlatformDistribution {
+  platform: Platform | "Other";
+  count: number;
+  percentage: number;
+}
+
+export interface StatusDistribution {
+  status: Status;
+  count: number;
+  label: string;
+}
+
+export interface ContentStats {
+  totalItems: number;
+  pendingApproval: number;
+  readyToPost: number;
+  overdue: number;
+  byPlatform: PlatformDistribution[];
+  byStatus: StatusDistribution[];
+  topPerforming: ContentItem[];
+}
+
+export interface VideoStats {
+  totalVideos: number;
+  totalViews: number;
+  avgDuration: number;
+  pendingApproval: number;
+  readyToPost: number;
+  overdue: number;
+  posted: number;
+  byPlatform: PlatformDistribution[]; // Some videos are multi-platform
+  topPerforming: VideoItem[];
+}
+
+// Cost Analytics Types
+export interface CostStats {
+  totalCost: number;
+  byType: {
+    video: number;
+    image: number;
+    audio: number;
+  };
+  dailyCosts: {
+    date: string;
+    cost: number;
+  }[];
+}
+
+export interface ScheduleStats {
+  week: number;
+  month: number;
+  year: number;
+}
+
+export interface DetailedDashboardData extends DashboardData {
+  contentStats: ContentStats;
+  videoStats: VideoStats;
+  costStats: CostStats;
+}
+
+export interface ChartDataPoint {
+  date: string;
+  views: number;
+  reactions: number;
+  comments: number;
+  shares: number;
+  posts: number;
+}
+
+export interface DashboardData {
+  stats: DashboardStats;
+  recentActivity: ActivityLog[];
+  performanceHistory: ChartDataPoint[];
+}
