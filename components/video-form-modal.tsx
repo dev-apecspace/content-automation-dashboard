@@ -34,13 +34,14 @@ import {
   Sparkles,
   DollarSign,
 } from "lucide-react";
-import { getProjects, getSetting } from "@/lib/api";
-import { VideoItem, Project, ModelConfig, DEFAULT_MODELS } from "@/lib/types";
+import { getProjects, getAIModels } from "@/lib/api";
+import { VideoItem, Project, AIModel } from "@/lib/types";
 import { uploadImageFile, uploadVideoFile } from "@/app/api/cloudinary";
 import { AiRequirementDialog } from "./ai-requirement-dialog";
 import { getContentItemById } from "@/lib/api/content-items";
 import { getVideoItemById } from "@/lib/api/video-items";
 import { toast } from "sonner";
+import { calculateVideoCost } from "@/lib/cost-utils";
 
 interface VideoFormModalProps {
   isOpen: boolean;
@@ -66,7 +67,7 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
   isLoading,
 }) => {
   const [projects, setProjects] = useState<Project[]>([]);
-  const [modelsList, setModelsList] = useState<ModelConfig[]>([]);
+  const [modelsList, setModelsList] = useState<AIModel[]>([]);
 
   const [formData, setFormData] = useState<Partial<VideoItem>>({
     idea: "",
@@ -91,26 +92,12 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
   useEffect(() => {
     async function fetchData() {
       try {
-        const [realProjects, modelRegistry] = await Promise.all([
+        const [realProjects, models] = await Promise.all([
           getProjects(),
-          getSetting("ai_models_registry"),
+          getAIModels(),
         ]);
         setProjects(realProjects);
-
-        if (modelRegistry && modelRegistry.value) {
-          try {
-            const parsed = JSON.parse(modelRegistry.value);
-            if (Array.isArray(parsed) && parsed.length > 0) {
-              setModelsList(parsed);
-            } else {
-              setModelsList(DEFAULT_MODELS);
-            }
-          } catch {
-            setModelsList(DEFAULT_MODELS);
-          }
-        } else {
-          setModelsList(DEFAULT_MODELS);
-        }
+        setModelsList(models);
       } catch (error) {
         console.error("Error loading data:", error);
       }
@@ -154,62 +141,10 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
 
     const duration = formData.videoDuration;
 
-    // Find active models (Defaults: first of each type)
-    const videoModel =
-      modelsList.find((m) => m.type === "video") ||
-      DEFAULT_MODELS.find((m) => m.type === "video");
-    const audioModel =
-      modelsList.find((m) => m.type === "audio") ||
-      DEFAULT_MODELS.find((m) => m.type === "audio");
-    const imageModel =
-      modelsList.find((m) => m.type === "image") ||
-      DEFAULT_MODELS.find((m) => m.type === "image");
+    const videoModel = modelsList.find((m) => m.modelType === "video");
+    const audioModel = modelsList.find((m) => m.modelType === "audio");
 
-    let totalCost = 0;
-    const breakdown: string[] = [];
-
-    if (videoModel) {
-      let cost = 0;
-      if (videoModel.unit === "per_second") {
-        cost = duration * videoModel.cost;
-      } else if (videoModel.unit === "per_run") {
-        cost = videoModel.cost;
-      }
-      totalCost += cost;
-      breakdown.push(`${videoModel.name}`);
-    }
-
-    if (audioModel) {
-      let cost = 0;
-      if (audioModel.unit === "per_second") {
-        cost = duration * audioModel.cost;
-      } else if (audioModel.unit === "per_run") {
-        cost = audioModel.cost;
-      }
-      totalCost += cost;
-      breakdown.push(`${audioModel.name}`);
-    }
-
-    /* Image cost excluded as per user request
-     if (imageModel) {
-        let cost = 0;
-        if (imageModel.unit === "per_megapixel") {
-           cost = imageModel.cost * 1; 
-        } else if (imageModel.unit === "per_run") {
-           cost = imageModel.cost;
-        }
-        // totalCost += cost; 
-        // breakdown.push(`${imageModel.name}`);
-     }
-     */
-
-    return {
-      total: totalCost,
-      breakdown: breakdown.join(" + "),
-      videoModel,
-      audioModel,
-      // imageModel
-    };
+    return calculateVideoCost(videoModel, audioModel, duration);
   };
 
   const estimatedCost = calculateEstimatedCost();

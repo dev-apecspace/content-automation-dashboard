@@ -36,18 +36,29 @@ import { cn } from "@/lib/utils";
 import {
   contentTypes,
   statusConfig,
-  type ContentItem,
-  ModelConfig,
-  DEFAULT_MODELS,
+  ContentItem,
+  AIModel,
   Project,
   platformColors,
+  CostLog,
 } from "@/lib/types";
 import { format, set } from "date-fns";
 import { toast } from "sonner";
 import { useState, useEffect } from "react";
 import { getContentItemById } from "@/lib/api/content-items";
 import { se } from "date-fns/locale";
-import { createActivityLog, getSetting, getProjects } from "@/lib/api";
+import {
+  createActivityLog,
+  getVideoItemById,
+  getAIModels,
+  getProjects,
+  getCostLogsByItem,
+} from "@/lib/api";
+import {
+  calculateImageCost,
+  calculateTotalCostFromLogs,
+  analyzeCostLogs,
+} from "@/lib/cost-utils";
 
 interface ContentDetailModalProps {
   isOpen: boolean;
@@ -73,7 +84,8 @@ export function ContentDetailModal({
   const [currentItem, setCurrentItem] = useState<ContentItem | null>(
     content ?? item ?? null
   );
-  const [modelsList, setModelsList] = useState<ModelConfig[]>([]);
+  const [modelsList, setModelsList] = useState<AIModel[]>([]);
+  const [costLogs, setCostLogs] = useState<CostLog[]>([]);
   const [projectList, setProjectList] = useState<Project[]>([]);
 
   useEffect(() => {
@@ -84,24 +96,10 @@ export function ContentDetailModal({
   useEffect(() => {
     async function fetchModels() {
       try {
-        const modelRegistry = await getSetting("ai_models_registry");
-        if (modelRegistry && modelRegistry.value) {
-          try {
-            const parsed = JSON.parse(modelRegistry.value);
-            if (Array.isArray(parsed) && parsed.length > 0) {
-              setModelsList(parsed);
-            } else {
-              setModelsList(DEFAULT_MODELS);
-            }
-          } catch {
-            setModelsList(DEFAULT_MODELS);
-          }
-        } else {
-          setModelsList(DEFAULT_MODELS);
-        }
+        const models = await getAIModels();
+        setModelsList(models);
       } catch (error) {
         console.error("Error loading models:", error);
-        setModelsList(DEFAULT_MODELS);
       }
     }
     fetchModels();
@@ -119,6 +117,20 @@ export function ContentDetailModal({
     }
     fetchProjects();
   }, [isOpen]);
+
+  // Load Cost Logs
+  useEffect(() => {
+    async function fetchLogs() {
+      if (!currentItem?.id) return;
+      try {
+        const logs = await getCostLogsByItem(currentItem.id, "content");
+        setCostLogs(logs);
+      } catch (error) {
+        console.error("Error loading cost logs:", error);
+      }
+    }
+    fetchLogs();
+  }, [currentItem]);
 
   if (!currentItem) return null;
 
@@ -205,22 +217,35 @@ export function ContentDetailModal({
     // Check if there is an image to calculate cost for
     if (!currentItem.imageLink) return null;
 
-    const imageModel =
-      modelsList.find((m) => m.type === "image") ||
-      DEFAULT_MODELS.find((m) => m.type === "image");
-
-    if (!imageModel) return null;
-
-    let cost = 0;
-    if (imageModel.unit === "per_megapixel") {
-      cost = imageModel.cost * 1; // Default 1MP
-    } else if (imageModel.unit === "per_run") {
-      cost = imageModel.cost;
+    // Use Cost Logs if available
+    if (costLogs.length > 0) {
+      const analysis = analyzeCostLogs(costLogs);
+      return {
+        total: analysis.totalCost,
+        breakdown: analysis,
+        isReal: true,
+      };
     }
 
+    // Else if image exists but no logs => "Available" (Cost = 0 or specific flag)
+    if (currentItem.imageLink) {
+      // User requested: "không có thì hiển thị text ảnh/video có sẵn"
+      // Return a flag to show text instead of price
+      return {
+        total: 0,
+        isAvailable: true,
+      };
+    }
+
+    /* Fallback to estimated (disabled as per user request to show "Available" if no logs)
+    const imageModel = modelsList.find((m) => m.modelType === "image");
+    if (!imageModel) return null;
+    const cost = calculateImageCost(imageModel);
     return {
       total: cost,
     };
+    */
+    return null;
   };
 
   const estimatedCost = calculateEstimatedCost();
@@ -360,28 +385,78 @@ export function ContentDetailModal({
                 </div>
 
                 {/* Cost Display */}
-                {estimatedCost && estimatedCost.total > 0 && (
+                {estimatedCost && !estimatedCost.isAvailable ? (
                   <div className="flex items-center gap-4 mb-6">
                     <div className="p-2 rounded-full bg-white/60 shadow-sm text-emerald-600">
                       <DollarSign className="h-5 w-5" />
                     </div>
                     <div>
-                      <div className={glassLabelClass}>Chi phí ước tính</div>
+                      <div className={glassLabelClass}>
+                        {estimatedCost.isReal
+                          ? "Chi phí thực tế"
+                          : "Chi phí ước tính"}
+                      </div>
                       <div className="inline-flex items-center gap-2">
                         <span className="font-medium text-slate-900 text-lg">
                           ${estimatedCost.total.toFixed(3)}
                         </span>
                         <span className="text-slate-500 text-sm">
-                          (~
+                          (~ 
                           {(estimatedCost.total * 26000).toLocaleString(
                             "vi-VN"
                           )}
                           đ)
                         </span>
                       </div>
+                      {/* Breakdown for Real Log */}
+                      {estimatedCost.isReal && estimatedCost.breakdown && (
+                        <div className="flex flex-col gap-1 mt-1 text-xs text-slate-500">
+                          {estimatedCost.breakdown.generateCost > 0 && (
+                            <div className="flex justify-between gap-4">
+                              <span>Tạo mới:</span>
+                              <span>
+                                $
+                                {estimatedCost.breakdown.generateCost.toFixed(
+                                  3
+                                )}
+                              </span>
+                            </div>
+                          )}
+                          {estimatedCost.breakdown.details.image.edit > 0 && (
+                            <div className="flex justify-between gap-4">
+                              <span>
+                                Chỉnh sửa (
+                                {
+                                  estimatedCost.breakdown.details.image
+                                    .editCount
+                                }{" "}
+                                lần):
+                              </span>
+                              <span>
+                                $
+                                {estimatedCost.breakdown.details.image.edit.toFixed(
+                                  3
+                                )}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
-                )}
+                ) : estimatedCost?.isAvailable ? (
+                  <div className="flex items-center gap-4 mb-6">
+                    <div className="p-2 rounded-full bg-white/60 shadow-sm text-blue-600">
+                      <DollarSign className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <div className={glassLabelClass}>Chi phí</div>
+                      <div className="font-medium text-blue-700 text-lg">
+                        Ảnh có sẵn
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
 
                 {currentItem.imageLink && (
                   <div className="flex items-start gap-4 mb-6">

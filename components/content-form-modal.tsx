@@ -34,14 +34,9 @@ import {
   Maximize2,
   DollarSign,
 } from "lucide-react";
-import { getProjects, getSetting } from "@/lib/api";
-import {
-  ContentItem,
-  contentTypes,
-  Project,
-  ModelConfig,
-  DEFAULT_MODELS,
-} from "@/lib/types";
+import { getProjects, getAIModels } from "@/lib/api";
+import { ContentItem, contentTypes, Project, AIModel } from "@/lib/types";
+import { calculateImageCost } from "@/lib/cost-utils";
 import { useFullscreen } from "@/stores/useFullscreenStore";
 import { uploadImageFile } from "@/app/api/cloudinary";
 import { AiRequirementDialog } from "./ai-requirement-dialog";
@@ -73,7 +68,7 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
 
   // ------------------- STATE -------------------
   const [projects, setProjects] = useState<Project[]>([]);
-  const [modelsList, setModelsList] = useState<ModelConfig[]>([]);
+  const [modelsList, setModelsList] = useState<AIModel[]>([]);
 
   const [formData, setFormData] = useState<Partial<ContentItem>>({
     idea: "",
@@ -101,29 +96,14 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
   useEffect(() => {
     async function fetchData() {
       try {
-        const [realProjects, modelRegistry] = await Promise.all([
+        const [realProjects, models] = await Promise.all([
           getProjects(),
-          getSetting("ai_models_registry"),
+          getAIModels(),
         ]);
         setProjects(realProjects);
-
-        if (modelRegistry && modelRegistry.value) {
-          try {
-            const parsed = JSON.parse(modelRegistry.value);
-            if (Array.isArray(parsed) && parsed.length > 0) {
-              setModelsList(parsed);
-            } else {
-              setModelsList(DEFAULT_MODELS);
-            }
-          } catch {
-            setModelsList(DEFAULT_MODELS);
-          }
-        } else {
-          setModelsList(DEFAULT_MODELS);
-        }
+        setModelsList(models);
       } catch (error) {
         console.error("Error loading data:", error);
-        setModelsList(DEFAULT_MODELS);
       }
     }
     fetchData();
@@ -206,18 +186,11 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
     // User request: "thêm ước tính chi phí tạo ảnh cho content."
     // Usually means the cost of generating ONE image.
 
-    const imageModel =
-      modelsList.find((m) => m.type === "image") ||
-      DEFAULT_MODELS.find((m) => m.type === "image");
+    const imageModel = modelsList.find((m) => m.modelType === "image");
 
     if (!imageModel) return null;
 
-    let cost = 0;
-    if (imageModel.unit === "per_megapixel") {
-      cost = imageModel.cost * 1; // Default 1MP
-    } else if (imageModel.unit === "per_run") {
-      cost = imageModel.cost;
-    }
+    const cost = calculateImageCost(imageModel);
 
     return {
       total: cost,

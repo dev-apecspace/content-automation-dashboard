@@ -11,7 +11,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Input } from "@/components/ui/input";
-import { Sparkles } from "lucide-react";
+
+import { Sparkles, DollarSign } from "lucide-react";
 
 interface AiRequirementDialogProps {
   isOpen: boolean;
@@ -25,6 +26,7 @@ interface AiRequirementDialogProps {
     duration?: number
   ) => void;
   isLoading: boolean;
+  imageCost?: number; // Cost for one image generation
 }
 
 export const AiRequirementDialog: React.FC<AiRequirementDialogProps> = ({
@@ -35,6 +37,7 @@ export const AiRequirementDialog: React.FC<AiRequirementDialogProps> = ({
   hasImage = false,
   onConfirm,
   isLoading,
+  imageCost, // Receive estimated cost
 }) => {
   const [requirement, setRequirement] = useState(initialRequirement);
   const [imageAction, setImageAction] = useState<"create" | "edit">("edit");
@@ -97,6 +100,19 @@ export const AiRequirementDialog: React.FC<AiRequirementDialogProps> = ({
                   </Label>
                 </div>
               </RadioGroup>
+
+              {/* Cost Estimation */}
+              {imageCost !== undefined &&
+                imageCost > 0 &&
+                imageAction === "create" && (
+                  <div className="flex items-center gap-2 text-sm text-emerald-600 bg-emerald-50 px-3 py-2 rounded-lg border border-emerald-100 mt-2">
+                    <DollarSign className="w-4 h-4" />
+                    <span>
+                      Chi phí ước tính: <strong>${imageCost}</strong> (~
+                      {(imageCost * 26000).toLocaleString("vi-VN")}đ)
+                    </span>
+                  </div>
+                )}
             </div>
           )}
           {type !== "schedule" && (

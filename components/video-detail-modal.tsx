@@ -39,18 +39,24 @@ import {
   platformColors,
   statusConfig,
   type VideoItem,
-  ModelConfig,
-  DEFAULT_MODELS,
+  AIModel,
+  CostLog,
 } from "@/lib/types";
 import { Project } from "@/lib/types";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { useState, useEffect } from "react";
 import {
+  calculateVideoCost,
+  calculateTotalCostFromLogs,
+  analyzeCostLogs,
+} from "@/lib/cost-utils";
+import {
   createActivityLog,
   getVideoItemById,
-  getSetting,
+  getAIModels,
   getProjects,
+  getCostLogsByItem,
 } from "@/lib/api";
 
 interface VideoDetailModalProps {
@@ -77,7 +83,8 @@ export function VideoDetailModal({
   const [currentItem, setCurrentItem] = useState<VideoItem | null>(
     content ?? item ?? null
   );
-  const [modelsList, setModelsList] = useState<ModelConfig[]>([]);
+  const [modelsList, setModelsList] = useState<AIModel[]>([]);
+  const [costLogs, setCostLogs] = useState<CostLog[]>([]);
   const [projectList, setProjectList] = useState<Project[]>([]);
 
   useEffect(() => {
@@ -88,24 +95,10 @@ export function VideoDetailModal({
   useEffect(() => {
     async function fetchModels() {
       try {
-        const modelRegistry = await getSetting("ai_models_registry");
-        if (modelRegistry && modelRegistry.value) {
-          try {
-            const parsed = JSON.parse(modelRegistry.value);
-            if (Array.isArray(parsed) && parsed.length > 0) {
-              setModelsList(parsed);
-            } else {
-              setModelsList(DEFAULT_MODELS);
-            }
-          } catch {
-            setModelsList(DEFAULT_MODELS);
-          }
-        } else {
-          setModelsList(DEFAULT_MODELS);
-        }
+        const models = await getAIModels();
+        setModelsList(models);
       } catch (error) {
         console.error("Error loading models:", error);
-        setModelsList(DEFAULT_MODELS);
       }
     }
     fetchModels();
@@ -123,6 +116,20 @@ export function VideoDetailModal({
     }
     fetchProjects();
   }, [isOpen]);
+
+  // Load Cost Logs
+  useEffect(() => {
+    async function fetchLogs() {
+      if (!currentItem?.id) return;
+      try {
+        const logs = await getCostLogsByItem(currentItem.id, "video");
+        setCostLogs(logs);
+      } catch (error) {
+        console.error("Error loading cost logs:", error);
+      }
+    }
+    fetchLogs();
+  }, [currentItem]);
 
   if (!currentItem) return null;
 
@@ -211,40 +218,32 @@ export function VideoDetailModal({
     )
       return null;
 
+    // Use Cost Logs if available
+    if (costLogs.length > 0) {
+      const analysis = analyzeCostLogs(costLogs);
+      return {
+        total: analysis.totalCost,
+        breakdown: analysis, // Pass analysis dict, UI logic will handle it
+        isReal: true,
+      };
+    }
+
+    // Else if video exists but no logs => "Available"
+    if (currentItem.videoLink) {
+      return {
+        total: 0,
+        breakdown: "",
+        isAvailable: true,
+      };
+    }
+
+    /* Fallback
     const duration = currentItem.videoDuration;
-
-    const videoModel =
-      modelsList.find((m) => m.type === "video") ||
-      DEFAULT_MODELS.find((m) => m.type === "video");
-    const audioModel =
-      modelsList.find((m) => m.type === "audio") ||
-      DEFAULT_MODELS.find((m) => m.type === "audio");
-
-    let totalCost = 0;
-
-    if (videoModel) {
-      let cost = 0;
-      if (videoModel.unit === "per_second") {
-        cost = duration * videoModel.cost;
-      } else if (videoModel.unit === "per_run") {
-        cost = videoModel.cost;
-      }
-      totalCost += cost;
-    }
-
-    if (audioModel) {
-      let cost = 0;
-      if (audioModel.unit === "per_second") {
-        cost = duration * audioModel.cost;
-      } else if (audioModel.unit === "per_run") {
-        cost = audioModel.cost;
-      }
-      totalCost += cost;
-    }
-
-    return {
-      total: totalCost,
-    };
+    const videoModel = modelsList.find((m) => m.modelType === "video");
+    const audioModel = modelsList.find((m) => m.modelType === "audio");
+    return calculateVideoCost(videoModel, audioModel, duration);
+    */
+    return null;
   };
 
   const estimatedCost = calculateEstimatedCost();
@@ -393,28 +392,84 @@ export function VideoDetailModal({
                 </div>
 
                 {/* Cost Display */}
-                {estimatedCost && (
+                {estimatedCost && !estimatedCost.isAvailable ? (
                   <div className="flex items-center gap-4 mb-6">
                     <div className="p-2 rounded-full bg-white/60 shadow-sm text-emerald-600">
                       <DollarSign className="h-5 w-5" />
                     </div>
                     <div>
-                      <div className={glassLabelClass}>Chi phí ước tính</div>
+                      <div className={glassLabelClass}>
+                        {estimatedCost.isReal ? "Chi phí" : "Chi phí"}
+                      </div>
                       <div className="inline-flex items-center gap-2">
                         <span className="font-medium text-slate-900 text-lg">
-                          ${estimatedCost.total.toFixed(2)}
+                          ${estimatedCost.total.toFixed(3)}
                         </span>
                         <span className="text-slate-500 text-sm">
-                          (~
+                          (~{" "}
                           {(estimatedCost.total * 26000).toLocaleString(
                             "vi-VN"
-                          )}
-                          đ)
+                          )} ₫
+                          )
                         </span>
+                        {/* Breakdown for Real Log */}
+                        {estimatedCost.isReal &&
+                          typeof estimatedCost.breakdown === "object" && (
+                            <div className="flex flex-col gap-1 mt-1 text-xs text-slate-500">
+                              {estimatedCost.breakdown.generateCost > 0 && (
+                                <div className="flex justify-between gap-4">
+                                  <span>Tạo mới:</span>
+                                  <span>
+                                    $
+                                    {estimatedCost.breakdown.generateCost.toFixed(
+                                      3
+                                    )}
+                                  </span>
+                                </div>
+                              )}
+                              {(estimatedCost.breakdown.details.video.edit >
+                                0 ||
+                                estimatedCost.breakdown.details.audio.edit >
+                                  0) && (
+                                <div className="flex justify-between gap-4">
+                                  <span>
+                                    Chỉnh sửa (
+                                    {Math.max(
+                                      estimatedCost.breakdown.details.video
+                                        .editCount,
+                                      estimatedCost.breakdown.details.audio
+                                        .editCount
+                                    )}{" "}
+                                    lần):
+                                  </span>
+                                  <span>
+                                    $
+                                    {(
+                                      estimatedCost.breakdown.details.video
+                                        .edit +
+                                      estimatedCost.breakdown.details.audio.edit
+                                    ).toFixed(3)}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                          )}
                       </div>
                     </div>
                   </div>
-                )}
+                ) : estimatedCost?.isAvailable ? (
+                  <div className="flex items-center gap-4 mb-6">
+                    <div className="p-2 rounded-full bg-white/60 shadow-sm text-blue-600">
+                      <DollarSign className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <div className={glassLabelClass}>Chi phí</div>
+                      <div className="font-medium text-blue-700 text-lg">
+                        Video có sẵn
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
 
                 {currentItem.videoLink && (
                   <div className="flex items-start gap-4 mb-6">

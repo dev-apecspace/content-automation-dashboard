@@ -149,38 +149,37 @@ export interface VideoItem extends BaseContentItem {
   views?: number;
 }
 
-// Inteface for Model Configuration
-export interface ModelConfig {
-  id: string;
-  type: "video" | "audio" | "image";
+export type ModelType = "video" | "image" | "audio" | "text";
+
+export interface AIModel {
+  id: number;
   name: string;
-  cost: number;
-  unit: "per_second" | "per_megapixel" | "per_run";
+  modelType: ModelType;
+  costPerUnit: number;
+  unitType: "per_second" | "per_megapixel" | "per_run";
+  currency?: string;
+  isActive?: boolean;
+  notes?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
-export const DEFAULT_MODELS: ModelConfig[] = [
-  {
-    id: "kling-2.5",
-    type: "video",
-    name: "Kling 2.5 Turbo Pro",
-    cost: 0.07,
-    unit: "per_second",
-  },
-  {
-    id: "mmaudio-v2",
-    type: "audio",
-    name: "mmaudio-v2",
-    cost: 0.001,
-    unit: "per_second",
-  },
-  {
-    id: "flux-1-krea",
-    type: "image",
-    name: "FLUX.1 Krea [dev]",
-    cost: 0.025,
-    unit: "per_megapixel",
-  },
-];
+export type ItemType = "video" | "content";
+
+export type CostType = "generate" | "edit";
+
+export interface CostLog {
+  id: number;
+  itemId: string;
+  itemType: ItemType;
+  costType: CostType;
+  amount: number;
+  currency?: string;
+  description?: string | null;
+  aiModelId?: number | null;
+  loggedAt?: string;
+  aiModels?: AIModel;
+}
 
 // Dashboard Types
 export interface DashboardStats {
@@ -243,9 +242,9 @@ export interface VideoStats {
 export interface CostStats {
   totalCost: number;
   byType: {
-    video: number;
-    image: number;
-    audio: number;
+    video: { cost: number; count: number; duration: number }; // duration in seconds
+    image: { cost: number; count: number };
+    audio: { cost: number; count: number };
   };
   dailyCosts: {
     date: string;

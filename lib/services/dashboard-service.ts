@@ -13,6 +13,8 @@ import {
   StatusDistribution,
   ActivityLog,
   ProjectStats,
+  AIModel,
+  CostLog,
 } from "@/lib/types";
 import {
   startOfDay,
@@ -528,40 +530,39 @@ export const DashboardService = {
 
   // Cost Analytics
   getCostStats: async (): Promise<CostStats> => {
-    const { DEFAULT_MODELS } = await import("@/lib/types");
-    const videoModel = DEFAULT_MODELS.find((m) => m.type === "video");
-    const imageModel = DEFAULT_MODELS.find((m) => m.type === "image");
+    // Fetch all cost logs with model info
+    const { data: logsData, error } = await supabase
+      .from("cost_logs")
+      // Expand ai_models to get cost info
+      .select("*, ai_models(*)")
+      .order("logged_at", { ascending: true });
 
-    const videoCostPerSec = videoModel?.cost || 0.07;
-    const imageCostPerItem = imageModel?.cost || 0.025; // Assuming 1MP avg
+    if (error) {
+      console.error("Error fetching cost logs:", error);
+      // Return empty stats on error
+      return {
+        totalCost: 0,
+        byType: {
+          video: { cost: 0, count: 0, duration: 0 },
+          image: { cost: 0, count: 0 },
+          audio: { cost: 0, count: 0 },
+        },
+        dailyCosts: [],
+      };
+    }
 
-    // Fetch ALL items for Total Cost (optimized select)
-    // Note: For very large datasets, this should be an RPC call or paginated
-    const [allContentRes, allVideoRes] = await Promise.all([
-      supabase.from("content_items").select("created_at"),
-      supabase.from("video_items").select("created_at, video_duration"),
-    ]);
+    // Process logs
+    // camelcaseKeys will convert snake_case DB fields to camelCase
+    // e.g. cost_type -> costType, ai_models -> aiModels
+    const logs = camelcaseKeys(logsData || [], { deep: true });
 
-    const contentItems = (allContentRes.data || []) as any[];
-    const videoItems = (allVideoRes.data || []) as any[];
+    let totalCost = 0;
+    const byType = {
+      video: { cost: 0, count: 0, duration: 0 },
+      image: { cost: 0, count: 0 },
+      audio: { cost: 0, count: 0 },
+    };
 
-    // 1. Calculate Total Costs
-    const totalImages = contentItems.length;
-    const totalImageCost = totalImages * imageCostPerItem;
-
-    const totalDuration = videoItems.reduce(
-      (acc, v) => acc + (v.video_duration || 0),
-      0
-    );
-    const totalVideoCost = totalDuration * videoCostPerSec;
-
-    // Derived Audio Cost (If we tracked audio separately we'd query it. For now assuming 0 unless we have audio_items table)
-    // User requested "no mock data", so if we don't have audio data, audio cost is 0.
-    const totalAudioCost = 0;
-
-    const totalCost = totalVideoCost + totalImageCost + totalAudioCost;
-
-    // 2. Calculate Daily Costs (Last 7 Days)
     const dailyMap = new Map<string, number>();
     const today = new Date();
     const days = 7;
@@ -571,31 +572,63 @@ export const DashboardService = {
       const dateStr = format(subDays(today, i), "MMM dd");
       dailyMap.set(dateStr, 0);
     }
-
     const startDate = subDays(startOfDay(today), days);
 
-    // Filter and sum Content costs for last 7 days
-    contentItems.forEach((item) => {
-      const itemDate = new Date(item.created_at);
-      if (itemDate >= startDate) {
-        const dateStr = format(itemDate, "MMM dd");
-        if (dailyMap.has(dateStr)) {
-          dailyMap.set(
-            dateStr,
-            (dailyMap.get(dateStr) || 0) + imageCostPerItem
-          );
-        }
-      }
-    });
+    logs.forEach((log: any) => {
+      const amount = log.amount || 0;
+      const model = log.aiModels as AIModel | undefined;
 
-    // Filter and sum Video costs for last 7 days
-    videoItems.forEach((item) => {
-      const itemDate = new Date(item.created_at);
-      if (itemDate >= startDate) {
-        const dateStr = format(itemDate, "MMM dd");
-        if (dailyMap.has(dateStr)) {
-          const cost = (item.video_duration || 0) * videoCostPerSec;
-          dailyMap.set(dateStr, (dailyMap.get(dateStr) || 0) + cost);
+      // Calculate Cost
+      let cost = 0;
+      let duration = 0;
+
+      // Logic:
+      // If currency is set, amount is the monetary cost.
+      // Else calculate from model unit price.
+      if (log.currency) {
+        cost = amount;
+      } else if (model) {
+        cost = amount * (model.costPerUnit || 0);
+      }
+
+      totalCost += cost;
+
+      // Categorize
+      let type: "video" | "image" | "audio" | "text" | "other" = "other";
+      if (model?.modelType) {
+        type = model.modelType;
+      } else if (log.itemType) {
+        // Fallback to itemType if no model
+        // Note: logs table item_type might be 'video' or 'content'
+        if (log.itemType === "content") type = "image";
+        // Assumption: content generation = text/image, usually image spans most cost
+        else type = log.itemType as any;
+      }
+
+      // Aggregates
+      if (type === "video") {
+        byType.video.cost += cost;
+        byType.video.count += 1;
+        // If unit is per_second, amount is duration
+        if (model?.unitType === "per_second") {
+          byType.video.duration += amount;
+        }
+      } else if (type === "image") {
+        byType.image.cost += cost;
+        byType.image.count += 1;
+      } else if (type === "audio") {
+        byType.audio.cost += cost;
+        byType.audio.count += 1;
+      }
+
+      // Daily Trend
+      if (log.loggedAt) {
+        const logDate = new Date(log.loggedAt);
+        if (logDate >= startDate) {
+          const dateStr = format(logDate, "MMM dd");
+          if (dailyMap.has(dateStr)) {
+            dailyMap.set(dateStr, (dailyMap.get(dateStr) || 0) + cost);
+          }
         }
       }
     });
@@ -607,11 +640,7 @@ export const DashboardService = {
 
     return {
       totalCost,
-      byType: {
-        video: totalVideoCost,
-        image: totalImageCost,
-        audio: totalAudioCost,
-      },
+      byType,
       dailyCosts,
     };
   },

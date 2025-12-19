@@ -43,6 +43,10 @@ import {
   updateAIConfig,
   getNotificationSettings,
   updateNotificationSettings,
+  getAIModels,
+  createAIModel,
+  updateAIModel,
+  deleteAIModel,
 } from "@/lib/api";
 import {
   Table,
@@ -59,7 +63,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { ModelConfig, DEFAULT_MODELS } from "@/lib/types";
+import { AIModel, ModelType } from "@/lib/types";
 
 export function SettingsTab() {
   // Sheet Settings
@@ -77,17 +81,17 @@ export function SettingsTab() {
   const [temperature, setTemperature] = useState(0.7);
 
   // AI Settings (Media Models Registry)
-  const [modelsList, setModelsList] = useState<ModelConfig[]>([]);
+  const [modelsList, setModelsList] = useState<AIModel[]>([]);
   const [isModelsLoaded, setIsModelsLoaded] = useState(false);
 
   // Model Dialog State
   const [isModelDialogOpen, setIsModelDialogOpen] = useState(false);
-  const [editingModel, setEditingModel] = useState<ModelConfig | null>(null);
-  const [modelForm, setModelForm] = useState<Partial<ModelConfig>>({
-    type: "video",
+  const [editingModel, setEditingModel] = useState<AIModel | null>(null);
+  const [modelForm, setModelForm] = useState<Partial<AIModel>>({
+    modelType: "video",
     name: "",
-    cost: 0,
-    unit: "per_second",
+    costPerUnit: 0,
+    unitType: "per_second",
   });
 
   // Notification Settings
@@ -117,7 +121,7 @@ export function SettingsTab() {
         ]),
         getAIConfig(),
         getNotificationSettings("user_1"),
-        getSetting("ai_models_registry"),
+        getAIModels(),
       ]);
 
       if (sheet) {
@@ -135,22 +139,11 @@ export function SettingsTab() {
       }
 
       // Load Model Registry
-      if (modelRegistry && modelRegistry.value) {
-        try {
-          const parsed = JSON.parse(modelRegistry.value);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            setModelsList(parsed);
-          } else {
-            console.log("Empty registry, using defaults");
-            setModelsList(DEFAULT_MODELS);
-          }
-        } catch (e) {
-          console.error("Failed to parse models registry, using defaults");
-          setModelsList(DEFAULT_MODELS);
-        }
+      if (modelRegistry && modelRegistry.length > 0) {
+        setModelsList(modelRegistry);
       } else {
-        console.log("No registry found, using defaults");
-        setModelsList(DEFAULT_MODELS);
+        console.log("No registry found, using empty list");
+        setModelsList([]);
       }
       setIsModelsLoaded(true);
 
@@ -201,11 +194,6 @@ export function SettingsTab() {
           max_tokens: maxTokens,
           temperature: temperature,
         }),
-        updateSetting(
-          "ai_models_registry",
-          JSON.stringify(modelsList),
-          "user_1"
-        ),
       ]);
       toast.success("AI settings saved!");
     } catch (error) {
@@ -234,49 +222,71 @@ export function SettingsTab() {
   };
 
   // --- Model Management Handlers ---
-  const handleOpenModelDialog = (model?: ModelConfig) => {
+  const handleOpenModelDialog = (model?: AIModel) => {
     if (model) {
       setEditingModel(model);
       setModelForm(model);
     } else {
       setEditingModel(null);
       setModelForm({
-        type: "video",
+        modelType: "video",
         name: "",
-        cost: 0,
-        unit: "per_second",
+        costPerUnit: 0,
+        unitType: "per_second",
       });
     }
     setIsModelDialogOpen(true);
   };
 
-  const handleSaveModel = () => {
-    if (!modelForm.name || modelForm.cost === undefined) {
+  const handleSaveModel = async () => {
+    if (!modelForm.name || modelForm.costPerUnit === undefined) {
       toast.error("Vui lòng điền đầy đủ thông tin");
       return;
     }
 
-    const newModel: ModelConfig = {
-      id: editingModel ? editingModel.id : crypto.randomUUID(),
-      type: modelForm.type as "video" | "audio" | "image",
-      name: modelForm.name,
-      cost: Number(modelForm.cost),
-      unit: modelForm.unit as "per_second" | "per_megapixel" | "per_run",
-    };
-
-    setModelsList((prev) => {
+    try {
       if (editingModel) {
-        return prev.map((m) => (m.id === editingModel.id ? newModel : m));
+        // Edit
+        const updated = await updateAIModel(editingModel.id, modelForm);
+        setModelsList((prev) =>
+          prev.map((m) => (m.id === editingModel.id ? updated : m))
+        );
+        toast.success("Cập nhật model thành công");
       } else {
-        return [...prev, newModel];
-      }
-    });
+        // Create
+        // Need to cast because createAIModel expects specific optional fields but form has Partial
+        const newModelInput = {
+          name: modelForm.name!,
+          modelType: modelForm.modelType || "video",
+          costPerUnit: Number(modelForm.costPerUnit),
+          unitType: modelForm.unitType || "per_second",
+          currency: modelForm.currency || "USD",
+          isActive: true, // Default to true
+        } as Omit<AIModel, "id" | "createdAt" | "updatedAt">;
 
-    setIsModelDialogOpen(false);
+        const newModel = await createAIModel(newModelInput);
+        setModelsList((prev) => [...prev, newModel]);
+        toast.success("Thêm model thành công");
+      }
+      setIsModelDialogOpen(false);
+    } catch (error) {
+      console.error(error);
+      toast.error("Có lỗi xảy ra khi lưu model");
+    }
   };
 
-  const handleDeleteModel = (id: string) => {
-    setModelsList((prev) => prev.filter((m) => m.id !== id));
+  const handleDeleteModel = async (id: number) => {
+    // id is number now
+    try {
+      if (confirm("Bạn có chắc chắn muốn xóa model này?")) {
+        await deleteAIModel(id);
+        setModelsList((prev) => prev.filter((m) => m.id !== id));
+        toast.success("Đã xóa model");
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error("Không thể xóa model");
+    }
   };
 
   return (
@@ -517,7 +527,7 @@ export function SettingsTab() {
           </Card>
 
           {/* Media Models Pricing Section */}
-          <Card  className="py-6">
+          <Card className="py-6">
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
                 <CardTitle>Cấu hình Media Models</CardTitle>
@@ -560,14 +570,14 @@ export function SettingsTab() {
                       modelsList.map((model) => (
                         <TableRow key={model.id}>
                           <TableCell className="font-medium capitalize">
-                            {model.type}
+                            {model.modelType}
                           </TableCell>
                           <TableCell>{model.name}</TableCell>
-                          <TableCell>${model.cost}</TableCell>
+                          <TableCell>${model.costPerUnit}</TableCell>
                           <TableCell className="text-muted-foreground text-sm">
-                            {model.unit === "per_second"
+                            {model.unitType === "per_second"
                               ? "/ giây"
-                              : model.unit === "per_megapixel"
+                              : model.unitType === "per_megapixel"
                               ? "/ MP"
                               : "/ lượt"}
                           </TableCell>
@@ -730,9 +740,9 @@ export function SettingsTab() {
             <div className="space-y-2">
               <Label>Loại Model</Label>
               <Select
-                value={modelForm.type}
+                value={modelForm.modelType}
                 onValueChange={(val) =>
-                  setModelForm({ ...modelForm, type: val as any })
+                  setModelForm({ ...modelForm, modelType: val as ModelType })
                 }
               >
                 <SelectTrigger>
@@ -761,11 +771,11 @@ export function SettingsTab() {
                 <Input
                   type="number"
                   step="0.001"
-                  value={modelForm.cost}
+                  value={modelForm.costPerUnit}
                   onChange={(e) =>
                     setModelForm({
                       ...modelForm,
-                      cost: parseFloat(e.target.value),
+                      costPerUnit: parseFloat(e.target.value),
                     })
                   }
                 />
@@ -773,9 +783,9 @@ export function SettingsTab() {
               <div className="space-y-2">
                 <Label>Đơn vị tính</Label>
                 <Select
-                  value={modelForm.unit}
+                  value={modelForm.unitType}
                   onValueChange={(val) =>
-                    setModelForm({ ...modelForm, unit: val as any })
+                    setModelForm({ ...modelForm, unitType: val as any })
                   }
                 >
                   <SelectTrigger>
