@@ -12,6 +12,7 @@ import {
   Platform,
   StatusDistribution,
   ActivityLog,
+  ProjectStats,
 } from "@/lib/types";
 import {
   startOfDay,
@@ -350,6 +351,41 @@ export const DashboardService = {
       )
       .slice(0, 5);
 
+    // Project Stats Calculation
+    const projectMap = new Map<string, ProjectStats>();
+    items.forEach((item) => {
+      const pid = item.projectId;
+      if (!pid) return;
+
+      if (!projectMap.has(pid)) {
+        projectMap.set(pid, {
+          projectId: pid,
+          projectName: item.projectName || "Unknown Project",
+          total: 0,
+          posted: 0,
+          waiting: 0,
+          pending: 0,
+        });
+      }
+
+      const stats = projectMap.get(pid)!;
+      stats.total += 1;
+      if (item.status === "posted_successfully") {
+        stats.posted += 1;
+      } else if (item.status === "content_approved") {
+        stats.waiting += 1;
+      } else if (
+        item.status === "idea" ||
+        item.status === "awaiting_content_approval"
+      ) {
+        stats.pending += 1;
+      }
+    });
+
+    const byProject = Array.from(projectMap.values()).sort(
+      (a, b) => b.total - a.total
+    );
+
     return {
       totalItems: items.length,
       pendingApproval,
@@ -357,6 +393,7 @@ export const DashboardService = {
       overdue,
       byPlatform,
       byStatus,
+      byProject,
       topPerforming,
     };
   },
@@ -440,6 +477,41 @@ export const DashboardService = {
       .sort((a, b) => (b.views || 0) - (a.views || 0))
       .slice(0, 5);
 
+    // Project Stats Calculation for Videos
+    const projectMap = new Map<string, ProjectStats>();
+    videos.forEach((item) => {
+      const pid = item.projectId;
+      if (!pid) return;
+
+      if (!projectMap.has(pid)) {
+        projectMap.set(pid, {
+          projectId: pid,
+          projectName: item.projectName || "Unknown Project",
+          total: 0,
+          posted: 0,
+          waiting: 0,
+          pending: 0,
+        });
+      }
+
+      const stats = projectMap.get(pid)!;
+      stats.total += 1;
+      if (item.status === "posted_successfully") {
+        stats.posted += 1;
+      } else if (item.status === "content_approved") {
+        stats.waiting += 1;
+      } else if (
+        item.status === "idea" ||
+        item.status === "awaiting_content_approval"
+      ) {
+        stats.pending += 1;
+      }
+    });
+
+    const byProject = Array.from(projectMap.values()).sort(
+      (a, b) => b.total - a.total
+    );
+
     return {
       totalVideos: videos.length,
       totalViews,
@@ -449,6 +521,7 @@ export const DashboardService = {
       overdue,
       posted,
       byPlatform,
+      byProject,
       topPerforming,
     };
   },

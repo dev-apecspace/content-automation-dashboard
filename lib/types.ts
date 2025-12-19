@@ -206,6 +206,15 @@ export interface StatusDistribution {
   label: string;
 }
 
+export interface ProjectStats {
+  projectId: string;
+  projectName: string;
+  total: number;
+  posted: number;
+  waiting: number; // content_approved
+  pending: number; // idea or awaiting_content_approval
+}
+
 export interface ContentStats {
   totalItems: number;
   pendingApproval: number;
@@ -213,6 +222,7 @@ export interface ContentStats {
   overdue: number;
   byPlatform: PlatformDistribution[];
   byStatus: StatusDistribution[];
+  byProject: ProjectStats[];
   topPerforming: ContentItem[];
 }
 
@@ -225,6 +235,7 @@ export interface VideoStats {
   overdue: number;
   posted: number;
   byPlatform: PlatformDistribution[]; // Some videos are multi-platform
+  byProject: ProjectStats[];
   topPerforming: VideoItem[];
 }
 

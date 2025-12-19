@@ -15,6 +15,7 @@ import {
   RecentActivityList,
   ScheduleStatsGrid,
 } from "./dashboard-molecules";
+import { ProjectStatsList } from "./project-stats-list";
 import { DashboardCharts } from "./dashboard-charts";
 import { PlatformPieChart, StatusBarChart } from "./analytics-components";
 import { CostAnalytics } from "./cost-analytics";
@@ -108,7 +109,7 @@ export function DashboardOverview() {
       <section>
         <h2 className="text-xl font-bold text-slate-800 mb-4 flex items-center">
           <FileText className="mr-2 text-indigo-500" size={24} />
-          Chi Tiết Nội Dung (Content)
+          Chi Tiết Content
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
           {/* Key Metrics */}
@@ -153,6 +154,14 @@ export function DashboardOverview() {
           <div className="md:col-span-12 lg:col-span-5">
             <PlatformPieChart
               data={contentStats?.byPlatform || []}
+              loading={contentStatsLoading}
+            />
+          </div>
+
+          {/* Project Stats for Content */}
+          <div className="md:col-span-12">
+            <ProjectStatsList
+              stats={contentStats?.byProject || []}
               loading={contentStatsLoading}
             />
           </div>
@@ -217,9 +226,17 @@ export function DashboardOverview() {
           </div>
 
           {/* Platform Distribution for Video */}
-          <div className="md:col-span-6 lg:col-span-5">
+          <div className="md:col-span-12 lg:col-span-5">
             <PlatformPieChart
               data={videoStats?.byPlatform || []}
+              loading={videoStatsLoading}
+            />
+          </div>
+
+          {/* Project Stats for Video */}
+          <div className="md:col-span-12">
+            <ProjectStatsList
+              stats={videoStats?.byProject || []}
               loading={videoStatsLoading}
             />
           </div>
