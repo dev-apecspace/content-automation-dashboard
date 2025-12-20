@@ -161,8 +161,8 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
         caption: "",
       });
       setImageEditRequest("");
-      setNewImageLink("");
     }
+    setNewImageLink("");
   }, [editContent, isOpen]);
 
   // ------------------- XỬ LÝ DỰ ÁN -------------------
@@ -536,13 +536,6 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
                         className="max-h-64 object-cover"
                       />
                       <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
-                        <button
-                          onClick={() => handleEditWithAI("image")}
-                          className="p-3 bg-white/20 backdrop-blur-md border border-white/50 text-white rounded-full hover:bg-white/40 transition-colors"
-                          title="AI chỉnh sửa"
-                        >
-                          <Sparkles className="w-5 h-5" />
-                        </button>
                         <button
                           onClick={handleRemoveImage}
                           className="p-3 bg-white/20 backdrop-blur-md border border-white/50 text-red-500 rounded-full hover:bg-white/40 transition-colors"

@@ -338,19 +338,6 @@ export function VideoDetailModal({
               className="space-y-6 focus-visible:outline-none"
             >
               <div className={cn(glassCardClass, "p-6")}>
-                {/* Tiêu đề & Thời lượng */}
-                <div className="flex items-start gap-4 mb-6">
-                  <div className="p-2 rounded-full bg-white/60 shadow-sm text-blue-600">
-                    <Film className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <div className={glassLabelClass}>Tiêu đề</div>
-                    <p className="font-medium text-slate-900 text-lg">
-                      {currentItem.title || "-"}
-                    </p>
-                  </div>
-                </div>
-
                 {/* Thời gian đăng */}
                 <div className="flex items-center gap-4 mb-6">
                   <div className="p-2 rounded-full bg-white/60 shadow-sm text-blue-600">
@@ -364,12 +351,25 @@ export function VideoDetailModal({
                   </div>
                 </div>
 
+                {/* Tiêu đề & Thời lượng */}
+                <div className="flex items-start gap-4 mb-6">
+                  <div className="p-2 rounded-full bg-white/60 shadow-sm text-blue-600">
+                    <Film className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <div className={glassLabelClass}>Tiêu đề</div>
+                    <p className="font-medium text-slate-900 text-lg">
+                      {currentItem.title || "-"}
+                    </p>
+                  </div>
+                </div>
+
                 {/* Caption */}
                 <div className="mb-6">
                   <div className="flex items-center gap-3 mb-3">
                     <div className="p-2 rounded-full bg-white/60 shadow-sm text-blue-600">
-                    <Captions className="h-5 w-5" />
-                  </div>
+                      <Captions className="h-5 w-5" />
+                    </div>
                     <h4 className="font-semibold text-slate-900">Caption</h4>
                   </div>
                   <div className="bg-white/50 rounded-xl p-4 border border-white/60 shadow-inner">
@@ -480,20 +480,24 @@ export function VideoDetailModal({
                     </div>
                     <div className="w-full">
                       <div className={cn(glassLabelClass, "mb-2")}>Video</div>
-                      <div className="bg-black/5 rounded-xl border border-black/10 overflow-hidden">
-                        <div className="p-3 bg-white/40 flex items-center justify-between">
-                          <span className="text-sm text-slate-600 truncate max-w-[200px]">
-                            {currentItem.videoLink}
-                          </span>
-                          <a
-                            href={currentItem.videoLink}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-xs bg-red-50 text-red-600 px-3 py-1.5 rounded-lg border border-red-100 hover:bg-red-100 transition-colors font-medium"
-                          >
-                            Xem video
-                          </a>
-                        </div>
+                      <div className="mb-2">
+                        <a
+                          href={currentItem.videoLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sm text-blue-600 hover:underline hover:text-blue-700 break-all"
+                        >
+                          {currentItem.videoLink}
+                        </a>
+                      </div>
+                      <div className="bg-black/5 rounded-xl border border-black/10 overflow-hidden mt-1">
+                        <video
+                          src={currentItem.videoLink}
+                          controls
+                          className="w-full max-h-[300px] bg-black"
+                        >
+                          Trình duyệt của bạn không hỗ trợ thẻ video.
+                        </video>
                       </div>
                     </div>
                   </div>
@@ -544,7 +548,7 @@ export function VideoDetailModal({
                         rel="noopener noreferrer"
                         className="text-blue-600 hover:text-blue-700 hover:underline font-medium flex items-center gap-1"
                       >
-                        Xem bài đăng <Share2 className="w-3 h-3" />
+                        Xem bài đăng
                       </a>
                     </div>
                   </div>
