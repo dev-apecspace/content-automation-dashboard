@@ -141,8 +141,12 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
 
     const duration = formData.videoDuration;
 
-    const videoModel = modelsList.find((m) => m.modelType === "video");
-    const audioModel = modelsList.find((m) => m.modelType === "audio");
+    const videoModel = modelsList.find(
+      (m) => m.modelType === "video" && m.isActive
+    );
+    const audioModel = modelsList.find(
+      (m) => m.modelType === "audio" && m.isActive
+    );
 
     return calculateVideoCost(videoModel, audioModel, duration);
   };
