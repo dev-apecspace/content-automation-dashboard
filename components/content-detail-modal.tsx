@@ -58,7 +58,7 @@ import {
   calculateImageCost,
   calculateTotalCostFromLogs,
   analyzeCostLogs,
-} from "@/lib/cost-utils";
+} from "@/lib/utils/cost";
 
 interface ContentDetailModalProps {
   isOpen: boolean;
@@ -401,7 +401,7 @@ export function ContentDetailModal({
                           ${estimatedCost.total.toFixed(3)}
                         </span>
                         <span className="text-slate-500 text-sm">
-                          (~ 
+                          (~
                           {(estimatedCost.total * 26000).toLocaleString(
                             "vi-VN"
                           )}

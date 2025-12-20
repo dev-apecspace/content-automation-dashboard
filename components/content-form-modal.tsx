@@ -36,7 +36,7 @@ import {
 } from "lucide-react";
 import { getProjects, getAIModels } from "@/lib/api";
 import { ContentItem, contentTypes, Project, AIModel } from "@/lib/types";
-import { calculateImageCost } from "@/lib/cost-utils";
+import { calculateImageCost } from "@/lib/utils/cost";
 import { useFullscreen } from "@/stores/useFullscreenStore";
 import { uploadImageFile } from "@/app/api/cloudinary";
 import { AiRequirementDialog } from "./ai-requirement-dialog";

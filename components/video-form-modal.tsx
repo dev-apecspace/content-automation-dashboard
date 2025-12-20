@@ -41,7 +41,7 @@ import { AiRequirementDialog } from "./ai-requirement-dialog";
 import { getContentItemById } from "@/lib/api/content-items";
 import { getVideoItemById } from "@/lib/api/video-items";
 import { toast } from "sonner";
-import { calculateVideoCost } from "@/lib/cost-utils";
+import { calculateVideoCost } from "@/lib/utils/cost";
 
 interface VideoFormModalProps {
   isOpen: boolean;

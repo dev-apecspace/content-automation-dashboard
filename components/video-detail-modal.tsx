@@ -50,7 +50,7 @@ import {
   calculateVideoCost,
   calculateTotalCostFromLogs,
   analyzeCostLogs,
-} from "@/lib/cost-utils";
+} from "@/lib/utils/cost";
 import {
   createActivityLog,
   getVideoItemById,
@@ -409,8 +409,8 @@ export function VideoDetailModal({
                           (~{" "}
                           {(estimatedCost.total * 26000).toLocaleString(
                             "vi-VN"
-                          )} ₫
-                          )
+                          )}{" "}
+                          ₫ )
                         </span>
                         {/* Breakdown for Real Log */}
                         {estimatedCost.isReal &&
