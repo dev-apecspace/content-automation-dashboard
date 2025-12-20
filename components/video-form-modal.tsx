@@ -41,7 +41,7 @@ import { AiRequirementDialog } from "./ai-requirement-dialog";
 import { getContentItemById } from "@/lib/api/content-items";
 import { getVideoItemById } from "@/lib/api/video-items";
 import { toast } from "sonner";
-import { calculateVideoCost } from "@/lib/cost-utils";
+import { calculateVideoCost } from "@/lib/utils/cost";
 
 interface VideoFormModalProps {
   isOpen: boolean;
@@ -87,6 +87,30 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
   });
 
   const [newImageLink, setNewImageLink] = useState("");
+
+  // ------------------- MOVED UP PERMISSIONS -------------------
+  const currentStatus = editVideo?.status || "idea";
+  const canEditIdeaFields = currentStatus === "idea";
+  const canEditContentApprovalFields =
+    currentStatus === "awaiting_content_approval" ||
+    currentStatus === "content_approved" ||
+    currentStatus === "post_removed";
+
+  const isIdeaValid =
+    canEditIdeaFields &&
+    !!formData.idea?.trim() &&
+    !!formData.projectId &&
+    Array.isArray(formData.platform) &&
+    formData.platform.length > 0 &&
+    formData.videoDuration !== undefined &&
+    formData.videoDuration > 0;
+
+  const isApprovalValid =
+    canEditContentApprovalFields &&
+    !!formData.postingTime &&
+    !!formData.caption?.trim();
+
+  const isFormValid = isIdeaValid || isApprovalValid;
 
   // Load Projects and AI Models
   useEffect(() => {
@@ -137,14 +161,34 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
 
   // Cost Calculation
   const calculateEstimatedCost = () => {
+    // Only calculate if in Idea phase
+    if (!canEditIdeaFields) return null;
+
+    // CASE 1: Has Video Link => FREE (User provided video)
+    if (formData.videoLink) {
+      return {
+        total: 0,
+        modelName: "Video có sẵn",
+        isFree: true,
+      };
+    }
+
     if (!formData.videoDuration || formData.videoDuration <= 0) return null;
 
+    // CASE 2: No Video Link => PAID (Generate Video or Image-to-Video)
     const duration = formData.videoDuration;
 
-    const videoModel = modelsList.find((m) => m.modelType === "video");
-    const audioModel = modelsList.find((m) => m.modelType === "audio");
+    const videoModel = modelsList.find(
+      (m) => m.modelType === "video" && m.isActive
+    );
+    const audioModel = modelsList.find(
+      (m) => m.modelType === "audio" && m.isActive
+    );
 
-    return calculateVideoCost(videoModel, audioModel, duration);
+    return {
+      ...calculateVideoCost(videoModel, audioModel, duration),
+      isFree: false,
+    };
   };
 
   const estimatedCost = calculateEstimatedCost();
@@ -318,29 +362,6 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
     onClose?.() || onOpenChange?.(false);
   };
 
-  const currentStatus = editVideo?.status || "idea";
-  const canEditIdeaFields = currentStatus === "idea";
-  const canEditContentApprovalFields =
-    currentStatus === "awaiting_content_approval" ||
-    currentStatus === "content_approved" ||
-    currentStatus === "post_removed";
-
-  const isIdeaValid =
-    canEditIdeaFields &&
-    !!formData.idea?.trim() &&
-    !!formData.projectId &&
-    Array.isArray(formData.platform) &&
-    formData.platform.length > 0 &&
-    formData.videoDuration !== undefined &&
-    formData.videoDuration > 0;
-
-  const isApprovalValid =
-    canEditContentApprovalFields &&
-    !!formData.postingTime &&
-    !!formData.caption?.trim();
-
-  const isFormValid = isIdeaValid || isApprovalValid;
-
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange || handleClose}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto bg-white/80 backdrop-blur-2xl border-white/60 shadow-2xl rounded-[32px] p-0">
@@ -464,9 +485,24 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
                     Thời lượng (giây) <span className="text-red-500">*</span>
                   </Label>
                   {estimatedCost && (
-                    <div className="text-sm font-medium text-gray-700 px-3 flex items-center gap-1.5">
-                      ${estimatedCost.total.toFixed(2)} (~
-                      {(estimatedCost.total * 26000).toLocaleString("vi-VN")}đ)
+                    <div className="text-sm font-medium text-gray-700 px-3 flex items-center gap-1.5 bg-white/50 rounded-lg border border-white/60 py-1">
+                      {estimatedCost.isFree ? (
+                        <span className="text-emerald-600 font-semibold">
+                          Miễn phí (Video có sẵn)
+                        </span>
+                      ) : (
+                        <>
+                          <DollarSign className="w-3.5 h-3.5 text-emerald-600" />
+                          {estimatedCost.total.toFixed(2)}
+                          <span className="text-slate-500 text-xs font-normal">
+                            (~
+                            {(estimatedCost.total * 26000).toLocaleString(
+                              "vi-VN"
+                            )}
+                            đ)
+                          </span>
+                        </>
+                      )}
                     </div>
                   )}
                 </div>
@@ -490,7 +526,7 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
               <div className="space-y-4 bg-white/40 backdrop-blur-md border border-white/60 rounded-2xl shadow-sm p-6 hover:bg-white/60 transition-all duration-300">
                 <Label className="flex items-center gap-2 text-base font-semibold text-slate-700">
                   <ImageIcon className="w-4 h-4 text-emerald-500" />
-                  Ảnh (tùy chọn)
+                  Ảnh để tạo video (tùy chọn)
                 </Label>
 
                 <div className="flex gap-3">
@@ -551,6 +587,74 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
                   </div>
                 )}
               </div>
+
+              {/* Video Upload Section for Idea Phase */}
+              <div className="space-y-4 bg-white/40 backdrop-blur-md border border-white/60 rounded-2xl shadow-sm p-6 hover:bg-white/60 transition-all duration-300">
+                <Label className="flex items-center gap-2 text-base font-semibold text-slate-700">
+                  <Play className="w-4 h-4 text-red-500" />
+                  Video có sẵn (tùy chọn)
+                </Label>
+
+                <div className="flex gap-3">
+                  <Input
+                    placeholder="Dán link video..."
+                    value={formData.videoLink || ""}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        videoLink: e.target.value.trim(),
+                      }))
+                    }
+                    className="flex-1 border-white/60 bg-white/50 focus:bg-white/80 focus:border-red-400 rounded-xl shadow-sm"
+                  />
+                  <label>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="bg-white/50 border-red-200 text-red-600 hover:bg-white/80 hover:border-red-300 rounded-xl shadow-sm"
+                      onClick={() =>
+                        document
+                          .getElementById("file-upload-idea-video")
+                          ?.click()
+                      }
+                    >
+                      <Upload className="w-4 h-4" />
+                    </Button>
+                    <input
+                      id="file-upload-idea-video"
+                      type="file"
+                      accept="video/*"
+                      onChange={handleVideoUpload}
+                      className="hidden"
+                    />
+                  </label>
+                </div>
+
+                {formData.videoLink && (
+                  <div className="relative group inline-block rounded-xl overflow-hidden shadow-md border border-white/60 w-full max-w-sm">
+                    <video
+                      src={formData.videoLink}
+                      controls
+                      className="w-full max-h-48 object-cover rounded-xl"
+                    />
+                    <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button
+                        onClick={() =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            videoLink: "",
+                          }))
+                        }
+                        className="p-2 bg-black/50 hover:bg-black/70 text-white rounded-full transition-colors"
+                        title="Xóa video"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
               <div className="space-y-3">
                 <Label className="text-sm font-semibold text-slate-700">
                   Ghi chú (tùy chọn)
@@ -707,7 +811,7 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
               <div className="space-y-4 bg-white/40 backdrop-blur-md border border-white/60 rounded-2xl shadow-sm p-6 hover:bg-white/60 transition-all duration-300">
                 <Label className="flex items-center gap-2 text-base font-semibold text-slate-700">
                   <ImageIcon className="w-4 h-4 text-emerald-500" />
-                  Ảnh (tùy chọn)
+                  Ảnh để tạo video (tùy chọn)
                 </Label>
 
                 <div className="flex gap-3">

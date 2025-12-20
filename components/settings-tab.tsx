@@ -33,6 +33,8 @@ import {
   Trash2,
   Edit2,
   X,
+  CheckCircle2,
+  Circle,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -245,23 +247,31 @@ export function SettingsTab() {
     }
 
     try {
+      const modelType = modelForm.modelType || "video";
+
+      // If we are setting this model to Active (which is default for new, or potentially edited),
+      // we need to deactivate others of same type.
+      // Current logic for Create: isActive is hardcoded true.
+      // Current logic for Edit: we are just updating fields, but we might want to expose isActive toggle in form later.
+      // For now, let's assume Create always makes it active, so we deactivate others.
+
       if (editingModel) {
-        // Edit
+        // Edit logic
         const updated = await updateAIModel(editingModel.id, modelForm);
         setModelsList((prev) =>
           prev.map((m) => (m.id === editingModel.id ? updated : m))
         );
         toast.success("Cập nhật model thành công");
       } else {
-        // Create
-        // Need to cast because createAIModel expects specific optional fields but form has Partial
+        // Create logic
+        // New items are inactive by default to preserve existing active model
         const newModelInput = {
           name: modelForm.name!,
-          modelType: modelForm.modelType || "video",
+          modelType: modelType,
           costPerUnit: Number(modelForm.costPerUnit),
           unitType: modelForm.unitType || "per_second",
           currency: modelForm.currency || "USD",
-          isActive: true, // Default to true
+          isActive: false,
         } as Omit<AIModel, "id" | "createdAt" | "updatedAt">;
 
         const newModel = await createAIModel(newModelInput);
@@ -272,6 +282,48 @@ export function SettingsTab() {
     } catch (error) {
       console.error(error);
       toast.error("Có lỗi xảy ra khi lưu model");
+    }
+  };
+
+  const handleSetActiveModel = async (model: AIModel) => {
+    if (model.isActive) return;
+
+    try {
+      // Find currently active model of same type
+      const currentActive = modelsList.find(
+        (m) => m.modelType === model.modelType && m.isActive
+      );
+
+      // Updates to perform
+      const updates = [];
+      const newModelsList = [...modelsList];
+
+      // 1. Deactivate current
+      if (currentActive) {
+        updates.push(updateAIModel(currentActive.id, { isActive: false }));
+        const idx = newModelsList.findIndex((m) => m.id === currentActive.id);
+        if (idx !== -1) {
+          newModelsList[idx] = { ...newModelsList[idx], isActive: false };
+        }
+      }
+
+      // 2. Activate new
+      updates.push(updateAIModel(model.id, { isActive: true }));
+      const idx = newModelsList.findIndex((m) => m.id === model.id);
+      if (idx !== -1) {
+        newModelsList[idx] = { ...newModelsList[idx], isActive: true };
+      }
+
+      // Optimistic update
+      setModelsList(newModelsList);
+
+      await Promise.all(updates);
+      toast.success(`Đã kích hoạt model ${model.name}`);
+    } catch (error) {
+      console.error(error);
+      toast.error("Lỗi khi thay đổi trạng thái model");
+      // Revert on error (reload)
+      loadSettings();
     }
   };
 
@@ -551,6 +603,7 @@ export function SettingsTab() {
                     <TableRow>
                       <TableHead>Loại</TableHead>
                       <TableHead>Tên Model</TableHead>
+                      <TableHead>Trạng thái</TableHead>
                       <TableHead>Chi phí</TableHead>
                       <TableHead>Đơn vị</TableHead>
                       <TableHead className="text-right">Hành động</TableHead>
@@ -573,6 +626,23 @@ export function SettingsTab() {
                             {model.modelType}
                           </TableCell>
                           <TableCell>{model.name}</TableCell>
+                          <TableCell>
+                            <button
+                              onClick={() => handleSetActiveModel(model)}
+                              className="focus:outline-none"
+                              title={
+                                model.isActive
+                                  ? "Đang sử dụng"
+                                  : "Click để kích hoạt"
+                              }
+                            >
+                              {model.isActive ? (
+                                <CheckCircle2 className="h-5 w-5 text-green-500" />
+                              ) : (
+                                <Circle className="h-5 w-5 text-gray-300 hover:text-gray-400" />
+                              )}
+                            </button>
+                          </TableCell>
                           <TableCell>${model.costPerUnit}</TableCell>
                           <TableCell className="text-muted-foreground text-sm">
                             {model.unitType === "per_second"

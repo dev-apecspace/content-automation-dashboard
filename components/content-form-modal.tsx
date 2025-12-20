@@ -36,7 +36,7 @@ import {
 } from "lucide-react";
 import { getProjects, getAIModels } from "@/lib/api";
 import { ContentItem, contentTypes, Project, AIModel } from "@/lib/types";
-import { calculateImageCost } from "@/lib/cost-utils";
+import { calculateImageCost } from "@/lib/utils/cost";
 import { useFullscreen } from "@/stores/useFullscreenStore";
 import { uploadImageFile } from "@/app/api/cloudinary";
 import { AiRequirementDialog } from "./ai-requirement-dialog";
@@ -91,6 +91,28 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
   >(null);
   const [aiPromptContent, setAiPromptContent] = useState("");
   const [isAiLoading, setIsAiLoading] = useState(false);
+
+  // ------------------- QUYỀN & VALIDATION (Moved up for dependencies) -------------------
+  const currentStatus = editContent?.status || "idea";
+  const canEditIdeaFields = currentStatus === "idea";
+  const canEditContentApprovalFields =
+    currentStatus === "awaiting_content_approval" ||
+    currentStatus === "content_approved" ||
+    currentStatus === "post_removed";
+
+  const isIdeaValid =
+    canEditIdeaFields &&
+    !!formData.idea?.trim() &&
+    !!formData.projectId &&
+    !!formData.contentType;
+
+  const isApprovalValid =
+    canEditContentApprovalFields &&
+    !!formData.imageLink &&
+    !!formData.postingTime &&
+    !!formData.caption?.trim();
+
+  const isFormValid = isIdeaValid || isApprovalValid;
 
   // ------------------- LOAD PROJECTS & MODELS -------------------
   useEffect(() => {
@@ -178,23 +200,34 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
 
   // ------------------- COST CALCULATION -------------------
   const calculateEstimatedCost = () => {
-    // Only calculate if image link is present or being uploaded/requested
-    // Actually, if it's "Content Approval" phase and there is an image, we can show value.
-    // Or if user is in "Idea" phase and intends to generate image.
+    // Only calculate if currently in Idea/Detail phase editing
+    if (!canEditIdeaFields && !canEditContentApprovalFields) return null;
 
-    // Let's assume cost is relevant if there is an imageLink or user just wants to see potential cost?
-    // User request: "thêm ước tính chi phí tạo ảnh cho content."
-    // Usually means the cost of generating ONE image.
-
-    const imageModel = modelsList.find((m) => m.modelType === "image");
+    const imageModel = modelsList.find(
+      (m) => m.modelType === "image" && m.isActive
+    );
 
     if (!imageModel) return null;
+
+    // RULE:
+    // 1. Has Image + No Req => Free (User used own/existing image)
+    // 2. Has Image + Has Req => Paid (Edit)
+    // 3. No Image => Paid (Generate)
+
+    if (formData.imageLink && !imageEditRequest?.trim()) {
+      return {
+        total: 0,
+        modelName: imageModel.name,
+        isFree: true,
+      };
+    }
 
     const cost = calculateImageCost(imageModel);
 
     return {
       total: cost,
       modelName: imageModel.name,
+      isFree: false,
     };
   };
 
@@ -317,28 +350,6 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
   const handleClose = () => {
     onClose?.() || onOpenChange?.(false);
   };
-
-  // ------------------- QUYỀN & VALIDATION -------------------
-  const currentStatus = editContent?.status || "idea";
-  const canEditIdeaFields = currentStatus === "idea";
-  const canEditContentApprovalFields =
-    currentStatus === "awaiting_content_approval" ||
-    currentStatus === "content_approved" ||
-    currentStatus === "post_removed";
-
-  const isIdeaValid =
-    canEditIdeaFields &&
-    !!formData.idea?.trim() &&
-    !!formData.projectId &&
-    !!formData.contentType;
-
-  const isApprovalValid =
-    canEditContentApprovalFields &&
-    !!formData.imageLink &&
-    !!formData.postingTime &&
-    !!formData.caption?.trim();
-
-  const isFormValid = isIdeaValid || isApprovalValid;
 
   // ------------------- RENDER -------------------
   return (
@@ -474,7 +485,7 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
                 <div className="space-y-4 bg-white/40 backdrop-blur-md border border-white/60 rounded-2xl shadow-sm p-6 hover:bg-white/60 transition-all duration-300">
                   <Label className="flex items-center gap-2 text-base font-semibold text-slate-700">
                     <Image className="w-4 h-4 text-slate-500" />
-                    Ảnh tham khảo (tùy chọn)
+                    Ảnh (tùy chọn)
                   </Label>
 
                   {/* Input dán link */}
@@ -542,6 +553,50 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
                       </div>
                     </div>
                   )}
+
+                  {/* Input Yêu cầu sửa ảnh */}
+                  <div className="pt-2">
+                    <Label className="flex items-center gap-2 text-sm font-semibold text-slate-700 mb-2">
+                      <Sparkles className="w-3.5 h-3.5 text-purple-500" />
+                      Yêu cầu sửa ảnh (tùy chọn)
+                    </Label>
+                    <Textarea
+                      placeholder={
+                        formData.imageLink
+                          ? "Nhập yêu cầu chỉnh sửa ảnh này (VD: Xóa phông, đổi màu áo...)"
+                          : "Mô tả ảnh bạn muốn tạo..."
+                      }
+                      value={imageEditRequest}
+                      onChange={(e) => setImageEditRequest(e.target.value)}
+                      rows={2}
+                      className="border-white/60 bg-white/50 focus:bg-white/80 focus:border-purple-400 rounded-xl resize-none shadow-sm text-sm"
+                    />
+
+                    {/* Cost Display for Idea Phase */}
+                    {estimatedCost && (
+                      <div className="mt-2 text-right">
+                        {estimatedCost.isFree ? (
+                          <span className="text-sm font-medium text-emerald-600 bg-emerald-50 px-2 py-1 rounded-lg border border-emerald-100">
+                            Miễn phí (Ảnh có sẵn)
+                          </span>
+                        ) : (
+                          <span className="text-sm font-medium text-slate-600 bg-slate-50 px-2 py-1 rounded-lg border border-slate-200">
+                            Ước tính:{" "}
+                            <span className="text-slate-900 font-bold">
+                              ${estimatedCost.total.toFixed(3)}
+                            </span>{" "}
+                            <span className="text-xs text-slate-500 font-normal">
+                              (~
+                              {(estimatedCost.total * 26000).toLocaleString(
+                                "vi-VN"
+                              )}
+                              đ)
+                            </span>
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             )}

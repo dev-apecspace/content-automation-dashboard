@@ -109,24 +109,3 @@ export function analyzeCostLogs(logs: CostLog[]) {
 
   return result;
 }
-
-export function formatCurrency(
-  amount: number,
-  currency: string = "USD"
-): string {
-  if (currency === "VND") {
-    return new Intl.NumberFormat("vi-VN", {
-      style: "currency",
-      currency: "VND",
-    }).format(amount);
-  }
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    minimumFractionDigits: 3,
-  }).format(amount);
-}
-
-export function convertUSDToVND(amountUSD: number): number {
-  return amountUSD * 26000;
-}

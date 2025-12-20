@@ -556,6 +556,25 @@ export const DashboardService = {
     // e.g. cost_type -> costType, ai_models -> aiModels
     const logs = camelcaseKeys(logsData || [], { deep: true });
 
+    // Fetch video durations for relevant logs
+    const videoLogIds = logs
+      .filter((l: any) => l.itemType === "video" && l.itemId)
+      .map((l: any) => l.itemId);
+
+    const uniqueVideoIds = [...new Set(videoLogIds)];
+    const videoDurationsMap = new Map<string, number>();
+
+    if (uniqueVideoIds.length > 0) {
+      const { data: videosData } = await supabase
+        .from("video_items")
+        .select("id, video_duration")
+        .in("id", uniqueVideoIds);
+
+      videosData?.forEach((v: any) => {
+        videoDurationsMap.set(v.id, v.video_duration || 0);
+      });
+    }
+
     let totalCost = 0;
     const byType = {
       video: { cost: 0, count: 0, duration: 0 },
@@ -610,8 +629,10 @@ export const DashboardService = {
         byType.video.cost += cost;
         byType.video.count += 1;
         // If unit is per_second, amount is duration
+        // User Fix: duration lấy từ duration của item, không phải amount
         if (model?.unitType === "per_second") {
-          byType.video.duration += amount;
+          const itemDuration = videoDurationsMap.get(log.itemId) || 0;
+          byType.video.duration += itemDuration;
         }
       } else if (type === "image") {
         byType.image.cost += cost;

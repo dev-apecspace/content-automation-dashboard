@@ -50,7 +50,7 @@ import {
   calculateVideoCost,
   calculateTotalCostFromLogs,
   analyzeCostLogs,
-} from "@/lib/cost-utils";
+} from "@/lib/utils/cost";
 import {
   createActivityLog,
   getVideoItemById,
@@ -311,7 +311,7 @@ export function VideoDetailModal({
           </DialogHeader>
 
           <Tabs defaultValue="info" className="w-full mt-8">
-            <TabsList className="bg-slate-100/50 border border-white/50 p-1 rounded-xl w-full max-w-md mx-auto grid grid-cols-3 mb-8 shadow-inner">
+            <TabsList className="bg-slate-100/50 border border-white/50 p-1 rounded-xl w-full max-w-md mx-auto grid grid-cols-3 mb-3 shadow-inner">
               <TabsTrigger
                 value="info"
                 className="data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm text-slate-500 rounded-lg transition-all"
@@ -367,7 +367,9 @@ export function VideoDetailModal({
                 {/* Caption */}
                 <div className="mb-6">
                   <div className="flex items-center gap-3 mb-3">
-                    <Captions className="h-5 w-5 text-slate-500" />
+                    <div className="p-2 rounded-full bg-white/60 shadow-sm text-blue-600">
+                    <Captions className="h-5 w-5" />
+                  </div>
                     <h4 className="font-semibold text-slate-900">Caption</h4>
                   </div>
                   <div className="bg-white/50 rounded-xl p-4 border border-white/60 shadow-inner">
@@ -409,8 +411,8 @@ export function VideoDetailModal({
                           (~{" "}
                           {(estimatedCost.total * 26000).toLocaleString(
                             "vi-VN"
-                          )} ₫
-                          )
+                          )}{" "}
+                          ₫ )
                         </span>
                         {/* Breakdown for Real Log */}
                         {estimatedCost.isReal &&
@@ -609,10 +611,10 @@ export function VideoDetailModal({
             {/* Tab 2: Lượt tương tác */}
             <TabsContent
               value="interaction"
-              className="mt-6 focus-visible:outline-none"
+              className="focus-visible:outline-none"
             >
               <div className={cn(glassCardClass, "p-6")}>
-                <div className="flex items-center justify-between mb-8 border-b border-slate-200/50 pb-4">
+                <div className="flex items-center justify-between mb-2 border-b border-slate-200/50 pb-4">
                   <div className="flex items-center gap-3">
                     <BarChart3 className="h-6 w-6 text-slate-800" />
                     <span className="text-xl font-bold text-slate-900">
@@ -623,7 +625,7 @@ export function VideoDetailModal({
                     variant="ghost"
                     size="sm"
                     onClick={triggerEngagementTracker}
-                    className="text-slate-600 hover:text-slate-900 hover:bg-white/50"
+                    className="text-slate-600 hover:text-slate-900 hover:bg-white/50 cursor-pointer"
                   >
                     <RefreshCw
                       className={`h-4 w-4 mr-2 ${
@@ -688,7 +690,7 @@ export function VideoDetailModal({
             {/* Tab 3: AI phân tích */}
             <TabsContent
               value="ai"
-              className="space-y-6 mt-6 focus-visible:outline-none"
+              className="space-y-6 focus-visible:outline-none"
             >
               <div className={cn(glassCardClass, "p-6 space-y-6")}>
                 <div className="flex items-start gap-4">
@@ -738,7 +740,7 @@ export function VideoDetailModal({
             </TabsContent>
           </Tabs>
 
-          <DialogFooter className="flex flex-col sm:flex-row gap-3 mt-10 border-t border-slate-200/50 pt-6">
+          <DialogFooter className="flex flex-col sm:flex-row gap-3 mt-3 border-t border-slate-200/50 pt-6">
             <Button
               variant="outline"
               onClick={() => onEdit?.(currentItem)}

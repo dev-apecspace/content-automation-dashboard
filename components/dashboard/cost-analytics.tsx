@@ -16,18 +16,9 @@ import {
   CartesianGrid,
 } from "recharts";
 import { DollarSign, TrendingUp, Wallet } from "lucide-react";
+import { formatVND } from "@/lib/utils/currency";
 
 const COLORS = ["#8b5cf6", "#ec4899", "#3b82f6"];
-const EXCHANGE_RATE = 26000;
-
-const formatVND = (usd: number) => {
-  const vnd = usd * EXCHANGE_RATE;
-  return new Intl.NumberFormat("vi-VN", {
-    style: "currency",
-    currency: "VND",
-    maximumFractionDigits: 0,
-  }).format(vnd);
-};
 
 interface CostAnalyticsProps {
   data?: CostStats;
