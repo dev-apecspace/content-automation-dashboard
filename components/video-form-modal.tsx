@@ -875,6 +875,14 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
           </Button>
         </DialogFooter>
       </DialogContent>
+      <AiRequirementDialog
+        isOpen={aiPromptOpen}
+        onClose={() => setAiPromptOpen(false)}
+        type={aiPromptType}
+        onConfirm={handleConfirmAiEdit}
+        isLoading={isAiLoading}
+        hasImage={!!formData.imageLink}
+      />
     </Dialog>
   );
 };
