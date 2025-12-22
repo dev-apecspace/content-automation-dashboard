@@ -37,7 +37,7 @@ import {
 import { getProjects, getAIModels } from "@/lib/api";
 import { VideoItem, Project, AIModel } from "@/lib/types";
 import { uploadImageFile, uploadVideoFile } from "@/app/api/cloudinary";
-import { AiRequirementDialog } from "./ai-requirement-dialog";
+import { AiRequirementDialog } from "@/components/shared/ai-requirement-dialog";
 import { getContentItemById } from "@/lib/api/content-items";
 import { getVideoItemById } from "@/lib/api/video-items";
 import { toast } from "sonner";

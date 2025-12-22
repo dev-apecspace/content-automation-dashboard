@@ -39,7 +39,7 @@ import { ContentItem, contentTypes, Project, AIModel } from "@/lib/types";
 import { calculateImageCost } from "@/lib/utils/cost";
 import { useFullscreen } from "@/stores/useFullscreenStore";
 import { uploadImageFile } from "@/app/api/cloudinary";
-import { AiRequirementDialog } from "./ai-requirement-dialog";
+import { AiRequirementDialog } from "@/components/shared/ai-requirement-dialog";
 import { getContentItemById } from "@/lib/api/content-items";
 import { toast } from "sonner";
 

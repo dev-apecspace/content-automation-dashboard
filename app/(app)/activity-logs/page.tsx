@@ -1,6 +1,6 @@
 "use client";
 
-import { ActivityLogsTab } from "@/components/activity-logs-tab";
+import { ActivityLogsTab } from "@/components/activity/activity-logs-tab";
 
 export default function ActivityLogsPage() {
   return (

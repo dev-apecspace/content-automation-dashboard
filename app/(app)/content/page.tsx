@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ContentTable } from "@/components/content-table";
-import { ContentFormModal } from "@/components/content-form-modal";
-import { ContentDetailModal } from "@/components/content-detail-modal";
+import { ContentTable } from "@/components/content/content-table";
+import { ContentFormModal } from "@/components/content/content-form-modal";
+import { ContentDetailModal } from "@/components/content/content-detail-modal";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import {
@@ -18,7 +18,7 @@ import { createActivityLog } from "@/lib/api/activity-logs";
 import { toast } from "sonner";
 import type { ContentItem } from "@/lib/types";
 import type { Status } from "@/lib/types";
-// import ImageFullScreenViewer from "@/components/ImageFullScreenViewer";
+// import ImageFullScreenViewer from "@/components/shared/ImageFullScreenViewer";
 
 export default function ContentPage() {
   const [contentItems, setContentItems] = useState<ContentItem[]>([]);
