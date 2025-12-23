@@ -157,6 +157,7 @@ export default function AccountsPage() {
       <div className="flex-1 overflow-auto custom-scrollbar pb-6">
         <AccountsTable
           accounts={filteredAccounts}
+          projects={projects}
           onEdit={handleEdit}
           onDelete={handleDelete}
         />

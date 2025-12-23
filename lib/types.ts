@@ -19,6 +19,7 @@ export interface Account {
   platform: AccountPlatform;
   channelId: string;
   channelName: string;
+  channelLink?: string;
   accessToken: string;
   projectId?: string;
   projectName?: string;
@@ -149,6 +150,7 @@ export interface BaseContentItem {
   shares?: number;
   statsAt?: string;
   expectedPostDate: string;
+  accountIds?: string[];
 }
 
 export interface ContentItem extends BaseContentItem {

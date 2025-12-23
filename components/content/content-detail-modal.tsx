@@ -41,7 +41,9 @@ import {
   Project,
   platformColors,
   CostLog,
+  Account,
 } from "@/lib/types";
+import { AccountService } from "@/lib/services/account-service";
 import { format, set } from "date-fns";
 import { toast } from "sonner";
 import { useState, useEffect } from "react";
@@ -87,10 +89,24 @@ export function ContentDetailModal({
   const [modelsList, setModelsList] = useState<AIModel[]>([]);
   const [costLogs, setCostLogs] = useState<CostLog[]>([]);
   const [projectList, setProjectList] = useState<Project[]>([]);
+  const [allAccounts, setAllAccounts] = useState<Account[]>([]);
 
   useEffect(() => {
     setCurrentItem(content ?? item ?? null);
   }, [content, item]);
+
+  // Load Accounts
+  useEffect(() => {
+    async function fetchAccounts() {
+      try {
+        const accounts = await AccountService.getAccounts();
+        setAllAccounts(accounts);
+      } catch (error) {
+        console.error("Error loading accounts:", error);
+      }
+    }
+    fetchAccounts();
+  }, []);
 
   // Load AI Models
   useEffect(() => {
@@ -135,6 +151,10 @@ export function ContentDetailModal({
   if (!currentItem) return null;
 
   const project = projectList.find((p) => p.id === currentItem.projectId);
+
+  const selectedAccounts = allAccounts.filter((acc) =>
+    (currentItem.accountIds || []).includes(acc.id)
+  );
 
   const formatDate = (dateStr?: string) => {
     if (!dateStr) return "-";
@@ -372,11 +392,59 @@ export function ContentDetailModal({
                   </div>
                 </div>
 
+                {/* --- Accounts Display --- */}
+                <div className="flex items-start gap-4 mb-6">
+                  <div className="p-2 rounded-full bg-white/60 shadow-sm text-green-600 mt-1">
+                    <User className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h4 className={glassLabelClass}>Tài khoản sẽ đăng</h4>
+                    {currentItem.accountIds &&
+                    currentItem.accountIds.length > 0 ? (
+                      <div className="flex flex-wrap gap-2 mt-1">
+                        {selectedAccounts.map((acc) => (
+                          <Button
+                            key={acc.id}
+                            variant="outline"
+                            size="sm"
+                            className={`
+                              h-auto py-1.5 px-3 text-sm font-medium rounded-lg border shadow-sm transition-all
+                              ${
+                                acc.channelLink
+                                  ? "cursor-pointer hover:-translate-y-0.5"
+                                  : "cursor-default"
+                              }
+                              bg-green-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 hover:border-emerald-300
+                            `}
+                            onClick={() => {
+                              if (acc.channelLink) {
+                                window.open(acc.channelLink, "_blank");
+                              }
+                            }}
+                          >
+                            <span>{acc.channelName}</span>
+                            <span className="text-[10px] font-normal text-emerald-600/70 ml-1.5 opacity-80">
+                              • {acc.platform}
+                            </span>
+                            {acc.channelLink && (
+                              <Link className="w-3 h-3 ml-2 opacity-60" />
+                            )}
+                          </Button>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-slate-500 italic mt-1">
+                        Chưa chọn tài khoản
+                      </p>
+                    )}
+                  </div>
+                </div>
+
                 <div className="mb-6">
                   <div className="flex items-center gap-3 mb-3">
                     <div className="p-2 rounded-full bg-white/60 shadow-sm text-blue-600">
-                    <Captions className="h-5 w-5" />
-                  </div>
+                      <Captions className="h-5 w-5" />
+                    </div>
                     <h4 className="font-semibold text-slate-900">Caption</h4>
                   </div>
                   <div className="bg-white/50 rounded-xl p-4 border border-white/60 shadow-inner">
@@ -393,9 +461,7 @@ export function ContentDetailModal({
                       <DollarSign className="h-5 w-5" />
                     </div>
                     <div>
-                      <div className={glassLabelClass}>
-                        Chi phí
-                      </div>
+                      <div className={glassLabelClass}>Chi phí</div>
                       <div className="inline-flex items-center gap-2">
                         <span className="font-medium text-slate-900 text-lg">
                           ${estimatedCost.total.toFixed(3)}
@@ -643,7 +709,11 @@ export function ContentDetailModal({
                   <div className="flex-1">
                     <h4 className={cn(glassLabelClass, "mb-1")}>Chủ đề</h4>
                     <p className="text-slate-800 text-base leading-relaxed">
-                      {currentItem.topic || "Chưa xác định"}
+                      {currentItem.topic || (
+                        <span className="text-slate-400 italic">
+                          Chưa xác định
+                        </span>
+                      )}
                     </p>
                   </div>
                 </div>
@@ -659,7 +729,11 @@ export function ContentDetailModal({
                       Đối tượng tiếp cận
                     </h4>
                     <p className="text-slate-800 text-base leading-relaxed">
-                      {currentItem.targetAudience || "Chưa xác định"}
+                      {currentItem.targetAudience || (
+                        <span className="text-slate-400 italic">
+                          Chưa xác định
+                        </span>
+                      )}
                     </p>
                   </div>
                 </div>
@@ -675,7 +749,11 @@ export function ContentDetailModal({
                       Lưu ý nghiên cứu
                     </h4>
                     <p className="text-slate-800 text-base leading-relaxed">
-                      {currentItem.researchNotes || "Chưa có ghi chú"}
+                      {currentItem.researchNotes || (
+                        <span className="text-slate-400 italic">
+                          Chưa có ghi chú
+                        </span>
+                      )}
                     </p>
                   </div>
                 </div>

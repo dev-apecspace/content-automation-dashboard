@@ -8,6 +8,7 @@ export async function GET() {
   const { data, error } = await supabase
     .from("accounts")
     .select("*, projects(name)")
+    .order("project_id", { ascending: false })
     .order("created_at", { ascending: false });
 
   if (error) {
@@ -20,6 +21,7 @@ export async function GET() {
     platform: acc.platform,
     channelId: acc.channel_id,
     channelName: acc.channel_name,
+    channelLink: acc.channel_link,
     accessToken: "******", // Masked
     projectId: acc.project_id,
     projectName: acc.projects?.name,
@@ -39,6 +41,7 @@ export async function POST(req: NextRequest) {
       platform,
       channelId,
       channelName,
+      channelLink,
       accessToken,
       isActive,
       projectId,
@@ -63,6 +66,7 @@ export async function POST(req: NextRequest) {
           platform,
           channel_id: channelId,
           channel_name: channelName,
+          channel_link: channelLink,
           access_token: encryptedToken,
           project_id: projectId,
           is_active: isActive,
@@ -81,6 +85,7 @@ export async function POST(req: NextRequest) {
       platform: data.platform,
       channelId: data.channel_id,
       channelName: data.channel_name,
+      channelLink: data.channel_link,
       accessToken: "******", // Return masked
       projectId: data.project_id,
       projectName: projectName, // We optimistically return this or we should join from DB
@@ -102,6 +107,7 @@ export async function PATCH(req: NextRequest) {
       platform,
       channelId,
       channelName,
+      channelLink,
       accessToken,
       isActive,
       projectId,
@@ -118,6 +124,7 @@ export async function PATCH(req: NextRequest) {
     if (platform) updates.platform = platform;
     if (channelId) updates.channel_id = channelId;
     if (channelName) updates.channel_name = channelName;
+    if (channelLink) updates.channel_link = channelLink;
     if (projectId !== undefined) updates.project_id = projectId; // Allow null to unset?
     if (isActive !== undefined) updates.is_active = isActive;
 
@@ -143,6 +150,7 @@ export async function PATCH(req: NextRequest) {
       platform: data.platform,
       channelId: data.channel_id,
       channelName: data.channel_name,
+      channelLink: data.channel_link,
       accessToken: "******",
       isActive: data.is_active,
       createdAt: data.created_at,

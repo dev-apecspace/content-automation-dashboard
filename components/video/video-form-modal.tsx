@@ -42,6 +42,8 @@ import { getContentItemById } from "@/lib/api/content-items";
 import { getVideoItemById } from "@/lib/api/video-items";
 import { toast } from "sonner";
 import { calculateVideoCost } from "@/lib/utils/cost";
+import { AccountService } from "@/lib/services/account-service";
+import { Account, AccountPlatform } from "@/lib/types";
 
 interface VideoFormModalProps {
   isOpen: boolean;
@@ -68,6 +70,7 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
 }) => {
   const [projects, setProjects] = useState<Project[]>([]);
   const [modelsList, setModelsList] = useState<AIModel[]>([]);
+  const [accounts, setAccounts] = useState<Account[]>([]);
 
   const [formData, setFormData] = useState<Partial<VideoItem>>({
     idea: "",
@@ -84,6 +87,7 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
     topic: "",
     targetAudience: "",
     researchNotes: "",
+    accountIds: [],
   });
 
   const [newImageLink, setNewImageLink] = useState("");
@@ -116,12 +120,14 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
   useEffect(() => {
     async function fetchData() {
       try {
-        const [realProjects, models] = await Promise.all([
+        const [realProjects, models, accountsData] = await Promise.all([
           getProjects(),
           getAIModels(),
+          AccountService.getAccounts(),
         ]);
         setProjects(realProjects);
         setModelsList(models);
+        setAccounts(accountsData);
       } catch (error) {
         console.error("Error loading data:", error);
       }
@@ -154,6 +160,7 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
         topic: "",
         targetAudience: "",
         researchNotes: "",
+        accountIds: [],
       });
       setNewImageLink("");
     }
@@ -214,6 +221,47 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
         ? currentPlatforms.filter((item) => item !== p)
         : [...currentPlatforms, p];
       return { ...prev, platform: updated };
+    });
+  };
+
+  // ------------------- ACCOUNT SELECTION LOGIC -------------------
+  const mapVideoPlatformToAccountPlatform = (
+    videoPlatform: string
+  ): AccountPlatform | null => {
+    if (videoPlatform === "Facebook Reels") return "Facebook";
+    if (videoPlatform === "Youtube Shorts") return "Youtube";
+    return null;
+  };
+
+  const filteredAccounts = accounts.filter((acc) => {
+    // 1. Filter by Project
+    if (acc.projectId !== formData.projectId) return false;
+
+    // 2. Filter by Platform (Logic: Show accounts that match ANY of the selected platforms)
+    if (!formData.platform || formData.platform.length === 0) return false;
+
+    // Get list of required account platforms
+    const requiredPlatforms = formData.platform
+      .map(mapVideoPlatformToAccountPlatform)
+      .filter(Boolean) as AccountPlatform[];
+
+    return requiredPlatforms.includes(acc.platform);
+  });
+
+  const handleAccountToggle = (accountId: string) => {
+    setFormData((prev) => {
+      const currentIds = prev.accountIds || [];
+      if (currentIds.includes(accountId)) {
+        return {
+          ...prev,
+          accountIds: currentIds.filter((id) => id !== accountId),
+        };
+      } else {
+        return {
+          ...prev,
+          accountIds: [...currentIds, accountId],
+        };
+      }
     });
   };
 
@@ -716,6 +764,96 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
                     />
                   </div>
                 </div>
+              </div>
+
+              {/* Tài khoản sẽ đăng */}
+              <div className="bg-white/40 backdrop-blur-md border border-white/60 rounded-2xl shadow-sm p-6 hover:bg-white/60 transition-all duration-300">
+                <Label className="flex items-center gap-2 text-base font-semibold text-slate-700 mb-4">
+                  <CheckCircle className="w-4 h-4 text-green-600" />
+                  Tài khoản sẽ đăng
+                </Label>
+
+                {filteredAccounts.length === 0 ? (
+                  <div className="text-sm text-slate-500 italic pb-2">
+                    Không tìm thấy tài khoản phù hợp (Hãy chọn Dự án & Nền tảng
+                    trước)
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {/* Selected Tags */}
+                    <div className="flex flex-wrap gap-2">
+                      {filteredAccounts.map((acc) => {
+                        const isSelected = (formData.accountIds || []).includes(
+                          acc.id
+                        );
+                        if (!isSelected) return null;
+                        return (
+                          <div
+                            key={acc.id}
+                            className="flex items-center gap-2 bg-blue-50 text-blue-700 px-3 py-1.5 rounded-lg border border-blue-100 text-sm font-medium shadow-sm"
+                          >
+                            <span>{acc.channelName}</span>
+                          </div>
+                        );
+                      })}
+                      {(formData.accountIds || []).length === 0 && (
+                        <span className="text-sm text-red-500 italic">
+                          Chưa chọn tài khoản nào!
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Selection List */}
+                    <div>
+                      <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 block">
+                        Chọn tài khoản
+                      </span>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {filteredAccounts.map((acc) => {
+                          const isSelected = (
+                            formData.accountIds || []
+                          ).includes(acc.id);
+                          return (
+                            <div
+                              key={acc.id}
+                              className={`
+                                              flex items-center space-x-2 p-3 rounded-xl border cursor-pointer transition-all duration-200
+                                              ${
+                                                isSelected
+                                                  ? "bg-blue-50 border-blue-200 shadow-sm"
+                                                  : "bg-white/50 border-transparent hover:bg-white"
+                                              }
+                                              `}
+                              onClick={() => handleAccountToggle(acc.id)}
+                            >
+                              <Checkbox
+                                checked={isSelected}
+                                onCheckedChange={() =>
+                                  handleAccountToggle(acc.id)
+                                }
+                                className="data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600"
+                              />
+                              <div className="flex flex-col">
+                                <span
+                                  className={`text-sm ${
+                                    isSelected
+                                      ? "font-medium text-blue-700"
+                                      : "text-slate-700"
+                                  }`}
+                                >
+                                  {acc.channelName}
+                                </span>
+                                <span className="text-[10px] text-slate-400">
+                                  {acc.platform}
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Tiêu đề */}

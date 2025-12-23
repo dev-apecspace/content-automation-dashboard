@@ -9,13 +9,6 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  MoreHorizontal,
   Edit,
   Trash2,
   CheckCircle2,
@@ -23,19 +16,22 @@ import {
   Facebook,
   Youtube,
   Video,
+  Link,
 } from "lucide-react";
-import { Account } from "@/lib/types";
+import { Account, Project } from "@/lib/types";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 
 interface AccountsTableProps {
   accounts: Account[];
+  projects?: Project[];
   onEdit: (account: Account) => void;
   onDelete: (id: string) => void;
 }
 
 export const AccountsTable: React.FC<AccountsTableProps> = ({
   accounts,
+  projects = [],
   onEdit,
   onDelete,
 }) => {
@@ -72,7 +68,7 @@ export const AccountsTable: React.FC<AccountsTableProps> = ({
       <Table>
         <TableHeader className="bg-gray-100 border-b border-gray-200">
           <TableRow className="hover:bg-transparent border-none">
-            <TableHead className="w-[50px] font-semibold text-slate-700">
+            <TableHead className="w-[60px] font-semibold text-slate-700">
               Nền tảng
             </TableHead>
             <TableHead className="font-semibold text-slate-700">
@@ -80,12 +76,6 @@ export const AccountsTable: React.FC<AccountsTableProps> = ({
             </TableHead>
             <TableHead className="font-semibold text-slate-700">
               Tên kênh
-            </TableHead>
-            <TableHead className="font-semibold text-slate-700">
-              ID Kênh
-            </TableHead>
-            <TableHead className="font-semibold text-slate-700">
-              Access Token
             </TableHead>
             <TableHead className="w-[100px] font-semibold text-slate-700">
               Trạng thái
@@ -100,7 +90,7 @@ export const AccountsTable: React.FC<AccountsTableProps> = ({
           {accounts.length === 0 ? (
             <TableRow>
               <TableCell
-                colSpan={7}
+                colSpan={5}
                 className="h-24 text-center text-slate-500"
               >
                 Chưa có tài khoản nào được kết nối.
@@ -119,7 +109,29 @@ export const AccountsTable: React.FC<AccountsTableProps> = ({
                 </TableCell>
                 <TableCell>
                   {account.projectName ? (
-                    <span className="inline-flex items-center px-2 py-1 rounded-md bg-blue-50 text-blue-700 text-xs font-medium border border-blue-100">
+                    <span
+                      style={{
+                        backgroundColor: projects.find(
+                          (p) => p.id === account.projectId
+                        )?.color
+                          ? `${
+                              projects.find((p) => p.id === account.projectId)
+                                ?.color
+                            }15`
+                          : undefined,
+                        color: projects.find((p) => p.id === account.projectId)
+                          ?.color,
+                        borderColor: projects.find(
+                          (p) => p.id === account.projectId
+                        )?.color
+                          ? `${
+                              projects.find((p) => p.id === account.projectId)
+                                ?.color
+                            }40`
+                          : undefined,
+                      }}
+                      className="inline-flex items-center px-2 py-1 rounded-md bg-blue-50 text-blue-700 text-xs font-medium border border-blue-100"
+                    >
                       {account.projectName}
                     </span>
                   ) : (
@@ -129,15 +141,19 @@ export const AccountsTable: React.FC<AccountsTableProps> = ({
                   )}
                 </TableCell>
                 <TableCell className="font-medium text-slate-800">
-                  {account.channelName}
-                </TableCell>
-                <TableCell className="text-slate-500 font-mono text-xs">
-                  {account.channelId}
-                </TableCell>
-                <TableCell>
-                  <code className="bg-slate-100 px-2 py-1 rounded text-xs text-slate-500">
-                    {account.accessToken ? "******" : "Not Set"}
-                  </code>
+                  {account.channelLink ? (
+                    <a
+                      href={account.channelLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1.5 hover:text-blue-600 hover:underline transition-all group w-fit"
+                    >
+                      {account.channelName}
+                      <Link className="w-3 h-3 opacity-30 group-hover:opacity-100 transition-opacity text-blue-500" />
+                    </a>
+                  ) : (
+                    account.channelName
+                  )}
                 </TableCell>
                 <TableCell>
                   <div
@@ -165,34 +181,26 @@ export const AccountsTable: React.FC<AccountsTableProps> = ({
                     : "-"}
                 </TableCell>
                 <TableCell>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 hover:bg-white/50"
-                      >
-                        <MoreHorizontal className="h-4 w-4 text-slate-500" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent
-                      align="end"
-                      className="w-[160px] bg-white/90 backdrop-blur-xl"
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => onEdit(account)}
+                      className="h-8 w-8 hover:bg-blue-50 hover:text-blue-600 rounded-full transition-colors"
+                      title="Chỉnh sửa"
                     >
-                      <DropdownMenuItem
-                        onClick={() => onEdit(account)}
-                        className="cursor-pointer"
-                      >
-                        <Edit className="mr-2 h-4 w-4" /> Chỉnh sửa
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => onDelete(account.id)}
-                        className="text-red-600 focus:text-red-700 cursor-pointer"
-                      >
-                        <Trash2 className="mr-2 h-4 w-4" /> Xóa
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => onDelete(account.id)}
+                      className="h-8 w-8 hover:bg-red-50 hover:text-red-600 rounded-full transition-colors"
+                      title="Xóa"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </TableCell>
               </TableRow>
             ))

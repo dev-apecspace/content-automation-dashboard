@@ -162,10 +162,10 @@ export function VideoTable({
       </div>
 
       {/* Table */}
-      <Card className="bg-white/60 backdrop-blur-xl border-white/60 shadow-lg rounded-2xl overflow-hidden">
+      <Card className="bg-white/60 backdrop-blur-xl shadow-lg rounded-2xl overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-gray-200/80 backdrop-blur-sm">
+            <thead className="bg-gray-100  border-gray-200 backdrop-blur-sm">
               <tr>
                 <th className="text-left p-4 font-semibold text-sm text-slate-600">
                   Trạng thái

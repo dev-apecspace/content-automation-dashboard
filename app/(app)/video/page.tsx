@@ -215,6 +215,7 @@ export default function VideoPage() {
           title: data.title,
           videoLink: data.videoLink,
           postUrl: data.postUrl,
+          accountIds: data.accountIds,
         } as Omit<VideoItem, "id" | "createdAt" | "updatedAt">);
 
         setVideoItems((prev) => [newVideo, ...prev]);

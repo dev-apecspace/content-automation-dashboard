@@ -29,6 +29,7 @@ import {
   Key,
   CheckCircle,
   Folder,
+  Link,
 } from "lucide-react"; // Icons
 
 interface AccountFormModalProps {
@@ -92,6 +93,7 @@ export const AccountFormModal: React.FC<AccountFormModalProps> = ({
           platform: formData.platform,
           channelId: formData.channelId,
           channelName: formData.channelName,
+          channelLink: formData.channelLink,
           accessToken: formData.accessToken,
           projectId: formData.projectId,
           projectName: formData.projectName,
@@ -142,7 +144,7 @@ export const AccountFormModal: React.FC<AccountFormModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-md bg-white/80 backdrop-blur-2xl border-white/60 shadow-2xl rounded-[24px] p-0 overflow-hidden">
+      <DialogContent className="max-w-md max-h-[90vh] bg-white/80 backdrop-blur-2xl border-white/60 shadow-2xl rounded-[24px] p-0 overflow-y-auto">
         {/* Vibrant Gradient Background Layer */}
         <div className="absolute inset-0 -z-10 bg-gradient-to-br from-[#a8c0ff]/40 via-[#3f2b96]/10 to-[#ffafbd]/40 blur-3xl pointer-events-none" />
 
@@ -261,6 +263,24 @@ export const AccountFormModal: React.FC<AccountFormModalProps> = ({
               placeholder="Nhập ID kênh..."
               required
               className="bg-white/50 border-white/60 focus:bg-white/80 rounded-xl shadow-sm font-mono text-sm"
+            />
+          </div>
+
+          {/* Channel Link */}
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2 text-slate-700 font-medium">
+              <Link className="w-4 h-4 text-gray-500" /> Link Kênh{" "}
+              <span className="text-xs text-slate-400 font-normal">
+                (Tùy chọn)
+              </span>
+            </Label>
+            <Input
+              value={formData.channelLink || ""}
+              onChange={(e) =>
+                setFormData({ ...formData, channelLink: e.target.value })
+              }
+              placeholder="https://..."
+              className="bg-white/50 border-white/60 focus:bg-white/80 rounded-xl shadow-sm text-sm"
             />
           </div>
 

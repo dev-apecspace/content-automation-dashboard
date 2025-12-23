@@ -41,11 +41,13 @@ import {
   type VideoItem,
   AIModel,
   CostLog,
+  Account,
 } from "@/lib/types";
 import { Project } from "@/lib/types";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { useState, useEffect } from "react";
+import { AccountService } from "@/lib/services/account-service";
 import {
   calculateVideoCost,
   calculateTotalCostFromLogs,
@@ -86,6 +88,7 @@ export function VideoDetailModal({
   const [modelsList, setModelsList] = useState<AIModel[]>([]);
   const [costLogs, setCostLogs] = useState<CostLog[]>([]);
   const [projectList, setProjectList] = useState<Project[]>([]);
+  const [allAccounts, setAllAccounts] = useState<Account[]>([]);
 
   useEffect(() => {
     setCurrentItem(content ?? item ?? null);
@@ -95,10 +98,14 @@ export function VideoDetailModal({
   useEffect(() => {
     async function fetchModels() {
       try {
-        const models = await getAIModels();
+        const [models, accounts] = await Promise.all([
+          getAIModels(),
+          AccountService.getAccounts(),
+        ]);
         setModelsList(models);
+        setAllAccounts(accounts);
       } catch (error) {
-        console.error("Error loading models:", error);
+        console.error("Error loading data:", error);
       }
     }
     fetchModels();
@@ -348,6 +355,58 @@ export function VideoDetailModal({
                     <p className="text-lg font-medium text-slate-900">
                       {currentItem.postingTime || "-"}
                     </p>
+                  </div>
+                </div>
+
+                {/* --- Accounts Display --- */}
+                <div className="flex items-start gap-4 mb-6">
+                  <div className="p-2 rounded-full bg-white/60 shadow-sm text-green-600 mt-1">
+                    <User className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h4 className={glassLabelClass}>Tài khoản sẽ đăng</h4>
+                    {currentItem.accountIds &&
+                    currentItem.accountIds.length > 0 ? (
+                      <div className="flex flex-wrap gap-2 mt-1">
+                        {allAccounts
+                          .filter((acc) =>
+                            (currentItem.accountIds || []).includes(acc.id)
+                          )
+                          .map((acc) => (
+                            <Button
+                              key={acc.id}
+                              variant="outline"
+                              size="sm"
+                              className={`
+                                h-auto py-1.5 px-3 text-sm font-medium rounded-lg border shadow-sm transition-all
+                                ${
+                                  acc.channelLink
+                                    ? "cursor-pointer hover:-translate-y-0.5"
+                                    : "cursor-default"
+                                }
+                                bg-green-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 hover:border-emerald-300
+                              `}
+                              onClick={() => {
+                                if (acc.channelLink) {
+                                  window.open(acc.channelLink, "_blank");
+                                }
+                              }}
+                            >
+                              <span>{acc.channelName}</span>
+                              <span className="text-[10px] font-normal text-emerald-600/70 ml-1.5 opacity-80">
+                                • {acc.platform}
+                              </span>
+                              {acc.channelLink && (
+                                <Link className="w-3 h-3 ml-2 opacity-60" />
+                              )}
+                            </Button>
+                          ))}
+                      </div>
+                    ) : (
+                      <p className="text-slate-500 italic mt-1">
+                        Chưa chọn tài khoản
+                      </p>
+                    )}
                   </div>
                 </div>
 
