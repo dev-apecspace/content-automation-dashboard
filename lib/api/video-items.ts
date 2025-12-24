@@ -22,8 +22,8 @@ export async function getVideoItems(filters?: {
   }
 
   const { data, error } = await query
-  .order("created_at", { ascending: false })
-  .order("idea", { ascending: true });
+    .order("created_at", { ascending: false })
+    .order("idea", { ascending: true });
 
   if (error) {
     console.error("Error fetching video items:", error);
@@ -71,6 +71,7 @@ export async function createVideoItem(
     title: video.title,
     video_link: video.videoLink,
     post_url: video.postUrl,
+    account_ids: video.accountIds,
   };
 
   const { data, error } = await supabase
@@ -128,6 +129,7 @@ export async function updateVideoItem(
   if (updates.comments !== undefined) dbData.comments = updates.comments;
   if (updates.shares !== undefined) dbData.shares = updates.shares;
   if (updates.statsAt !== undefined) dbData.stats_at = updates.statsAt;
+  if (updates.accountIds !== undefined) dbData.account_ids = updates.accountIds;
 
   const { data, error } = await supabase
     .from("video_items")

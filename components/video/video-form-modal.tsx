@@ -37,11 +37,14 @@ import {
 import { getProjects, getAIModels } from "@/lib/api";
 import { VideoItem, Project, AIModel } from "@/lib/types";
 import { uploadImageFile, uploadVideoFile } from "@/app/api/cloudinary";
-import { AiRequirementDialog } from "./ai-requirement-dialog";
+import { AiRequirementDialog } from "@/components/shared/ai-requirement-dialog";
 import { getContentItemById } from "@/lib/api/content-items";
 import { getVideoItemById } from "@/lib/api/video-items";
 import { toast } from "sonner";
 import { calculateVideoCost } from "@/lib/utils/cost";
+import { AccountService } from "@/lib/services/account-service";
+import { Account, AccountPlatform } from "@/lib/types";
+import { AccountSelector } from "@/components/shared/account-selector";
 
 interface VideoFormModalProps {
   isOpen: boolean;
@@ -68,6 +71,7 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
 }) => {
   const [projects, setProjects] = useState<Project[]>([]);
   const [modelsList, setModelsList] = useState<AIModel[]>([]);
+  const [accounts, setAccounts] = useState<Account[]>([]);
 
   const [formData, setFormData] = useState<Partial<VideoItem>>({
     idea: "",
@@ -84,6 +88,7 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
     topic: "",
     targetAudience: "",
     researchNotes: "",
+    accountIds: [],
   });
 
   const [newImageLink, setNewImageLink] = useState("");
@@ -116,12 +121,14 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
   useEffect(() => {
     async function fetchData() {
       try {
-        const [realProjects, models] = await Promise.all([
+        const [realProjects, models, accountsData] = await Promise.all([
           getProjects(),
           getAIModels(),
+          AccountService.getAccounts(),
         ]);
         setProjects(realProjects);
         setModelsList(models);
+        setAccounts(accountsData);
       } catch (error) {
         console.error("Error loading data:", error);
       }
@@ -154,6 +161,7 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
         topic: "",
         targetAudience: "",
         researchNotes: "",
+        accountIds: [],
       });
       setNewImageLink("");
     }
@@ -214,6 +222,44 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
         ? currentPlatforms.filter((item) => item !== p)
         : [...currentPlatforms, p];
       return { ...prev, platform: updated };
+    });
+  };
+
+  // ------------------- ACCOUNT SELECTION LOGIC -------------------
+  const mapVideoPlatformToAccountPlatform = (
+    videoPlatform: string
+  ): AccountPlatform | null => {
+    if (videoPlatform === "Facebook Reels") return "Facebook";
+    if (videoPlatform === "Youtube Shorts") return "Youtube";
+    return null;
+  };
+
+  const filteredAccounts = accounts.filter((acc) => {
+    // 1. Filter by Platform (Show ALL accounts that match ANY of the selected platforms)
+    if (!formData.platform || formData.platform.length === 0) return false;
+
+    // Get list of required account platforms
+    const requiredPlatforms = formData.platform
+      .map(mapVideoPlatformToAccountPlatform)
+      .filter(Boolean) as AccountPlatform[];
+
+    return requiredPlatforms.includes(acc.platform);
+  });
+
+  const handleAccountToggle = (accountId: string) => {
+    setFormData((prev) => {
+      const currentIds = prev.accountIds || [];
+      if (currentIds.includes(accountId)) {
+        return {
+          ...prev,
+          accountIds: currentIds.filter((id) => id !== accountId),
+        };
+      } else {
+        return {
+          ...prev,
+          accountIds: [...currentIds, accountId],
+        };
+      }
     });
   };
 
@@ -631,7 +677,7 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
                 </div>
 
                 {formData.videoLink && (
-                  <div className="relative group inline-block rounded-xl overflow-hidden shadow-md border border-white/60 w-full max-w-sm">
+                  <div className="relative group inline-block rounded-xl overflow-hidden shadow-md border border-white/60 w-full">
                     <video
                       src={formData.videoLink}
                       controls
@@ -653,24 +699,6 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
                     </div>
                   </div>
                 )}
-              </div>
-
-              <div className="space-y-3">
-                <Label className="text-sm font-semibold text-slate-700">
-                  Ghi chú (tùy chọn)
-                </Label>
-                <Textarea
-                  value={formData.researchNotes || ""}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      researchNotes: e.target.value,
-                    }))
-                  }
-                  placeholder="Ghi chú về video..."
-                  rows={2}
-                  className="border-white/60 bg-white/50 focus:bg-white/80 focus:border-slate-400 rounded-xl resize-none shadow-sm"
-                />
               </div>
             </div>
           )}
@@ -736,7 +764,36 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
                 </div>
               </div>
 
-              {/* Tiêu đề & Video link */}
+              <div className="bg-white/40 backdrop-blur-md border border-white/60 rounded-2xl shadow-sm p-6 hover:bg-white/60 transition-all duration-300">
+                <Label className="flex items-center gap-2 text-base font-semibold text-slate-700 mb-4">
+                  <CheckCircle className="w-4 h-4 text-green-600" />
+                  Tài khoản sẽ đăng
+                </Label>
+
+                <div className="mb-4">
+                  <AccountSelector
+                    accounts={filteredAccounts}
+                    selectedIds={formData.accountIds || []}
+                    onChange={(ids) =>
+                      setFormData((prev) => ({ ...prev, accountIds: ids }))
+                    }
+                    currentProjectId={formData.projectId}
+                    placeholder={
+                      filteredAccounts.length === 0
+                        ? "Không có tài khoản phù hợp (Hãy chọn Nền tảng)"
+                        : "Chọn tài khoản đăng..."
+                    }
+                  />
+                  {(formData.accountIds || []).length === 0 &&
+                    filteredAccounts.length > 0 && (
+                      <p className="text-sm text-red-500 italic mt-1 ml-1">
+                        * Vui lòng chọn ít nhất 1 tài khoản
+                      </p>
+                    )}
+                </div>
+              </div>
+
+              {/* Tiêu đề */}
               {formData.platform?.includes("Youtube Shorts") && (
                 <div className="space-y-3">
                   <Label className="flex items-center gap-2 text-base font-semibold text-slate-700">
@@ -757,6 +814,28 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
                 </div>
               )}
 
+              {/* Caption */}
+              <div className="space-y-3">
+                <Label className="flex items-center gap-2 text-base font-semibold text-slate-700">
+                  <MessageSquare className="w-4 h-4 text-purple-500" />
+                  Caption <span className="text-red-500">*</span>
+                </Label>
+                <Textarea
+                  value={formData.caption || ""}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      caption: e.target.value,
+                    }))
+                  }
+                  placeholder="Nhập caption cho video..."
+                  rows={4}
+                  required
+                  className="border-white/60 bg-white/50 focus:bg-white/80 focus:border-purple-400 rounded-xl resize-none shadow-sm custom-scrollbar"
+                />
+              </div>
+
+              {/* Video sẽ đăng */}
               <div className="space-y-3">
                 <Label className="flex items-center justify-between text-base font-semibold text-slate-700">
                   <div className="flex items-center gap-2">
@@ -784,89 +863,15 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
                   placeholder="https://..."
                   className="border-white/60 bg-white/50 focus:bg-white/80 focus:border-red-400 rounded-xl h-11 shadow-sm"
                 />
-              </div>
-
-              {/* Caption */}
-              <div className="space-y-3">
-                <Label className="flex items-center gap-2 text-base font-semibold text-slate-700">
-                  <MessageSquare className="w-4 h-4 text-purple-500" />
-                  Caption <span className="text-red-500">*</span>
-                </Label>
-                <Textarea
-                  value={formData.caption || ""}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      caption: e.target.value,
-                    }))
-                  }
-                  placeholder="Nhập caption cho video..."
-                  rows={4}
-                  required
-                  className="border-white/60 bg-white/50 focus:bg-white/80 focus:border-purple-400 rounded-xl resize-none shadow-sm custom-scrollbar"
-                />
-              </div>
-
-              {/* Ảnh */}
-              <div className="space-y-4 bg-white/40 backdrop-blur-md border border-white/60 rounded-2xl shadow-sm p-6 hover:bg-white/60 transition-all duration-300">
-                <Label className="flex items-center gap-2 text-base font-semibold text-slate-700">
-                  <ImageIcon className="w-4 h-4 text-emerald-500" />
-                  Ảnh để tạo video (tùy chọn)
-                </Label>
-
-                <div className="flex gap-3">
-                  <Input
-                    placeholder="Dán link ảnh..."
-                    value={newImageLink}
-                    onChange={(e) => {
-                      const value = e.target.value.trim();
-                      setNewImageLink(value);
-                      if (value) {
-                        setFormData((prev) => ({
-                          ...prev,
-                          imageLink: value,
-                        }));
-                      }
-                    }}
-                    className="flex-1 border-white/60 bg-white/50 focus:bg-white/80 focus:border-emerald-500 rounded-xl shadow-sm"
-                  />
-                  <label>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="bg-white/50 border-emerald-200 text-emerald-600 hover:bg-white/80 hover:border-emerald-300 rounded-xl shadow-sm"
-                      onClick={() =>
-                        document.getElementById("file-upload-video")?.click()
-                      }
+                {formData.videoLink && (
+                  <div className="relative group inline-block rounded-xl overflow-hidden shadow-md border border-white/60 w-full mt-3">
+                    <video
+                      src={formData.videoLink}
+                      controls
+                      className="w-full max-h-[300px] rounded-xl bg-black"
                     >
-                      <Upload className="w-4 h-4" />
-                    </Button>
-                    <input
-                      id="file-upload-video"
-                      type="file"
-                      accept="image/*"
-                      onChange={handleImageUpload}
-                      className="hidden"
-                    />
-                  </label>
-                </div>
-
-                {formData.imageLink && (
-                  <div className="relative group inline-block rounded-xl overflow-hidden shadow-md border border-white/60">
-                    <img
-                      src={formData.imageLink}
-                      alt="Preview"
-                      className="max-h-64 object-cover"
-                    />
-                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
-                      <button
-                        onClick={handleRemoveImage}
-                        className="p-3 bg-white/20 backdrop-blur-md border border-white/50 text-red-500 rounded-full hover:bg-white/40 transition-colors"
-                        title="Xóa"
-                      >
-                        <X className="w-5 h-5" />
-                      </button>
-                    </div>
+                      Trình duyệt không hỗ trợ thẻ video.
+                    </video>
                   </div>
                 )}
               </div>
@@ -945,6 +950,14 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
           </Button>
         </DialogFooter>
       </DialogContent>
+      <AiRequirementDialog
+        isOpen={aiPromptOpen}
+        onClose={() => setAiPromptOpen(false)}
+        type={aiPromptType}
+        onConfirm={handleConfirmAiEdit}
+        isLoading={isAiLoading}
+        hasImage={!!formData.imageLink}
+      />
     </Dialog>
   );
 };

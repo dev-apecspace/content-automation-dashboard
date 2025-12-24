@@ -15,6 +15,7 @@ import {
   X,
   LayoutDashboard,
   LogsIcon,
+  UserCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -29,6 +30,7 @@ const menuItems: { route: string; label: string; icon: React.ElementType }[] = [
   { route: "/video", label: "Video", icon: Video },
   { route: "/schedules", label: "Lịch đăng", icon: Calendar },
   { route: "/projects", label: "Dự án", icon: FolderOpen },
+  { route: "/accounts", label: "Tài khoản", icon: UserCircle }, // Added this
   { route: "/activity-logs", label: "Nhật ký hoạt động", icon: LogsIcon },
   { route: "/guide", label: "Hướng dẫn", icon: HelpCircle },
   { route: "/settings", label: "Cài đặt", icon: Settings },
@@ -86,24 +88,6 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
             </Link>
           ))}
         </nav>
-
-        <div className="p-4 border-t border-white/10 bg-black/20">
-          <div className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-3 ml-1">
-            Trạng thái hệ thống
-          </div>
-          <div className="flex items-center gap-3 bg-white/5 p-3 rounded-xl border border-white/10 shadow-inner">
-            <div className="relative">
-              <div className="h-2.5 w-2.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_rgba(52,211,153,0.6)]"></div>
-              <div className="absolute inset-0 h-2.5 w-2.5 rounded-full bg-emerald-400 blur-sm opacity-50"></div>
-            </div>
-            <div>
-              <div className="text-xs font-medium text-slate-200">
-                Google Sheets
-              </div>
-              <div className="text-[10px] text-slate-400">Đã kết nối</div>
-            </div>
-          </div>
-        </div>
       </aside>
 
       {isOpen && (

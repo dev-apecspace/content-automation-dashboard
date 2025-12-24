@@ -58,10 +58,10 @@ import {
   isValid,
 } from "date-fns";
 import { vi } from "date-fns/locale";
-import { ContentDetailModal } from "./content-detail-modal";
-import { VideoDetailModal } from "./video-detail-modal";
-import { ContentFormModal } from "./content-form-modal";
-import { VideoFormModal } from "./video-form-modal";
+import { ContentDetailModal } from "@/components/content/content-detail-modal";
+import { VideoDetailModal } from "@/components/video/video-detail-modal";
+import { ContentFormModal } from "@/components/content/content-form-modal";
+import { VideoFormModal } from "@/components/video/video-form-modal";
 import { updateContentItem } from "@/lib/api/content-items";
 import { updateVideoItem } from "@/lib/api/video-items";
 
@@ -718,7 +718,9 @@ export function ScheduleTab({
                               title={`${sched.projectName} - ${sched.platform} (${sched.frequency})`}
                             >
                               <div className="flex items-center gap-1">
-                                <span className="font-bold">{event.time} - </span>
+                                <span className="font-bold">
+                                  {event.time} -{" "}
+                                </span>
                                 <span className="font-semibold truncate">
                                   {sched.projectName}
                                 </span>

@@ -21,30 +21,30 @@ import {
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { ContentItem, Project } from "@/lib/types";
+import type { VideoItem, Project } from "@/lib/types";
 import { platformColors, statusConfig, type Status } from "@/lib/types";
 import { useEffect, useState } from "react";
 import { getProjects } from "@/lib/api";
 import { toast } from "sonner";
 
-interface ContentTableProps {
-  data: ContentItem[];
+interface VideoTableProps {
+  data: VideoItem[];
   isLoading?: boolean;
-  onViewDetails: (item: ContentItem) => void;
-  onEdit: (item: ContentItem) => void;
+  onViewDetails: (item: VideoItem) => void;
+  onEdit: (item: VideoItem) => void;
   onDelete: (id: string) => void;
   onAdd: () => void;
-  onApproveIdea?: (item: ContentItem) => void;
-  onApproveContent?: (item: ContentItem) => void;
-  onViewImage?: (item: ContentItem) => void;
-  onViewPost?: (item: ContentItem) => void;
+  onApproveIdea?: (item: VideoItem) => void;
+  onApproveContent?: (item: VideoItem) => void;
+  onViewImage?: (item: VideoItem) => void;
+  onViewPost?: (item: VideoItem) => void;
   filterStatus: Status | "all";
   onFilterChange: (status: Status | "all") => void;
   filterProject: string;
   onProjectFilterChange: (projectId: string) => void;
 }
 
-export function ContentTable({
+export function VideoTable({
   data,
   onViewDetails,
   onEdit,
@@ -58,7 +58,7 @@ export function ContentTable({
   onFilterChange,
   filterProject,
   onProjectFilterChange,
-}: ContentTableProps) {
+}: VideoTableProps) {
   const allStatuses: Status[] = Object.keys(statusConfig) as Status[];
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(false);
@@ -81,7 +81,7 @@ export function ContentTable({
       const res = await fetch("/api/webhook/ai-search-ideas", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ postType: "content" }),
+        body: JSON.stringify({ postType: "video" }),
       });
 
       if (!res.ok) {
@@ -162,10 +162,10 @@ export function ContentTable({
       </div>
 
       {/* Table */}
-      <Card className="bg-white/60 backdrop-blur-xl border-white/60 shadow-lg rounded-2xl overflow-hidden">
+      <Card className="bg-white/60 backdrop-blur-xl shadow-lg rounded-2xl overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-gray-200/80 backdrop-blur-sm">
+            <thead className="bg-gray-100  border-gray-200 backdrop-blur-sm">
               <tr>
                 <th className="text-left p-4 font-semibold text-sm text-slate-600">
                   Trạng thái
@@ -180,6 +180,9 @@ export function ContentTable({
                   Nền tảng
                 </th>
                 <th className="text-left p-4 font-semibold text-sm text-slate-600">
+                  Thời lượng
+                </th>
+                <th className="text-left p-4 font-semibold text-sm text-slate-600">
                   Thời gian đăng
                 </th>
                 <th className="text-left p-4 font-semibold text-sm text-slate-600">
@@ -191,7 +194,7 @@ export function ContentTable({
               {data.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={6}
+                    colSpan={7}
                     className="p-12 text-center text-slate-500 font-medium"
                   >
                     <div className="flex flex-col items-center justify-center gap-2">
@@ -251,15 +254,42 @@ export function ContentTable({
                     </td>
                     {/* Nền tảng  */}
                     <td className="p-4">
-                      <Badge
-                        variant="outline"
-                        className={cn(
-                          "border shadow-sm bg-white/50 backdrop-blur-sm",
-                          platformColors[item.platform]
+                      <div className="flex flex-col gap-1">
+                        {Array.isArray(item.platform) ? (
+                          item.platform.map((p) => (
+                            <Badge
+                              key={p}
+                              variant="outline"
+                              className={cn(
+                                "border shadow-sm bg-white/50 backdrop-blur-sm",
+                                platformColors[p]
+                              )}
+                            >
+                              {p}
+                            </Badge>
+                          ))
+                        ) : (
+                          <Badge
+                            variant="outline"
+                            className={cn(
+                              "border shadow-sm bg-white/50 backdrop-blur-sm",
+                              platformColors[item.platform]
+                            )}
+                          >
+                            {item.platform}
+                          </Badge>
                         )}
-                      >
-                        {item.platform}
-                      </Badge>
+                      </div>
+                    </td>
+                    {/* Thời lượng */}
+                    <td className="p-4 text-sm font-medium text-slate-600">
+                      {item.videoDuration ? (
+                        <Badge variant="secondary" className="bg-slate-100">
+                          {item.videoDuration}s
+                        </Badge>
+                      ) : (
+                        "Chưa cập nhật"
+                      )}
                     </td>
                     {/* Thời gian đăng */}
                     <td className="p-4 text-sm tracking-tight">
@@ -342,17 +372,17 @@ export function ContentTable({
                               size="icon"
                               onClick={() => onViewPost(item)}
                               className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                              title={`Xem post\nReactions: ${
-                                item.reactions || 0
-                              }\nComments: ${item.comments || 0}\nShares: ${
-                                item.shares || 0
-                              }`}
+                              title={`Xem post\nViews: ${
+                                item.views || 0
+                              }\nReactions: ${item.reactions || 0}\nComments: ${
+                                item.comments || 0
+                              }\nShares: ${item.shares || 0}`}
                             >
                               <ExternalLink className="h-4 w-4" />
                             </Button>
                           )}
 
-                        {/* Xóa ý tưởng */}
+                        {/* Xóa */}
                         {item.status === "idea" && (
                           <Button
                             variant="ghost"

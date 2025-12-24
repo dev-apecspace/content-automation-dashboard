@@ -2,11 +2,11 @@
 
 import type React from "react";
 import { useState } from "react";
-import { Sidebar } from "@/components/sidebar";
-import { ThemeProvider } from "@/components/theme-provider";
+import { Sidebar } from "@/components/layout/sidebar";
+import { ThemeProvider } from "@/components/providers/theme-provider";
 import { Toaster } from "sonner";
 import { useFullscreen } from "@/stores/useFullscreenStore";
-import { ImageFullscreenViewer } from "@/components/ImageFullScreenViewer";
+import { ImageFullscreenViewer } from "@/components/shared/ImageFullScreenViewer";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);

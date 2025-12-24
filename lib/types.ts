@@ -1,10 +1,34 @@
 export type Platform = "Facebook Post" | "Facebook Reels" | "Youtube Shorts";
 
-export const platformColors: Record<Platform, string> = {
+export const platformColors: Record<string, string> = {
   "Facebook Post": "bg-blue-500 text-blue-100 border-blue-300",
   "Facebook Reels": "bg-blue-100 text-blue-700 border-blue-300",
   "Youtube Shorts": "bg-red-500 text-white border-red-300",
 };
+
+export type AccountPlatform = "Facebook" | "Youtube" | "Tiktok";
+
+export const accountPlatformColors: Record<AccountPlatform, string> = {
+  Facebook: "bg-blue-600 text-white border-blue-400",
+  Youtube: "bg-red-600 text-white border-red-400",
+  Tiktok: "bg-black text-white border-gray-600",
+};
+
+export interface Account {
+  id: string;
+  platform: AccountPlatform;
+  channelId: string;
+  channelName: string;
+  channelLink?: string;
+  token: string;
+  clientId?: string;
+  clientSecret?: string;
+  projectId?: string;
+  projectName?: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
 
 export const contentTypes = [
   { value: "product", label: "Sản phẩm" },
@@ -115,7 +139,7 @@ export interface BaseContentItem {
   topic?: string;
   targetAudience?: string;
   researchNotes?: string;
-  postUrl?: string;
+  postUrl?: string[];
   postingTime?: string;
   callToAction?: string;
   approvedBy?: string;
@@ -128,6 +152,7 @@ export interface BaseContentItem {
   shares?: number;
   statsAt?: string;
   expectedPostDate: string;
+  accountIds?: string[];
 }
 
 export interface ContentItem extends BaseContentItem {

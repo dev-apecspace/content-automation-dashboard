@@ -64,6 +64,7 @@ export async function createContentItem(
     caption: content.caption,
     call_to_action: content.callToAction,
     post_url: content.postUrl,
+    account_ids: content.accountIds,
   };
 
   const { data, error } = await supabase
@@ -108,6 +109,7 @@ export async function updateContentItem(
   if (updates.callToAction !== undefined)
     dbData.call_to_action = updates.callToAction;
   if (updates.postUrl !== undefined) dbData.post_url = updates.postUrl;
+  if (updates.accountIds !== undefined) dbData.account_ids = updates.accountIds;
 
   const { data, error } = await supabase
     .from("content_items")

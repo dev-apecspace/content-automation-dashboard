@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { VideoTable } from "@/components/video-table";
-import { VideoFormModal } from "@/components/video-form-modal";
-import { VideoDetailModal } from "@/components/video-detail-modal";
+import { VideoTable } from "@/components/video/video-table";
+import { VideoFormModal } from "@/components/video/video-form-modal";
+import { VideoDetailModal } from "@/components/video/video-detail-modal";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import {
@@ -67,7 +67,11 @@ export default function VideoPage() {
 
   const handleViewPost = (item: VideoItem) => {
     if (item.postUrl) {
-      window.open(item.postUrl, "_blank");
+      if (Array.isArray(item.postUrl)) {
+        item.postUrl.forEach((url) => window.open(url, "_blank"));
+      } else {
+        window.open(item.postUrl, "_blank");
+      }
     }
   };
 
@@ -215,6 +219,7 @@ export default function VideoPage() {
           title: data.title,
           videoLink: data.videoLink,
           postUrl: data.postUrl,
+          accountIds: data.accountIds,
         } as Omit<VideoItem, "id" | "createdAt" | "updatedAt">);
 
         setVideoItems((prev) => [newVideo, ...prev]);

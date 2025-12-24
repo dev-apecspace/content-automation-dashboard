@@ -21,30 +21,30 @@ import {
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { VideoItem, Project } from "@/lib/types";
+import type { ContentItem, Project } from "@/lib/types";
 import { platformColors, statusConfig, type Status } from "@/lib/types";
 import { useEffect, useState } from "react";
 import { getProjects } from "@/lib/api";
 import { toast } from "sonner";
 
-interface VideoTableProps {
-  data: VideoItem[];
+interface ContentTableProps {
+  data: ContentItem[];
   isLoading?: boolean;
-  onViewDetails: (item: VideoItem) => void;
-  onEdit: (item: VideoItem) => void;
+  onViewDetails: (item: ContentItem) => void;
+  onEdit: (item: ContentItem) => void;
   onDelete: (id: string) => void;
   onAdd: () => void;
-  onApproveIdea?: (item: VideoItem) => void;
-  onApproveContent?: (item: VideoItem) => void;
-  onViewImage?: (item: VideoItem) => void;
-  onViewPost?: (item: VideoItem) => void;
+  onApproveIdea?: (item: ContentItem) => void;
+  onApproveContent?: (item: ContentItem) => void;
+  onViewImage?: (item: ContentItem) => void;
+  onViewPost?: (item: ContentItem) => void;
   filterStatus: Status | "all";
   onFilterChange: (status: Status | "all") => void;
   filterProject: string;
   onProjectFilterChange: (projectId: string) => void;
 }
 
-export function VideoTable({
+export function ContentTable({
   data,
   onViewDetails,
   onEdit,
@@ -58,7 +58,7 @@ export function VideoTable({
   onFilterChange,
   filterProject,
   onProjectFilterChange,
-}: VideoTableProps) {
+}: ContentTableProps) {
   const allStatuses: Status[] = Object.keys(statusConfig) as Status[];
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(false);
@@ -81,7 +81,7 @@ export function VideoTable({
       const res = await fetch("/api/webhook/ai-search-ideas", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ postType: "video" }),
+        body: JSON.stringify({ postType: "content" }),
       });
 
       if (!res.ok) {
@@ -165,7 +165,7 @@ export function VideoTable({
       <Card className="bg-white/60 backdrop-blur-xl border-white/60 shadow-lg rounded-2xl overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-gray-200/80 backdrop-blur-sm">
+            <thead className="bg-gray-100 border-gray-200 backdrop-blur-sm">
               <tr>
                 <th className="text-left p-4 font-semibold text-sm text-slate-600">
                   Trạng thái
@@ -180,9 +180,6 @@ export function VideoTable({
                   Nền tảng
                 </th>
                 <th className="text-left p-4 font-semibold text-sm text-slate-600">
-                  Thời lượng
-                </th>
-                <th className="text-left p-4 font-semibold text-sm text-slate-600">
                   Thời gian đăng
                 </th>
                 <th className="text-left p-4 font-semibold text-sm text-slate-600">
@@ -194,7 +191,7 @@ export function VideoTable({
               {data.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={7}
+                    colSpan={6}
                     className="p-12 text-center text-slate-500 font-medium"
                   >
                     <div className="flex flex-col items-center justify-center gap-2">
@@ -254,42 +251,15 @@ export function VideoTable({
                     </td>
                     {/* Nền tảng  */}
                     <td className="p-4">
-                      <div className="flex flex-col gap-1">
-                        {Array.isArray(item.platform) ? (
-                          item.platform.map((p) => (
-                            <Badge
-                              key={p}
-                              variant="outline"
-                              className={cn(
-                                "border shadow-sm bg-white/50 backdrop-blur-sm",
-                                platformColors[p]
-                              )}
-                            >
-                              {p}
-                            </Badge>
-                          ))
-                        ) : (
-                          <Badge
-                            variant="outline"
-                            className={cn(
-                              "border shadow-sm bg-white/50 backdrop-blur-sm",
-                              platformColors[item.platform]
-                            )}
-                          >
-                            {item.platform}
-                          </Badge>
+                      <Badge
+                        variant="outline"
+                        className={cn(
+                          "border shadow-sm bg-white/50 backdrop-blur-sm",
+                          platformColors[item.platform]
                         )}
-                      </div>
-                    </td>
-                    {/* Thời lượng */}
-                    <td className="p-4 text-sm font-medium text-slate-600">
-                      {item.videoDuration ? (
-                        <Badge variant="secondary" className="bg-slate-100">
-                          {item.videoDuration}s
-                        </Badge>
-                      ) : (
-                        "Chưa cập nhật"
-                      )}
+                      >
+                        {item.platform}
+                      </Badge>
                     </td>
                     {/* Thời gian đăng */}
                     <td className="p-4 text-sm tracking-tight">
@@ -372,17 +342,17 @@ export function VideoTable({
                               size="icon"
                               onClick={() => onViewPost(item)}
                               className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                              title={`Xem post\nViews: ${
-                                item.views || 0
-                              }\nReactions: ${item.reactions || 0}\nComments: ${
-                                item.comments || 0
-                              }\nShares: ${item.shares || 0}`}
+                              title={`Xem post\nReactions: ${
+                                item.reactions || 0
+                              }\nComments: ${item.comments || 0}\nShares: ${
+                                item.shares || 0
+                              }`}
                             >
                               <ExternalLink className="h-4 w-4" />
                             </Button>
                           )}
 
-                        {/* Xóa */}
+                        {/* Xóa ý tưởng */}
                         {item.status === "idea" && (
                           <Button
                             variant="ghost"

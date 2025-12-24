@@ -12,8 +12,23 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Plus, Edit2, Trash2, Video, Calendar } from "lucide-react";
-import type { Project, ContentItem, Schedule, VideoItem } from "@/lib/types";
+import {
+  Plus,
+  Edit2,
+  Trash2,
+  Video,
+  Calendar,
+  Facebook,
+  Youtube,
+  User,
+} from "lucide-react";
+import type {
+  Project,
+  ContentItem,
+  Schedule,
+  VideoItem,
+  Account,
+} from "@/lib/types";
 import {
   createProject,
   updateProject,
@@ -27,6 +42,7 @@ interface ProjectsTabProps {
   contentItems: ContentItem[];
   videoItems: VideoItem[];
   schedules: Schedule[];
+  accounts: Account[];
   onUpdateProjects: (projects: Project[]) => void;
   isLoading?: boolean;
 }
@@ -36,6 +52,7 @@ export function ProjectsTab({
   contentItems,
   videoItems,
   schedules,
+  accounts,
   onUpdateProjects,
   isLoading,
 }: ProjectsTabProps) {
@@ -43,6 +60,19 @@ export function ProjectsTab({
   const [isSaving, setIsSaving] = useState(false);
   const [editItem, setEditItem] = useState<Project | null>(null);
   const [formData, setFormData] = useState<Partial<Project>>({});
+
+  const getPlatformIcon = (platform: string) => {
+    switch (platform) {
+      case "Facebook":
+        return <Facebook className="w-3.5 h-3.5 text-blue-600" />;
+      case "Youtube":
+        return <Youtube className="w-3.5 h-3.5 text-red-600" />;
+      case "Tiktok":
+        return <Video className="w-3.5 h-3.5 text-black" />;
+      default:
+        return <User className="w-3.5 h-3.5 text-slate-500" />;
+    }
+  };
 
   const handleAdd = () => {
     setEditItem(null);
@@ -234,6 +264,36 @@ export function ProjectsTab({
                         {stats.publishedContent}
                       </div>
                       <div className="text-xs text-green-600">Đã đăng</div>
+                    </div>
+                  </div>
+
+                  {/* Connected Accounts */}
+                  <div className="pt-3 border-t border-white/40">
+                    <p className="text-xs font-semibold text-slate-500 mb-2">
+                      Tài khoản kết nối:
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {accounts.filter((a) => a.projectId === project.id)
+                        .length > 0 ? (
+                        accounts
+                          .filter((a) => a.projectId === project.id)
+                          .map((acc) => (
+                            <div
+                              key={acc.id}
+                              className="flex items-center gap-1.5 bg-white/50 px-2 py-1 rounded-md border border-white/60 shadow-sm"
+                              title={acc.channelName}
+                            >
+                              {getPlatformIcon(acc.platform)}
+                              <span className="text-xs font-medium text-slate-700 truncate max-w-[80px]">
+                                {acc.channelName}
+                              </span>
+                            </div>
+                          ))
+                      ) : (
+                        <span className="text-xs text-slate-400 italic">
+                          Chưa có tài khoản
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>

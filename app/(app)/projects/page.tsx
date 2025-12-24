@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ProjectsTab } from "@/components/projects-tab";
+import { ProjectsTab } from "@/components/projects/projects-tab";
 import {
   getProjects,
   getContentItems,
@@ -9,13 +9,21 @@ import {
   getVideoItems,
 } from "@/lib/api";
 import { toast } from "sonner";
-import type { Project, ContentItem, Schedule, VideoItem } from "@/lib/types";
+import type {
+  Project,
+  ContentItem,
+  Schedule,
+  VideoItem,
+  Account,
+} from "@/lib/types";
+import { AccountService } from "@/lib/services/account-service";
 
 export default function ProjectsPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [contentItems, setContentItems] = useState<ContentItem[]>([]);
   const [videoItems, setVideoItems] = useState<VideoItem[]>([]);
   const [schedules, setSchedules] = useState<Schedule[]>([]);
+  const [accounts, setAccounts] = useState<Account[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -25,17 +33,24 @@ export default function ProjectsPage() {
   const loadData = async () => {
     try {
       setIsLoading(true);
-      const [projectsData, contentData, videoData, schedulesData] =
-        await Promise.all([
-          getProjects(),
-          getContentItems(),
-          getVideoItems(),
-          getSchedules(),
-        ]);
+      const [
+        projectsData,
+        contentData,
+        videoData,
+        schedulesData,
+        accountsData,
+      ] = await Promise.all([
+        getProjects(),
+        getContentItems(),
+        getVideoItems(),
+        getSchedules(),
+        AccountService.getAccounts(),
+      ]);
       setProjects(projectsData);
       setContentItems(contentData);
       setVideoItems(videoData);
       setSchedules(schedulesData);
+      setAccounts(accountsData);
     } catch (error) {
       toast.error("Failed to load data");
       console.error(error);
@@ -51,6 +66,7 @@ export default function ProjectsPage() {
         contentItems={contentItems}
         videoItems={videoItems}
         schedules={schedules}
+        accounts={accounts}
         onUpdateProjects={setProjects}
         isLoading={isLoading}
       />

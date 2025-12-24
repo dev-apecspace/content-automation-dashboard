@@ -33,15 +33,28 @@ import {
   CheckCircle2,
   Maximize2,
   DollarSign,
+  Users,
 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { getProjects, getAIModels } from "@/lib/api";
-import { ContentItem, contentTypes, Project, AIModel } from "@/lib/types";
+import { AccountService } from "@/lib/services/account-service";
+import {
+  ContentItem,
+  contentTypes,
+  Project,
+  AIModel,
+  Account,
+  Platform,
+  AccountPlatform,
+  statusConfig,
+} from "@/lib/types";
 import { calculateImageCost } from "@/lib/utils/cost";
 import { useFullscreen } from "@/stores/useFullscreenStore";
 import { uploadImageFile } from "@/app/api/cloudinary";
-import { AiRequirementDialog } from "./ai-requirement-dialog";
+import { AiRequirementDialog } from "@/components/shared/ai-requirement-dialog";
 import { getContentItemById } from "@/lib/api/content-items";
 import { toast } from "sonner";
+import { AccountSelector } from "@/components/shared/account-selector";
 
 interface ContentFormModalProps {
   isOpen: boolean;
@@ -53,6 +66,16 @@ interface ContentFormModalProps {
   isSaving?: boolean;
   isLoading?: boolean;
 }
+
+// ==================== HELPER ====================
+const getAccountPlatform = (
+  contentPlatform: string
+): AccountPlatform | null => {
+  if (contentPlatform.includes("Facebook")) return "Facebook";
+  if (contentPlatform.includes("Youtube")) return "Youtube";
+  if (contentPlatform.includes("Tiktok")) return "Tiktok";
+  return null;
+};
 
 // ==================== COMPONENT ====================
 export const ContentFormModal: React.FC<ContentFormModalProps> = ({
@@ -69,6 +92,7 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
   // ------------------- STATE -------------------
   const [projects, setProjects] = useState<Project[]>([]);
   const [modelsList, setModelsList] = useState<AIModel[]>([]);
+  const [accounts, setAccounts] = useState<Account[]>([]);
 
   const [formData, setFormData] = useState<Partial<ContentItem>>({
     idea: "",
@@ -79,6 +103,7 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
     expectedPostDate: "",
     postingTime: "",
     caption: "",
+    accountIds: [],
   });
 
   const [newImageLink, setNewImageLink] = useState(""); // Dán link thủ công
@@ -118,12 +143,14 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
   useEffect(() => {
     async function fetchData() {
       try {
-        const [realProjects, models] = await Promise.all([
+        const [realProjects, models, accountsData] = await Promise.all([
           getProjects(),
           getAIModels(),
+          AccountService.getAccounts(),
         ]);
         setProjects(realProjects);
         setModelsList(models);
+        setAccounts(accountsData);
       } catch (error) {
         console.error("Error loading data:", error);
       }
@@ -159,10 +186,11 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
         expectedPostDate: "",
         postingTime: "",
         caption: "",
+        accountIds: [],
       });
       setImageEditRequest("");
-      setNewImageLink("");
     }
+    setNewImageLink("");
   }, [editContent, isOpen]);
 
   // ------------------- XỬ LÝ DỰ ÁN -------------------
@@ -196,6 +224,31 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
 
   const handleRemoveImage = () => {
     setFormData((prev) => ({ ...prev, imageLink: undefined }));
+  };
+
+  // ------------------- XỬ LÝ ACCOUNT SELECTION -------------------
+  const filteredAccounts = accounts.filter((acc) => {
+    // 1. Filter by Platform (Show ALL accounts with this platform, regardless of project)
+    if (!formData.platform) return false;
+    const requiredPlatform = getAccountPlatform(formData.platform);
+    return acc.platform === requiredPlatform;
+  });
+
+  const handleAccountToggle = (accountId: string) => {
+    setFormData((prev) => {
+      const currentIds = prev.accountIds || [];
+      if (currentIds.includes(accountId)) {
+        return {
+          ...prev,
+          accountIds: currentIds.filter((id) => id !== accountId),
+        };
+      } else {
+        return {
+          ...prev,
+          accountIds: [...currentIds, accountId],
+        };
+      }
+    });
   };
 
   // ------------------- COST CALCULATION -------------------
@@ -537,13 +590,6 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
                       />
                       <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
                         <button
-                          onClick={() => handleEditWithAI("image")}
-                          className="p-3 bg-white/20 backdrop-blur-md border border-white/50 text-white rounded-full hover:bg-white/40 transition-colors"
-                          title="AI chỉnh sửa"
-                        >
-                          <Sparkles className="w-5 h-5" />
-                        </button>
-                        <button
                           onClick={handleRemoveImage}
                           className="p-3 bg-white/20 backdrop-blur-md border border-white/50 text-red-500 rounded-full hover:bg-white/40 transition-colors"
                           title="Xóa"
@@ -604,7 +650,7 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
             {/* ==================== GIAI ĐOẠN DUYỆT NỘI DUNG ==================== */}
             {canEditContentApprovalFields && (
               <div className="space-y-6">
-                {/* Thời gian đăng */}
+                {/* Thời gian đăng & Tài khoản */}
                 <div className="bg-white/40 backdrop-blur-md border border-white/60 rounded-2xl shadow-sm p-6 hover:bg-white/60 transition-all duration-300">
                   <div className="flex items-center justify-between mb-4">
                     <Label className="flex items-center gap-2 text-base font-semibold text-slate-700">
@@ -661,6 +707,35 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
                         }
                         className="border-white/60 bg-white/50 focus:bg-white/80 focus:border-blue-400 rounded-xl h-11 shadow-sm"
                       />
+                    </div>
+                  </div>
+                  {/* Tài khoản sẽ đăng */}
+                  <div className="mt-6 border-b border-slate-200/50">
+                    <Label className="flex items-center gap-2 text-base font-semibold text-slate-700 mb-3">
+                      <Users className="w-4 h-4 text-green-600" />
+                      Tài khoản sẽ đăng
+                    </Label>
+
+                    <div className="mb-4">
+                      <AccountSelector
+                        accounts={filteredAccounts}
+                        selectedIds={formData.accountIds || []}
+                        onChange={(ids) =>
+                          setFormData((prev) => ({ ...prev, accountIds: ids }))
+                        }
+                        currentProjectId={formData.projectId}
+                        placeholder={
+                          filteredAccounts.length === 0
+                            ? "Không có tài khoản phù hợp (Hãy kiểm tra Nền tảng)"
+                            : "Chọn tài khoản đăng..."
+                        }
+                      />
+                      {(formData.accountIds || []).length === 0 &&
+                        filteredAccounts.length > 0 && (
+                          <p className="text-sm text-red-500 italic mt-1 ml-1">
+                            * Vui lòng chọn ít nhất 1 tài khoản
+                          </p>
+                        )}
                     </div>
                   </div>
                 </div>

@@ -1,6 +1,6 @@
-"use client"
+"use client";
 
-import { GuideTab } from "@/components/guide-tab"
+import { GuideTab } from "@/components/guide/guide-tab";
 
 export default function GuidePage() {
   return (
@@ -12,5 +12,5 @@ export default function GuidePage() {
 
       <GuideTab />
     </div>
-  )
+  );
 }

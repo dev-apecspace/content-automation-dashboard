@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ScheduleTab } from "@/components/schedule-tab";
+import { ScheduleTab } from "@/components/schedule/schedule-tab";
 import {
   getSchedules,
   getProjects,
