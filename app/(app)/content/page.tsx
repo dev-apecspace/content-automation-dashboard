@@ -79,7 +79,11 @@ export default function ContentPage() {
 
   const handleViewPost = (item: ContentItem) => {
     if (item.postUrl) {
-      window.open(item.postUrl, "_blank");
+      if (Array.isArray(item.postUrl)) {
+        item.postUrl.forEach((url) => window.open(url, "_blank"));
+      } else {
+        window.open(item.postUrl, "_blank");
+      }
     } else {
       toast.error("Không có link bài đăng");
     }

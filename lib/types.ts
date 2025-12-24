@@ -137,7 +137,7 @@ export interface BaseContentItem {
   topic?: string;
   targetAudience?: string;
   researchNotes?: string;
-  postUrl?: string;
+  postUrl?: string[];
   postingTime?: string;
   callToAction?: string;
   approvedBy?: string;

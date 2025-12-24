@@ -67,7 +67,11 @@ export default function VideoPage() {
 
   const handleViewPost = (item: VideoItem) => {
     if (item.postUrl) {
-      window.open(item.postUrl, "_blank");
+      if (Array.isArray(item.postUrl)) {
+        item.postUrl.forEach((url) => window.open(url, "_blank"));
+      } else {
+        window.open(item.postUrl, "_blank");
+      }
     }
   };
 

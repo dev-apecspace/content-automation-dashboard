@@ -197,14 +197,23 @@ export function ContentDetailModal({
     }
   };
 
-  const handleRemovePost = async () => {
+  const handleRemovePost = async (url?: string) => {
     setIsLoading(true);
     try {
+      // Xác định URL cần xóa (nếu không truyền thì xóa cái đầu tiên hoặc tất cả logic tùy biến)
+      // Ở đây logic sửa thành: Nếu truyền url thì xóa url đó.
+      // Nếu postUrl là mảng, ta cần gửi url cụ thể lên webhook
+      const targetUrl =
+        url ||
+        (Array.isArray(currentItem.postUrl)
+          ? currentItem.postUrl[0]
+          : currentItem.postUrl);
+
       const response = await fetch("/api/webhook/remove-post", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          postUrl: currentItem.postUrl,
+          postUrl: targetUrl,
           platform: currentItem.platform,
           project: currentItem.projectName,
         }),
@@ -551,20 +560,41 @@ export function ContentDetailModal({
                 )}
 
                 {currentItem.postUrl && (
-                  <div className="flex items-center gap-4">
-                    <div className="p-2 rounded-full bg-white/60 shadow-sm text-blue-600">
+                  <div className="flex items-start gap-4">
+                    <div className="p-2 rounded-full bg-white/60 shadow-sm text-blue-600 mt-1">
                       <Globe className="h-4 w-4" />
                     </div>
-                    <div>
+                    <div className="flex-1">
                       <div className={glassLabelClass}>Link bài đăng</div>
-                      <a
-                        href={currentItem.postUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-600 hover:text-blue-700 hover:underline font-medium"
-                      >
-                        Truy cập bài viết
-                      </a>
+                      <div className="flex flex-col gap-2 mt-1">
+                        {(Array.isArray(currentItem.postUrl)
+                          ? currentItem.postUrl
+                          : [currentItem.postUrl]
+                        ).map((url, idx) => (
+                          <div
+                            key={idx}
+                            className="flex items-center justify-between gap-2 p-2 rounded-lg bg-blue-50/50 border border-blue-100"
+                          >
+                            <a
+                              href={url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:text-blue-700 hover:underline font-medium text-sm truncate flex-1"
+                            >
+                              {url}
+                            </a>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 w-6 p-0 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-full"
+                              onClick={() => handleRemovePost(url)}
+                              title="Xóa bài đăng này"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   </div>
                 )}
@@ -770,17 +800,7 @@ export function ContentDetailModal({
               <Edit2 className="h-4 w-4 mr-2" />
               Chỉnh sửa
             </Button>
-            {currentItem.status === "posted_successfully" && (
-              <Button
-                variant="outline"
-                onClick={handleRemovePost}
-                disabled={isLoading}
-                className="bg-red-50 hover:bg-red-100 border-red-200 text-red-600 hover:text-red-700 backdrop-blur-sm"
-              >
-                <Trash2 className="h-4 w-4 mr-2" />
-                {isLoading ? "Đang xóa..." : "Xóa bài đăng"}
-              </Button>
-            )}
+
             {currentItem.status === "awaiting_content_approval" && (
               <Button
                 onClick={() => onApprove?.(currentItem)}
