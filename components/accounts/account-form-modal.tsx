@@ -49,7 +49,9 @@ export const AccountFormModal: React.FC<AccountFormModalProps> = ({
     platform: "Facebook",
     channelId: "",
     channelName: "",
-    accessToken: "",
+    token: "",
+    clientId: "",
+    clientSecret: "",
     isActive: true,
   });
   const [isLoading, setIsLoading] = useState(false);
@@ -77,11 +79,62 @@ export const AccountFormModal: React.FC<AccountFormModalProps> = ({
         platform: "Facebook",
         channelId: "",
         channelName: "",
-        accessToken: "",
+        token: "",
+        clientId: "",
+        clientSecret: "",
         isActive: true,
       });
     }
   }, [editAccount, isOpen]);
+
+  const handleGetOAuthToken = () => {
+    if (!formData.clientId || !formData.clientSecret) {
+      toast.error("Vui lòng nhập Client ID và Client Secret trước.");
+      return;
+    }
+
+    // Store credentials for callback
+    sessionStorage.setItem("oauth_client_id", formData.clientId);
+    sessionStorage.setItem("oauth_client_secret", formData.clientSecret);
+
+    // Calculate window position
+    const width = 500;
+    const height = 600;
+    const left = window.screen.width / 2 - width / 2;
+    const top = window.screen.height / 2 - height / 2;
+
+    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${formData.clientId}&redirect_uri=${window.location.origin}/oauth/callback&response_type=code&scope=https://www.googleapis.com/auth/youtube&access_type=offline&prompt=consent`;
+
+    const popup = window.open(
+      authUrl,
+      "Youtube OAuth",
+      `width=${width},height=${height},top=${top},left=${left}`
+    );
+
+    const handleMessage = (event: MessageEvent) => {
+      if (event.origin !== window.location.origin) return;
+
+      if (event.data?.type === "OAUTH_SUCCESS") {
+        const { accessToken, refreshToken } = event.data.payload;
+
+        if (!refreshToken) {
+          toast.error(
+            "Không tìm thấy Refresh Token. Vui lòng thử lại và cấp quyền truy cập."
+          );
+          return;
+        }
+
+        setFormData((prev) => ({
+          ...prev,
+          token: refreshToken, // Strictly Refresh Token
+        }));
+        toast.success("Lấy token thành công!");
+        window.removeEventListener("message", handleMessage);
+      }
+    };
+
+    window.addEventListener("message", handleMessage);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -94,7 +147,9 @@ export const AccountFormModal: React.FC<AccountFormModalProps> = ({
           channelId: formData.channelId,
           channelName: formData.channelName,
           channelLink: formData.channelLink,
-          accessToken: formData.accessToken,
+          token: formData.token,
+          clientId: formData.clientId,
+          clientSecret: formData.clientSecret,
           projectId: formData.projectId,
           projectName: formData.projectName,
           isActive: formData.isActive,
@@ -284,20 +339,80 @@ export const AccountFormModal: React.FC<AccountFormModalProps> = ({
             />
           </div>
 
+          {/* OAuth Fields for Youtube */}
+          {formData.platform === "Youtube" && (
+            <>
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2 text-slate-700 font-medium">
+                  Client ID{" "}
+                  <span className="text-xs text-slate-400 font-normal">
+                    (Youtube)
+                  </span>
+                </Label>
+                <Input
+                  value={formData.clientId || ""}
+                  onChange={(e) =>
+                    setFormData({ ...formData, clientId: e.target.value })
+                  }
+                  placeholder="Nhập Client ID..."
+                  className="bg-white/50 border-white/60 focus:bg-white/80 rounded-xl shadow-sm font-mono text-sm"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2 text-slate-700 font-medium">
+                  Client Secret{" "}
+                  <span className="text-xs text-slate-400 font-normal">
+                    (Youtube)
+                  </span>
+                </Label>
+                <Input
+                  type="password"
+                  value={formData.clientSecret || ""}
+                  onChange={(e) =>
+                    setFormData({ ...formData, clientSecret: e.target.value })
+                  }
+                  placeholder="Nhập Client Secret..."
+                  className="bg-white/50 border-white/60 focus:bg-white/80 rounded-xl shadow-sm font-mono text-sm"
+                />
+              </div>
+            </>
+          )}
+
           {/* Access Token */}
           <div className="space-y-2">
-            <Label className="flex items-center gap-2 text-slate-700 font-medium">
-              <Key className="w-4 h-4 text-gray-500" /> Access Token{" "}
-              <span className="text-red-500">*</span>
+            <Label className="flex items-center justify-between text-slate-700 font-medium">
+              <div className="flex items-center gap-2">
+                <Key className="w-4 h-4 text-gray-500" />
+                {formData.platform === "Youtube"
+                  ? "Refresh Token"
+                  : "Access Token"}{" "}
+                <span className="text-red-500">*</span>
+              </div>
+              {formData.platform === "Youtube" && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleGetOAuthToken}
+                  className="h-7 text-xs bg-red-50 text-red-600 hover:bg-red-100 border-red-200"
+                >
+                  <Youtube className="w-3 h-3 mr-1" />
+                  Lấy Token
+                </Button>
+              )}
             </Label>
             <Input
               type="password"
-              value={formData.accessToken}
+              value={formData.token}
               onChange={(e) =>
-                setFormData({ ...formData, accessToken: e.target.value })
+                setFormData({ ...formData, token: e.target.value })
               }
               placeholder={
-                editAccount ? "Mã hoá (Nhập để thay đổi)" : "Nhập token..."
+                editAccount
+                  ? "Mã hoá (Nhập để thay đổi)"
+                  : formData.platform === "Youtube"
+                  ? "Refresh Token..."
+                  : "Access Token..."
               }
               required={!editAccount} // Required only on create
               className="bg-white/50 border-white/60 focus:bg-white/80 rounded-xl shadow-sm font-mono text-sm"

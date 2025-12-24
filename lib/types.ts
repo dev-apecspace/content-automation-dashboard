@@ -20,7 +20,9 @@ export interface Account {
   channelId: string;
   channelName: string;
   channelLink?: string;
-  accessToken: string;
+  token: string;
+  clientId?: string;
+  clientSecret?: string;
   projectId?: string;
   projectName?: string;
   isActive: boolean;

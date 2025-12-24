@@ -22,7 +22,9 @@ export async function GET() {
     channelId: acc.channel_id,
     channelName: acc.channel_name,
     channelLink: acc.channel_link,
-    accessToken: "******", // Masked
+    token: "******", // Masked
+    clientId: acc.client_id, // Expose Client ID
+    clientSecret: acc.client_secret ? "******" : undefined, // Mask Client Secret
     projectId: acc.project_id,
     projectName: acc.projects?.name,
     isActive: acc.is_active,
@@ -42,22 +44,27 @@ export async function POST(req: NextRequest) {
       channelId,
       channelName,
       channelLink,
-      accessToken,
+      token,
+      clientId,
+      clientSecret,
       isActive,
       projectId,
       projectName,
     } = body;
 
     // Validate
-    if (!platform || !channelId || !channelName || !accessToken) {
+    if (!platform || !channelId || !channelName || !token) {
       return NextResponse.json(
         { error: "Missing required fields" },
         { status: 400 }
       );
     }
 
-    // Encrypt token
-    const encryptedToken = encrypt(accessToken);
+    // Encrypt token (Used as Access Token or Refresh Token depending on platform)
+    const encryptedToken = encrypt(token);
+
+    // Encrypt clientSecret if provided
+    const encryptedClientSecret = clientSecret ? encrypt(clientSecret) : null;
 
     const { data, error } = await supabase
       .from("accounts")
@@ -67,7 +74,9 @@ export async function POST(req: NextRequest) {
           channel_id: channelId,
           channel_name: channelName,
           channel_link: channelLink,
-          access_token: encryptedToken,
+          token: encryptedToken, // DB Column is `token`
+          client_id: clientId,
+          client_secret: encryptedClientSecret,
           project_id: projectId,
           is_active: isActive,
         },
@@ -86,9 +95,11 @@ export async function POST(req: NextRequest) {
       channelId: data.channel_id,
       channelName: data.channel_name,
       channelLink: data.channel_link,
-      accessToken: "******", // Return masked
+      token: "******", // Return masked
+      clientId: data.client_id,
+      clientSecret: data.client_secret ? "******" : undefined,
       projectId: data.project_id,
-      projectName: projectName, // We optimistically return this or we should join from DB
+      projectName: projectName,
       isActive: data.is_active,
       createdAt: data.created_at,
       updatedAt: data.updated_at,
@@ -108,7 +119,9 @@ export async function PATCH(req: NextRequest) {
       channelId,
       channelName,
       channelLink,
-      accessToken,
+      token,
+      clientId,
+      clientSecret,
       isActive,
       projectId,
     } = body;
@@ -125,12 +138,18 @@ export async function PATCH(req: NextRequest) {
     if (channelId) updates.channel_id = channelId;
     if (channelName) updates.channel_name = channelName;
     if (channelLink) updates.channel_link = channelLink;
+    if (clientId !== undefined) updates.client_id = clientId;
     if (projectId !== undefined) updates.project_id = projectId; // Allow null to unset?
     if (isActive !== undefined) updates.is_active = isActive;
 
     // Only update token if it's provided and not the masked version
-    if (accessToken && accessToken !== "******") {
-      updates.access_token = encrypt(accessToken);
+    if (token && token !== "******") {
+      updates.token = encrypt(token);
+    }
+
+    // Only update clientSecret if provided and not masked
+    if (clientSecret && clientSecret !== "******") {
+      updates.client_secret = encrypt(clientSecret);
     }
 
     const { data, error } = await supabase
@@ -151,7 +170,9 @@ export async function PATCH(req: NextRequest) {
       channelId: data.channel_id,
       channelName: data.channel_name,
       channelLink: data.channel_link,
-      accessToken: "******",
+      token: "******",
+      clientId: data.client_id,
+      clientSecret: data.client_secret ? "******" : undefined,
       isActive: data.is_active,
       createdAt: data.created_at,
       updatedAt: data.updated_at,
