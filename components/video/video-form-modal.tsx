@@ -44,6 +44,7 @@ import { toast } from "sonner";
 import { calculateVideoCost } from "@/lib/utils/cost";
 import { AccountService } from "@/lib/services/account-service";
 import { Account, AccountPlatform } from "@/lib/types";
+import { AccountSelector } from "@/components/shared/account-selector";
 
 interface VideoFormModalProps {
   isOpen: boolean;
@@ -234,10 +235,7 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
   };
 
   const filteredAccounts = accounts.filter((acc) => {
-    // 1. Filter by Project
-    if (acc.projectId !== formData.projectId) return false;
-
-    // 2. Filter by Platform (Logic: Show accounts that match ANY of the selected platforms)
+    // 1. Filter by Platform (Show ALL accounts that match ANY of the selected platforms)
     if (!formData.platform || formData.platform.length === 0) return false;
 
     // Get list of required account platforms
@@ -766,94 +764,33 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
                 </div>
               </div>
 
-              {/* Tài khoản sẽ đăng */}
               <div className="bg-white/40 backdrop-blur-md border border-white/60 rounded-2xl shadow-sm p-6 hover:bg-white/60 transition-all duration-300">
                 <Label className="flex items-center gap-2 text-base font-semibold text-slate-700 mb-4">
                   <CheckCircle className="w-4 h-4 text-green-600" />
                   Tài khoản sẽ đăng
                 </Label>
 
-                {filteredAccounts.length === 0 ? (
-                  <div className="text-sm text-slate-500 italic pb-2">
-                    Không tìm thấy tài khoản phù hợp (Hãy chọn Dự án & Nền tảng
-                    trước)
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {/* Selected Tags */}
-                    <div className="flex flex-wrap gap-2">
-                      {filteredAccounts.map((acc) => {
-                        const isSelected = (formData.accountIds || []).includes(
-                          acc.id
-                        );
-                        if (!isSelected) return null;
-                        return (
-                          <div
-                            key={acc.id}
-                            className="flex items-center gap-2 bg-blue-50 text-blue-700 px-3 py-1.5 rounded-lg border border-blue-100 text-sm font-medium shadow-sm"
-                          >
-                            <span>{acc.channelName}</span>
-                          </div>
-                        );
-                      })}
-                      {(formData.accountIds || []).length === 0 && (
-                        <span className="text-sm text-red-500 italic">
-                          Chưa chọn tài khoản nào!
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Selection List */}
-                    <div>
-                      <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 block">
-                        Chọn tài khoản
-                      </span>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                        {filteredAccounts.map((acc) => {
-                          const isSelected = (
-                            formData.accountIds || []
-                          ).includes(acc.id);
-                          return (
-                            <div
-                              key={acc.id}
-                              className={`
-                                              flex items-center space-x-2 p-3 rounded-xl border cursor-pointer transition-all duration-200
-                                              ${
-                                                isSelected
-                                                  ? "bg-blue-50 border-blue-200 shadow-sm"
-                                                  : "bg-white/50 border-transparent hover:bg-white"
-                                              }
-                                              `}
-                              onClick={() => handleAccountToggle(acc.id)}
-                            >
-                              <Checkbox
-                                checked={isSelected}
-                                onCheckedChange={() =>
-                                  handleAccountToggle(acc.id)
-                                }
-                                className="data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600"
-                              />
-                              <div className="flex flex-col">
-                                <span
-                                  className={`text-sm ${
-                                    isSelected
-                                      ? "font-medium text-blue-700"
-                                      : "text-slate-700"
-                                  }`}
-                                >
-                                  {acc.channelName}
-                                </span>
-                                <span className="text-[10px] text-slate-400">
-                                  {acc.platform}
-                                </span>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  </div>
-                )}
+                <div className="mb-4">
+                  <AccountSelector
+                    accounts={filteredAccounts}
+                    selectedIds={formData.accountIds || []}
+                    onChange={(ids) =>
+                      setFormData((prev) => ({ ...prev, accountIds: ids }))
+                    }
+                    currentProjectId={formData.projectId}
+                    placeholder={
+                      filteredAccounts.length === 0
+                        ? "Không có tài khoản phù hợp (Hãy chọn Nền tảng)"
+                        : "Chọn tài khoản đăng..."
+                    }
+                  />
+                  {(formData.accountIds || []).length === 0 &&
+                    filteredAccounts.length > 0 && (
+                      <p className="text-sm text-red-500 italic mt-1 ml-1">
+                        * Vui lòng chọn ít nhất 1 tài khoản
+                      </p>
+                    )}
+                </div>
               </div>
 
               {/* Tiêu đề */}
