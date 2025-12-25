@@ -42,6 +42,7 @@ import {
   AIModel,
   CostLog,
   Account,
+  Post,
 } from "@/lib/types";
 import { Project } from "@/lib/types";
 import { format } from "date-fns";
@@ -60,6 +61,7 @@ import {
   getProjects,
   getCostLogsByItem,
 } from "@/lib/api";
+import { triggerEngagementTracker } from "@/lib/utils/engagement";
 
 interface VideoDetailModalProps {
   isOpen: boolean;
@@ -159,24 +161,13 @@ export function VideoDetailModal({
     setCurrentItem(item);
   };
 
-  const triggerEngagementTracker = async () => {
+  const handleRefreshEngagement = async () => {
     setIsSpinning(true);
 
     try {
-      const res = await fetch("/api/webhook/engagement-tracker", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ postType: "video" }),
-      });
-
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.error || "Lỗi gọi AI lấy tương tác");
-      } else {
-        console.log("==== res: ", res);
-        updatedItem();
-        toast.success("Tương tác đã được cập nhật!");
-      }
+      await triggerEngagementTracker(currentItem.id);
+      updatedItem();
+      toast.success("Tương tác đã được cập nhật!");
     } catch (error: any) {
       console.error("Lỗi khi gọi AI:", error);
       toast.error(error.message);
@@ -185,22 +176,17 @@ export function VideoDetailModal({
     }
   };
 
-  const handleRemovePost = async (url?: string) => {
+  const handleRemovePost = async (post: Post) => {
     setIsLoading(true);
     try {
-      const targetUrl =
-        url ||
-        (Array.isArray(currentItem.postUrl)
-          ? currentItem.postUrl[0]
-          : currentItem.postUrl);
-
       const response = await fetch("/api/webhook/remove-post", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          postUrl: targetUrl,
-          platform: currentItem.platform[0],
+          postUrl: post.postUrl,
+          platform: post.platform,
           project: currentItem.projectName,
+          postId: post.id, // Sending postId just in case new API needs it
         }),
       });
       if (!response.ok) {
@@ -209,7 +195,7 @@ export function VideoDetailModal({
       } else {
         await createActivityLog("remove-post", "video", currentItem.id, {
           userId: "user_1",
-          description: `Xóa bài đăng: ${currentItem.idea}`,
+          description: `Xóa bài đăng: ${currentItem.idea} (${post.platform})`,
         });
 
         toast.success("Đã xóa bài đăng thành công");
@@ -599,46 +585,89 @@ export function VideoDetailModal({
                   </div>
                 )}
 
-                {/* Post URL */}
-                {currentItem.postUrl && (
-                  <div className="flex items-start gap-4">
-                    <div className="p-2 rounded-full bg-white/60 shadow-sm text-blue-600 mt-1">
-                      <Globe className="h-5 w-5" />
+                {/* Post URL List */}
+                <div className="flex items-start gap-4">
+                  <div className="p-2 rounded-full bg-white/60 shadow-sm text-blue-600 mt-1">
+                    <Globe className="h-5 w-5" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between">
+                      <div className={glassLabelClass}>Bài đăng</div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleRefreshEngagement}
+                        className="h-6 w-6 p-0 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full"
+                        title="Cập nhật tương tác"
+                      >
+                        <RefreshCw
+                          className={`h-3.5 w-3.5 ${
+                            isSpinning ? "animate-spin" : ""
+                          }`}
+                        />
+                      </Button>
                     </div>
-                    <div className="flex-1">
-                      <div className={glassLabelClass}>Link bài đăng</div>
+                    {currentItem.posts && currentItem.posts.length > 0 ? (
                       <div className="flex flex-col gap-2 mt-1">
-                        {(Array.isArray(currentItem.postUrl)
-                          ? currentItem.postUrl
-                          : [currentItem.postUrl]
-                        ).map((url, idx) => (
+                        {currentItem.posts.map((post) => (
                           <div
-                            key={idx}
-                            className="flex items-center justify-between gap-2 p-2 rounded-lg bg-blue-50/50 border border-blue-100"
+                            key={post.id}
+                            className="flex flex-col gap-1 p-2 rounded-lg bg-blue-50/50 border border-blue-100"
                           >
-                            <a
-                              href={url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-blue-600 hover:text-blue-700 hover:underline font-medium text-sm truncate flex-1"
-                            >
-                              {url}
-                            </a>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-6 w-6 p-0 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-full"
-                              onClick={() => handleRemovePost(url)}
-                              title="Xóa bài đăng này"
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </Button>
+                            <div className="flex items-center justify-between gap-2">
+                              {(() => {
+                                const account = allAccounts.find(
+                                  (a) => a.id === post.accountId
+                                );
+                                return (
+                                  <span className="font-semibold text-xs text-slate-800 flex-1 truncate">
+                                    {account ? (
+                                      post.postUrl ? (
+                                        <a
+                                          href={post.postUrl}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="hover:text-blue-600 hover:underline flex items-center gap-1"
+                                        >
+                                          {account.channelName}
+                                          <Link className="h-3 w-3 opacity-50" />
+                                        </a>
+                                      ) : (
+                                        account.channelName
+                                      )
+                                    ) : (
+                                      post.platform
+                                    )}
+                                  </span>
+                                );
+                              })()}
+
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-6 w-6 p-0 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-full"
+                                onClick={() => handleRemovePost(post)}
+                                title="Xóa bài đăng này"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </div>
+                            <div className="flex gap-2 text-[10px] text-gray-500">
+                              <span>Views: {post.views || 0}</span>
+                              <span>Likes: {post.reactions || 0}</span>
+                              <span>Cmt: {post.comments || 0}</span>
+                              <span>Share: {post.shares || 0}</span>
+                            </div>
                           </div>
                         ))}
                       </div>
-                    </div>
+                    ) : (
+                      <p className="text-slate-500 italic mt-1">
+                        Chưa có bài đăng
+                      </p>
+                    )}
                   </div>
-                )}
+                </div>
               </div>
 
               {/* Metadata */}
@@ -714,7 +743,7 @@ export function VideoDetailModal({
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={triggerEngagementTracker}
+                    onClick={handleRefreshEngagement}
                     className="text-slate-600 hover:text-slate-900 hover:bg-white/50 cursor-pointer"
                   >
                     <RefreshCw
@@ -732,7 +761,10 @@ export function VideoDetailModal({
                       <Eye className="h-6 w-6" />
                     </div>
                     <div className="text-3xl font-bold text-slate-900 mb-1">
-                      {currentItem.views ?? 0}
+                      {(currentItem.posts || []).reduce(
+                        (acc, p) => acc + (p.views || 0),
+                        0
+                      )}
                     </div>
                     <div className="text-sm text-slate-500">Views</div>
                   </div>
@@ -741,7 +773,10 @@ export function VideoDetailModal({
                       <ThumbsUp className="h-6 w-6" />
                     </div>
                     <div className="text-3xl font-bold text-slate-900 mb-1">
-                      {currentItem.reactions ?? 0}
+                      {(currentItem.posts || []).reduce(
+                        (acc, p) => acc + (p.reactions || 0),
+                        0
+                      )}
                     </div>
                     <div className="text-sm text-slate-500">Reactions</div>
                   </div>
@@ -750,7 +785,10 @@ export function VideoDetailModal({
                       <MessageCircle className="h-6 w-6" />
                     </div>
                     <div className="text-3xl font-bold text-slate-900 mb-1">
-                      {currentItem.comments ?? 0}
+                      {(currentItem.posts || []).reduce(
+                        (acc, p) => acc + (p.comments || 0),
+                        0
+                      )}
                     </div>
                     <div className="text-sm text-slate-500">Comments</div>
                   </div>
@@ -759,7 +797,10 @@ export function VideoDetailModal({
                       <Share2 className="h-6 w-6" />
                     </div>
                     <div className="text-3xl font-bold text-slate-900 mb-1">
-                      {currentItem.shares ?? 0}
+                      {(currentItem.posts || []).reduce(
+                        (acc, p) => acc + (p.shares || 0),
+                        0
+                      )}
                     </div>
                     <div className="text-sm text-slate-500">Shares</div>
                   </div>
@@ -769,8 +810,8 @@ export function VideoDetailModal({
                   <Calendar className="h-4 w-4" />
                   <span>
                     Dữ liệu cập nhật lúc:{" "}
-                    {currentItem.statsAt
-                      ? formatDate(currentItem.statsAt)
+                    {currentItem.posts?.[0]?.statsAt
+                      ? formatDate(currentItem.posts[0].statsAt)
                       : "Chưa có dữ liệu"}
                   </span>
                 </div>

@@ -351,32 +351,45 @@ export function VideoTable({
                         )}
 
                         {/* Xem ảnh */}
-                        {item.imageLink && !item.postUrl && onViewImage && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => onViewImage(item)}
-                            title="Xem ảnh"
-                            className="hover:bg-white/60 hover:text-indigo-600"
-                          >
-                            <Image className="h-4 w-4" />
-                          </Button>
-                        )}
+                        {item.imageLink &&
+                          (!item.posts || item.posts.length === 0) &&
+                          onViewImage && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => onViewImage(item)}
+                              title="Xem ảnh"
+                              className="hover:bg-white/60 hover:text-indigo-600"
+                            >
+                              <Image className="h-4 w-4" />
+                            </Button>
+                          )}
 
                         {/* Xem post */}
                         {item.status === "posted_successfully" &&
-                          item.postUrl &&
+                          item.posts &&
+                          item.posts.length > 0 &&
                           onViewPost && (
                             <Button
                               variant="ghost"
                               size="icon"
                               onClick={() => onViewPost(item)}
                               className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                              title={`Xem post\nViews: ${
-                                item.views || 0
-                              }\nReactions: ${item.reactions || 0}\nComments: ${
-                                item.comments || 0
-                              }\nShares: ${item.shares || 0}`}
+                              title={`Xem post\nViews: ${(
+                                item.posts || []
+                              ).reduce(
+                                (acc, p) => acc + (p.views || 0),
+                                0
+                              )}\nReactions: ${(item.posts || []).reduce(
+                                (acc, p) => acc + (p.reactions || 0),
+                                0
+                              )}\nComments: ${(item.posts || []).reduce(
+                                (acc, p) => acc + (p.comments || 0),
+                                0
+                              )}\nShares: ${(item.posts || []).reduce(
+                                (acc, p) => acc + (p.shares || 0),
+                                0
+                              )}`}
                             >
                               <ExternalLink className="h-4 w-4" />
                             </Button>

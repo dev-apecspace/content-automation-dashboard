@@ -4,19 +4,19 @@ const WEBHOOK_URL = process.env.NEXT_PUBLIC_ENGAGEMENT_TRACKER_WEBHOOK!;
 
 export async function POST(request: NextRequest) {
   try {
-    // const { postId, platform } = await request.json();
+    const { itemId } = await request.json();
 
     const res = await fetch(WEBHOOK_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-    //   body: JSON.stringify({ postId, platform }),
+      body: JSON.stringify({ itemId }),
     });
 
     if (!res.ok) {
       const error = await res.text();
-      return new Response(JSON.stringify({ error: 'Webhook failed', details: error }), {
+      return new Response(JSON.stringify({ error: 'Lỗi khi gọi n8n', details: error }), {
         status: res.status,
       });
     }
