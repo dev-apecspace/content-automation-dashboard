@@ -31,7 +31,26 @@ export async function getVideoItems(filters?: {
   }
 
   // Tự động chuyển toàn bộ snake_case sang camelCase (deep: true để xử lý nested object nếu có)
-  return camelcaseKeys(data || [], { deep: true }) as VideoItem[];
+  const items = camelcaseKeys(data || [], { deep: true }) as VideoItem[];
+
+  // Fetch posts separately for these items
+  if (items.length > 0) {
+    const itemIds = items.map((i) => i.id);
+    const { data: postsData } = await supabase
+      .from("posts")
+      .select("*")
+      .in("item_id", itemIds)
+      .eq("item_type", "video");
+
+    const posts = camelcaseKeys(postsData || [], { deep: true }) as any[];
+
+    // Map posts to items
+    items.forEach((item) => {
+      item.posts = posts.filter((p) => p.itemId === item.id);
+    });
+  }
+
+  return items;
 }
 
 export async function getVideoItemById(id: string): Promise<VideoItem | null> {
@@ -47,7 +66,21 @@ export async function getVideoItemById(id: string): Promise<VideoItem | null> {
     throw error;
   }
 
-  return camelcaseKeys(data || null, { deep: true }) as VideoItem;
+  const item = camelcaseKeys(data || null, { deep: true }) as VideoItem;
+
+  if (item) {
+    const { data: postsData } = await supabase
+      .from("posts")
+      .select("*")
+      .eq("item_id", id)
+      .eq("item_type", "video");
+
+    if (postsData && postsData.length > 0) {
+      item.posts = camelcaseKeys(postsData, { deep: true }) as any[];
+    }
+  }
+
+  return item;
 }
 
 export async function createVideoItem(
@@ -70,7 +103,6 @@ export async function createVideoItem(
     call_to_action: video.callToAction,
     title: video.title,
     video_link: video.videoLink,
-    post_url: video.postUrl,
     account_ids: video.accountIds,
   };
 
@@ -119,16 +151,8 @@ export async function updateVideoItem(
     dbData.call_to_action = updates.callToAction;
   if (updates.title !== undefined) dbData.title = updates.title;
   if (updates.videoLink !== undefined) dbData.video_link = updates.videoLink;
-  if (updates.postUrl !== undefined) dbData.post_url = updates.postUrl;
   if (updates.approvedBy !== undefined) dbData.approved_by = updates.approvedBy;
   if (updates.approvedAt !== undefined) dbData.approved_at = updates.approvedAt;
-  if (updates.publishedAt !== undefined)
-    dbData.published_at = updates.publishedAt;
-  if (updates.views !== undefined) dbData.views = updates.views;
-  if (updates.reactions !== undefined) dbData.reactions = updates.reactions;
-  if (updates.comments !== undefined) dbData.comments = updates.comments;
-  if (updates.shares !== undefined) dbData.shares = updates.shares;
-  if (updates.statsAt !== undefined) dbData.stats_at = updates.statsAt;
   if (updates.accountIds !== undefined) dbData.account_ids = updates.accountIds;
 
   const { data, error } = await supabase
@@ -165,10 +189,10 @@ export async function updateVideoStatus(
     updated_at: new Date().toISOString(),
   };
 
-  // Nếu đăng thành công thì lưu thời gian published
-  if (status === "posted_successfully") {
-    updates.published_at = new Date().toISOString();
-  }
+  // Nếu đăng thành công thì lưu thời gian published (Moved to posts table)
+  // if (status === "posted_successfully") {
+  //   updates.published_at = new Date().toISOString();
+  // }
 
   const { data, error } = await supabase
     .from("video_items")

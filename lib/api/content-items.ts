@@ -25,7 +25,26 @@ export async function getContentItems(filters?: {
   }
 
   // Tự động chuyển toàn bộ snake_case sang camelCase (deep: true để xử lý nested object nếu có)
-  return camelcaseKeys(data || [], { deep: true }) as ContentItem[];
+  const items = camelcaseKeys(data || [], { deep: true }) as ContentItem[];
+
+  // Fetch posts separately for these items
+  if (items.length > 0) {
+    const itemIds = items.map((i) => i.id);
+    const { data: postsData } = await supabase
+      .from("posts")
+      .select("*")
+      .in("item_id", itemIds)
+      .eq("item_type", "content");
+
+    const posts = camelcaseKeys(postsData || [], { deep: true }) as any[];
+
+    // Map posts to items
+    items.forEach((item) => {
+      item.posts = posts.filter((p) => p.itemId === item.id);
+    });
+  }
+
+  return items;
 }
 
 export async function getContentItemById(
@@ -43,7 +62,21 @@ export async function getContentItemById(
     throw error;
   }
 
-  return camelcaseKeys(data || null, { deep: true }) as ContentItem;
+  const item = camelcaseKeys(data || null, { deep: true }) as ContentItem;
+
+  if (item) {
+    const { data: postsData } = await supabase
+      .from("posts")
+      .select("*")
+      .eq("item_id", id)
+      .eq("item_type", "content");
+
+    if (postsData && postsData.length > 0) {
+      item.posts = camelcaseKeys(postsData, { deep: true }) as any[];
+    }
+  }
+
+  return item;
 }
 
 export async function createContentItem(
@@ -63,7 +96,6 @@ export async function createContentItem(
     posting_time: content.postingTime,
     caption: content.caption,
     call_to_action: content.callToAction,
-    post_url: content.postUrl,
     account_ids: content.accountIds,
   };
 
@@ -108,7 +140,6 @@ export async function updateContentItem(
   if (updates.caption !== undefined) dbData.caption = updates.caption;
   if (updates.callToAction !== undefined)
     dbData.call_to_action = updates.callToAction;
-  if (updates.postUrl !== undefined) dbData.post_url = updates.postUrl;
   if (updates.accountIds !== undefined) dbData.account_ids = updates.accountIds;
 
   const { data, error } = await supabase
@@ -145,10 +176,10 @@ export async function updateContentStatus(
     updated_at: new Date().toISOString(),
   };
 
-  // Nếu đăng thành công thì lưu thời gian published
-  if (status === "posted_successfully") {
-    updates.published_at = new Date().toISOString();
-  }
+  // Nếu đăng thành công thì lưu thời gian published (Moved to posts table logic - handled elsewhere or legacy removal)
+  // if (status === "posted_successfully") {
+  //   updates.published_at = new Date().toISOString();
+  // }
 
   const { data, error } = await supabase
     .from("content_items")

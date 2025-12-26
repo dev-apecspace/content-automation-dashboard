@@ -130,6 +130,23 @@ export interface Schedule {
   isActive: boolean;
 }
 
+export interface Post {
+  id: string;
+  itemId: string;
+  itemType: "content" | "video";
+  platform: string;
+  postUrl?: string;
+  publishedAt?: string;
+  statsAt?: string;
+  views?: number;
+  reactions?: number;
+  comments?: number;
+  shares?: number;
+  createdAt: string;
+  updatedAt: string;
+  accountId?: string;
+}
+
 export interface BaseContentItem {
   id: string;
   status: Status;
@@ -139,24 +156,19 @@ export interface BaseContentItem {
   topic?: string;
   targetAudience?: string;
   researchNotes?: string;
-  postUrl?: string[];
-  postingTime?: string;
+  postingTime?: string; // Dự kiến đăng
   callToAction?: string;
   approvedBy?: string;
   approvedAt?: string;
-  publishedAt?: string;
   createdAt?: string;
   updatedAt?: string;
-  reactions?: number;
-  comments?: number;
-  shares?: number;
-  statsAt?: string;
   expectedPostDate: string;
   accountIds?: string[];
+  posts?: Post[];
 }
 
 export interface ContentItem extends BaseContentItem {
-  platform: "Facebook Post";
+  platform: Platform;
   contentType: string;
   imageLink?: string;
   editRequest?: string; // Không lưu db
@@ -171,7 +183,6 @@ export interface VideoItem extends BaseContentItem {
   videoLink?: string;
   title?: string;
   caption?: string;
-  views?: number;
 }
 
 export type ModelType = "video" | "image" | "audio" | "text";

@@ -15,6 +15,7 @@ import {
   ProjectStats,
   AIModel,
   CostLog,
+  Post,
 } from "@/lib/types";
 import {
   startOfDay,
@@ -120,14 +121,12 @@ export const DashboardService = {
       { count: projectsCount },
       { data: contentData },
       { data: videoData },
+      { data: postsData },
     ] = await Promise.all([
       supabase.from("projects").select("*", { count: "exact", head: true }),
-      supabase
-        .from("content_items")
-        .select("status, reactions, comments, shares"),
-      supabase
-        .from("video_items")
-        .select("status, views, reactions, comments, shares"),
+      supabase.from("content_items").select("status"),
+      supabase.from("video_items").select("status"),
+      supabase.from("posts").select("views, reactions, comments, shares"),
     ]);
 
     const activeContentsCount =
@@ -147,37 +146,15 @@ export const DashboardService = {
       (videoData?.filter((v) => v.status === "posted_successfully").length ||
         0);
 
-    const totalViews =
-      videoData?.reduce(
-        (acc: number, curr: { views: number | null }) =>
-          acc + (curr.views || 0),
-        0
-      ) || 0;
+    // Sum stats from posts table
+    let totalViews = 0;
+    let totalReactions = 0;
 
-    const contentReactions =
-      contentData?.reduce(
-        (
-          acc: number,
-          c: {
-            reactions: number | null;
-            comments: number | null;
-            shares: number | null;
-          }
-        ) => acc + (c.reactions || 0) + (c.comments || 0) + (c.shares || 0),
-        0
-      ) || 0;
-    const videoReactions =
-      videoData?.reduce(
-        (
-          acc: number,
-          v: {
-            reactions: number | null;
-            comments: number | null;
-            shares: number | null;
-          }
-        ) => acc + (v.reactions || 0) + (v.comments || 0) + (v.shares || 0),
-        0
-      ) || 0;
+    postsData?.forEach((post) => {
+      totalViews += post.views || 0;
+      totalReactions +=
+        (post.reactions || 0) + (post.comments || 0) + (post.shares || 0);
+    });
 
     return {
       totalProjects: projectsCount || 0,
@@ -185,7 +162,7 @@ export const DashboardService = {
       pendingApprovals: pendingApprovalsCount,
       scheduledPosts: scheduledPostsCount,
       totalViews,
-      totalReactions: contentReactions + videoReactions,
+      totalReactions,
     };
   },
 
@@ -206,19 +183,12 @@ export const DashboardService = {
     // Real data fetching and aggregation
     const startDate = subDays(startOfDay(new Date()), days).toISOString();
 
-    const [contentRes, videoRes] = await Promise.all([
-      supabase
-        .from("content_items")
-        .select("created_at, reactions, comments, shares")
-        .gte("created_at", startDate),
-      supabase
-        .from("video_items")
-        .select("created_at, views, reactions, comments, shares")
-        .gte("created_at", startDate),
-    ]);
+    const { data: postsData } = await supabase
+      .from("posts")
+      .select("created_at, views, reactions, comments, shares")
+      .gte("created_at", startDate);
 
-    const contentItems = (contentRes.data || []) as any[];
-    const videoItems = (videoRes.data || []) as any[];
+    const posts = (postsData || []) as any[];
 
     // Initialize map with all dates in range
     const groupedData = new Map<string, ChartDataPoint>();
@@ -236,27 +206,15 @@ export const DashboardService = {
       });
     }
 
-    // Process Content Items
-    contentItems.forEach((item) => {
-      const dateStr = format(new Date(item.created_at), "MMM dd");
+    // Process Posts
+    posts.forEach((post) => {
+      const dateStr = format(new Date(post.created_at), "MMM dd");
       const entry = groupedData.get(dateStr);
       if (entry) {
-        entry.reactions += item.reactions || 0;
-        entry.comments += item.comments || 0;
-        entry.shares += item.shares || 0;
-        entry.posts += 1;
-      }
-    });
-
-    // Process Video Items
-    videoItems.forEach((item) => {
-      const dateStr = format(new Date(item.created_at), "MMM dd");
-      const entry = groupedData.get(dateStr);
-      if (entry) {
-        entry.views += item.views || 0;
-        entry.reactions += item.reactions || 0;
-        entry.comments += item.comments || 0;
-        entry.shares += item.shares || 0;
+        entry.views += post.views || 0;
+        entry.reactions += post.reactions || 0;
+        entry.comments += post.comments || 0;
+        entry.shares += post.shares || 0;
         entry.posts += 1;
       }
     });
@@ -266,12 +224,28 @@ export const DashboardService = {
 
   // Detailed Content Analytics
   getContentStats: async (): Promise<ContentStats> => {
-    const { data: contentData } = await supabase
-      .from("content_items")
-      .select("*");
+    const [{ data: contentData }, { data: postsData }] = await Promise.all([
+      supabase.from("content_items").select("*"),
+      supabase.from("posts").select("*").eq("item_type", "content"),
+    ]);
+
     const items = camelcaseKeys(contentData || [], {
       deep: true,
     }) as ContentItem[];
+    const posts = camelcaseKeys(postsData || [], { deep: true }) as Post[];
+
+    // Map posts to items
+    const postsMap = new Map<string, Post[]>();
+    posts.forEach((p) => {
+      const current = postsMap.get(p.itemId) || [];
+      current.push(p);
+      postsMap.set(p.itemId, current);
+    });
+
+    // Attach posts and calculate aggregate stats for sorting/display
+    items.forEach((item) => {
+      item.posts = postsMap.get(item.id) || [];
+    });
 
     // Calculate specific status counts
     const now = new Date();
@@ -345,12 +319,27 @@ export const DashboardService = {
     );
 
     const topPerforming = [...items]
-      .sort(
-        (a, b) =>
-          (b.reactions || 0) +
-          (b.comments || 0) -
-          ((a.reactions || 0) + (a.comments || 0))
-      )
+      .sort((a, b) => {
+        const statsA = (a.posts || []).reduce(
+          (acc, p) =>
+            acc +
+            (p.reactions || 0) +
+            (p.comments || 0) +
+            (p.shares || 0) +
+            (p.views || 0),
+          0
+        );
+        const statsB = (b.posts || []).reduce(
+          (acc, p) =>
+            acc +
+            (p.reactions || 0) +
+            (p.comments || 0) +
+            (p.shares || 0) +
+            (p.views || 0),
+          0
+        );
+        return statsB - statsA;
+      })
       .slice(0, 5);
 
     // Project Stats Calculation
@@ -402,10 +391,28 @@ export const DashboardService = {
 
   // Detailed Video Analytics
   getVideoStats: async (): Promise<VideoStats> => {
-    const { data: videoData } = await supabase.from("video_items").select("*");
+    const [{ data: videoData }, { data: postsData }] = await Promise.all([
+      supabase.from("video_items").select("*"),
+      supabase.from("posts").select("*").eq("item_type", "video"),
+    ]);
+
     const videos = camelcaseKeys(videoData || [], {
       deep: true,
     }) as VideoItem[];
+    const posts = camelcaseKeys(postsData || [], { deep: true }) as Post[];
+
+    // Map posts to videos
+    const postsMap = new Map<string, Post[]>();
+    posts.forEach((p) => {
+      const current = postsMap.get(p.itemId) || [];
+      current.push(p);
+      postsMap.set(p.itemId, current);
+    });
+
+    // Attach posts
+    videos.forEach((v) => {
+      v.posts = postsMap.get(v.id) || [];
+    });
 
     // Calculate specific status counts
     const now = new Date();
@@ -451,7 +458,10 @@ export const DashboardService = {
       (v) => v.status === "posted_successfully"
     ).length;
 
-    const totalViews = videos.reduce((acc, v) => acc + (v.views || 0), 0);
+    const totalViews = (posts || []).reduce(
+      (acc, p) => acc + (p.views || 0),
+      0
+    );
     const avgDuration =
       videos.length > 0
         ? videos.reduce((acc, v) => acc + (v.videoDuration || 0), 0) /
@@ -476,7 +486,17 @@ export const DashboardService = {
     }));
 
     const topPerforming = [...videos]
-      .sort((a, b) => (b.views || 0) - (a.views || 0))
+      .sort((a, b) => {
+        const viewsA = (a.posts || []).reduce(
+          (acc, p) => acc + (p.views || 0),
+          0
+        );
+        const viewsB = (b.posts || []).reduce(
+          (acc, p) => acc + (p.views || 0),
+          0
+        );
+        return viewsB - viewsA;
+      })
       .slice(0, 5);
 
     // Project Stats Calculation for Videos
