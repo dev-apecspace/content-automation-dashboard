@@ -78,12 +78,12 @@ export default function ContentPage() {
   };
 
   const handleViewPost = (item: ContentItem) => {
-    if (item.postUrl) {
-      if (Array.isArray(item.postUrl)) {
-        item.postUrl.forEach((url) => window.open(url, "_blank"));
-      } else {
-        window.open(item.postUrl, "_blank");
-      }
+    if (item.posts && item.posts.length > 0) {
+      item.posts.forEach((post) => {
+        if (post.postUrl) {
+          window.open(post.postUrl, "_blank");
+        }
+      });
     } else {
       toast.error("Không có link bài đăng");
     }
@@ -142,7 +142,6 @@ export default function ContentPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          post_id: item.id,
           posting_time: item.postingTime,
           platform: item.platform,
         }),
@@ -231,7 +230,6 @@ export default function ContentPage() {
           postingTime: data.postingTime || null,
           caption: data.caption || null,
           callToAction: data.callToAction || null,
-          postUrl: data.postUrl || null,
         } as Omit<ContentItem, "id" | "createdAt" | "updatedAt">);
 
         setContentItems((prev) => [...prev, newContent]);

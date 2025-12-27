@@ -3,15 +3,17 @@ import { NextRequest } from "next/server";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
+  process.env.SUPABASE_SERVICE_ROLE_KEY!,
 );
 
-export async function POST(request: NextRequest) {
-  const { post_id, posting_time, platform } = await request.json();
+const webhookUrl = process.env.NEXT_PUBLIC_AUTO_POST_WEBHOOK;
 
-  if (!post_id || !posting_time) {
+export async function POST(request: NextRequest) {
+  const { posting_time, platform } = await request.json();
+
+  if (!posting_time || !platform) {
     return Response.json(
-      { error: "Thiếu post_id hoặc posting_time" },
+      { error: "Thiếu posting_time hoặc platform" },
       { status: 400 }
     );
   }
@@ -25,7 +27,7 @@ export async function POST(request: NextRequest) {
   }
 
   const { data, error } = await supabase.rpc("schedule_post_daily_vn", {
-    p_post_id: post_id,
+    p_webhook_url: webhookUrl,
     p_posting_time: posting_time,
     p_platform: platform,
   });
