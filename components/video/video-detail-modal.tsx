@@ -177,16 +177,18 @@ export function VideoDetailModal({
   };
 
   const handleRemovePost = async (post: Post) => {
+    confirm("Bạn có chắc chắn muốn xóa bài đăng này?")
     setIsLoading(true);
     try {
       const response = await fetch("/api/webhook/remove-post", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          postUrl: post.postUrl,
+          itemId: currentItem.id,
+          postId: post.id,
           platform: post.platform,
-          project: currentItem.projectName,
-          postId: post.id, // Sending postId just in case new API needs it
+          accountId: post.accountId,
+          postUrl: post.postUrl,
         }),
       });
       if (!response.ok) {
@@ -623,15 +625,33 @@ export function VideoDetailModal({
                                   <span className="font-semibold text-xs text-slate-800 flex-1 truncate">
                                     {account ? (
                                       post.postUrl ? (
-                                        <a
-                                          href={post.postUrl}
-                                          target="_blank"
-                                          rel="noopener noreferrer"
-                                          className="hover:text-blue-600 hover:underline flex items-center gap-1"
-                                        >
-                                          {account.channelName}
-                                          <Link className="h-3 w-3 opacity-50" />
-                                        </a>
+                                        <div className="flex items-center gap-2">
+                                          <a
+                                            href={post.postUrl}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className={`hover:underline flex items-center gap-1 ${
+                                              post.status === "removed"
+                                                ? "text-gray-400 line-through"
+                                                : "hover:text-blue-600"
+                                            }`}
+                                          >
+                                            {account.channelName}
+                                            <Link className="h-3 w-3 opacity-50" />
+                                          </a>
+                                          {post.status &&
+                                            post.status !== "published" && (
+                                              <span
+                                                className={`text-[10px] px-1.5 py-0.5 rounded border capitalize ${
+                                                  post.status === "removed"
+                                                    ? "bg-gray-100 text-gray-500 border-gray-200"
+                                                    : "bg-blue-50 text-blue-600 border-blue-200"
+                                                }`}
+                                              >
+                                                {post.status}
+                                              </span>
+                                            )}
+                                        </div>
                                       ) : (
                                         account.channelName
                                       )

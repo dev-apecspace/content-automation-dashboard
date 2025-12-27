@@ -66,12 +66,12 @@ export default function VideoPage() {
   };
 
   const handleViewPost = (item: VideoItem) => {
-    if (item.postUrl) {
-      if (Array.isArray(item.postUrl)) {
-        item.postUrl.forEach((url) => window.open(url, "_blank"));
-      } else {
-        window.open(item.postUrl, "_blank");
-      }
+    if (item.posts && item.posts.length > 0) {
+      item.posts.forEach((post) => {
+        if (post.postUrl) {
+          window.open(post.postUrl, "_blank");
+        }
+      });
     }
   };
 
@@ -151,7 +151,6 @@ export default function VideoPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          post_id: item.id,
           posting_time: item.postingTime,
           platform: item.platform,
         }),
@@ -218,8 +217,9 @@ export default function VideoPage() {
           callToAction: data.callToAction,
           title: data.title,
           videoLink: data.videoLink,
-          postUrl: data.postUrl,
+
           accountIds: data.accountIds,
+          expectedPostDate: data.postingTime || "",
         } as Omit<VideoItem, "id" | "createdAt" | "updatedAt">);
 
         setVideoItems((prev) => [newVideo, ...prev]);

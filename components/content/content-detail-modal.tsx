@@ -193,14 +193,15 @@ export function ContentDetailModal({
     if (!confirm("Bạn có chắc chắn muốn xóa bài đăng này?")) return;
     setIsLoading(true);
     try {
-      const targetUrl = post.postUrl;
       const response = await fetch("/api/webhook/remove-post", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          postUrl: targetUrl,
+          postId: post.id,
+          itemId: currentItem.id,
+          accountId: post.accountId,
           platform: post.platform,
-          project: currentItem.projectName,
+          postUrl: post.postUrl,
         }),
       });
       if (!response.ok) {
@@ -580,15 +581,33 @@ export function ContentDetailModal({
                                   <span className="font-semibold text-xs text-slate-800 flex-1 truncate">
                                     {account ? (
                                       post.postUrl ? (
-                                        <a
-                                          href={post.postUrl}
-                                          target="_blank"
-                                          rel="noopener noreferrer"
-                                          className="hover:text-blue-600 hover:underline flex items-center gap-1"
-                                        >
-                                          {account.channelName}
-                                          <Link className="h-3 w-3 opacity-50" />
-                                        </a>
+                                        <div className="flex items-center gap-2">
+                                          <a
+                                            href={post.postUrl}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className={`hover:underline flex items-center gap-1 ${
+                                              post.status === "removed"
+                                                ? "text-gray-400 line-through"
+                                                : "hover:text-blue-600"
+                                            }`}
+                                          >
+                                            {account.channelName}
+                                            <Link className="h-3 w-3 opacity-50" />
+                                          </a>
+                                          {post.status &&
+                                            post.status !== "published" && (
+                                              <span
+                                                className={`text-[10px] px-1.5 py-0.5 rounded border capitalize ${
+                                                  post.status === "removed"
+                                                    ? "bg-gray-100 text-gray-500 border-gray-200"
+                                                    : "bg-blue-50 text-blue-600 border-blue-200"
+                                                }`}
+                                              >
+                                                {post.status}
+                                              </span>
+                                            )}
+                                        </div>
                                       ) : (
                                         account.channelName
                                       )
@@ -602,7 +621,7 @@ export function ContentDetailModal({
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                className="h-6 w-6 p-0 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-full"
+                                className="h-6 w-6 p-0 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-full cursor-pointer"
                                 onClick={() => handleRemovePost(post)}
                                 title="Xóa bài đăng này"
                               >

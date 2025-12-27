@@ -137,6 +137,7 @@ export interface Post {
   platform: string;
   postUrl?: string;
   publishedAt?: string;
+  status: "published" | "removed";
   statsAt?: string;
   views?: number;
   reactions?: number;

@@ -126,7 +126,9 @@ export const DashboardService = {
       supabase.from("projects").select("*", { count: "exact", head: true }),
       supabase.from("content_items").select("status"),
       supabase.from("video_items").select("status"),
-      supabase.from("posts").select("views, reactions, comments, shares"),
+      supabase
+        .from("posts")
+        .select("views, reactions, comments, shares, status"),
     ]);
 
     const activeContentsCount =
@@ -185,7 +187,7 @@ export const DashboardService = {
 
     const { data: postsData } = await supabase
       .from("posts")
-      .select("created_at, views, reactions, comments, shares")
+      .select("created_at, views, reactions, comments, shares, status")
       .gte("created_at", startDate);
 
     const posts = (postsData || []) as any[];
