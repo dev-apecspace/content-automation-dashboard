@@ -1,3 +1,5 @@
+SUPABASE_LINK=https://supabase.com/dashboard/project/oaiswugdhhdqkauaxawj
+
 # Supabase API Functions
 
 Complete API reference for the Content Automation Dashboard.
