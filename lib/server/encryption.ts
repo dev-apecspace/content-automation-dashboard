@@ -32,3 +32,42 @@ export function decrypt(text: string): string {
   decrypted = Buffer.concat([decrypted, decipher.final()]);
   return decrypted.toString();
 }
+
+/**
+ * Hash a password using bcrypt
+ */
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
+
+export async function hashPassword(password: string): Promise<string> {
+  const salt = await bcrypt.genSalt(12);
+  return bcrypt.hash(password, salt);
+}
+
+/**
+ * Compare a plain password with a hash
+ */
+export async function comparePassword(
+  plain: string,
+  hashed: string
+): Promise<boolean> {
+  return bcrypt.compare(plain, hashed);
+}
+
+const JWT_SECRET = process.env.JWT_SECRET || "super-secret-jwt-key-change-me";
+
+/**
+ * Sign a JWT token
+ */
+export function signToken(payload: object): string {
+  // Token expires in 7 days
+  return jwt.sign(payload, JWT_SECRET, { expiresIn: "7d" });
+}
+
+/**
+ * Verify a JWT token
+ * Returns the payload if valid, throws if invalid
+ */
+export function verifyToken(token: string): any {
+  return jwt.verify(token, JWT_SECRET);
+}

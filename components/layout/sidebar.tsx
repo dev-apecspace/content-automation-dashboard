@@ -16,6 +16,8 @@ import {
   LayoutDashboard,
   LogsIcon,
   UserCircle,
+  LogOut,
+  Shield,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -30,7 +32,8 @@ const menuItems: { route: string; label: string; icon: React.ElementType }[] = [
   { route: "/video", label: "Video", icon: Video },
   { route: "/schedules", label: "Lịch đăng", icon: Calendar },
   { route: "/projects", label: "Dự án", icon: FolderOpen },
-  { route: "/accounts", label: "Tài khoản", icon: UserCircle }, // Added this
+  { route: "/accounts", label: "Tài khoản", icon: UserCircle },
+  { route: "/users", label: "Người dùng", icon: Shield }, // System users
   { route: "/activity-logs", label: "Nhật ký hoạt động", icon: LogsIcon },
   { route: "/guide", label: "Hướng dẫn", icon: HelpCircle },
   { route: "/settings", label: "Cài đặt", icon: Settings },
@@ -88,6 +91,20 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
             </Link>
           ))}
         </nav>
+
+        <div className="p-4 border-t border-white/10">
+          <Button
+            variant="ghost"
+            className="w-full justify-start text-red-400 hover:text-red-300 hover:bg-red-500/10 gap-3"
+            onClick={async () => {
+              await fetch("/api/auth/logout", { method: "POST" });
+              window.location.href = "/login";
+            }}
+          >
+            <LogOut className="h-5 w-5" />
+            <span className="font-medium">Sign Out</span>
+          </Button>
+        </div>
       </aside>
 
       {isOpen && (
