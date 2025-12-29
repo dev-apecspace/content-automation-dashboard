@@ -58,6 +58,7 @@ import {
   isValid,
 } from "date-fns";
 import { vi } from "date-fns/locale";
+import { usePermissions } from "@/hooks/use-permissions";
 import { ContentDetailModal } from "@/components/content/content-detail-modal";
 import { VideoDetailModal } from "@/components/video/video-detail-modal";
 import { ContentFormModal } from "@/components/content/content-form-modal";
@@ -95,6 +96,7 @@ export function ScheduleTab({
   onUpdateVideo,
   isLoading,
 }: ScheduleTabProps) {
+  const { hasPermission } = usePermissions();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [editItem, setEditItem] = useState<Schedule | null>(null);
@@ -508,13 +510,15 @@ export function ScheduleTab({
               Lịch
             </Button>
           </div>
-          <Button
-            onClick={handleAdd}
-            className="bg-gradient-to-r from-indigo-600 to-cyan-600 hover:from-indigo-700 hover:to-cyan-700 text-white shadow-md shadow-indigo-200 border-0"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Thêm lịch đăng
-          </Button>
+          {hasPermission("schedule.create") && (
+            <Button
+              onClick={handleAdd}
+              className="bg-gradient-to-r from-indigo-600 to-cyan-600 hover:from-indigo-700 hover:to-cyan-700 text-white shadow-md shadow-indigo-200 border-0"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Thêm lịch đăng
+            </Button>
+          )}
         </div>
       </div>
 
@@ -597,22 +601,26 @@ export function ScheduleTab({
                         </td>
                         <td className="p-4">
                           <div className="flex gap-1">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleEdit(item)}
-                              className="hover:bg-white/60 hover:text-indigo-600"
-                            >
-                              <Edit2 className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleDelete(item.id)}
-                              className="text-red-400 hover:text-red-600 hover:bg-white/60"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
+                            {hasPermission("schedule.edit") && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleEdit(item)}
+                                className="hover:bg-white/60 hover:text-indigo-600"
+                              >
+                                <Edit2 className="h-4 w-4" />
+                              </Button>
+                            )}
+                            {hasPermission("schedule.delete") && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleDelete(item.id)}
+                                className="text-red-400 hover:text-red-600 hover:bg-white/60"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            )}
                           </div>
                         </td>
                       </tr>

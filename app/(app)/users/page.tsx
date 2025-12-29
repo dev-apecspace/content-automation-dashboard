@@ -35,6 +35,7 @@ import {
 import { UserFormModal } from "@/components/users/user-form-modal";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { usePermissions } from "@/hooks/use-permissions";
 
 const roleColors: Record<string, string> = {
   admin: "bg-red-500/10 text-red-500 border-red-500/20",
@@ -46,6 +47,7 @@ export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const { hasPermission } = usePermissions();
 
   // Modal states
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -150,16 +152,18 @@ export default function UsersPage() {
               className="pl-9 w-[250px] bg-white/50 border-0 focus-visible:ring-0 focus-visible:bg-white transition-colors h-9"
             />
           </div>
-          <Button
-            onClick={() => {
-              setEditingUser(null);
-              setIsModalOpen(true);
-            }}
-            className="bg-gradient-to-r from-indigo-600 to-cyan-600 hover:from-indigo-700 hover:to-cyan-700 text-white shadow-md shadow-indigo-200 border-0 h-9"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Thêm người dùng
-          </Button>
+          {hasPermission("users.create") && (
+            <Button
+              onClick={() => {
+                setEditingUser(null);
+                setIsModalOpen(true);
+              }}
+              className="bg-gradient-to-r from-indigo-600 to-cyan-600 hover:from-indigo-700 hover:to-cyan-700 text-white shadow-md shadow-indigo-200 border-0 h-9"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Thêm người dùng
+            </Button>
+          )}
         </div>
       </div>
 
@@ -243,25 +247,29 @@ export default function UsersPage() {
                     </td>
                     <td className="p-4 text-right">
                       <div className="flex items-center justify-end gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => {
-                            setEditingUser(user);
-                            setIsModalOpen(true);
-                          }}
-                          className="hover:bg-white/60 hover:text-indigo-600"
-                        >
-                          <Edit2 className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDelete(user.id)}
-                          className="text-red-400 hover:text-red-600 hover:bg-white/60"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        {hasPermission("users.edit") && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => {
+                              setEditingUser(user);
+                              setIsModalOpen(true);
+                            }}
+                            className="hover:bg-white/60 hover:text-indigo-600"
+                          >
+                            <Edit2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                        {hasPermission("users.delete") && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleDelete(user.id)}
+                            className="text-red-400 hover:text-red-600 hover:bg-white/60"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
                       </div>
                     </td>
                   </tr>

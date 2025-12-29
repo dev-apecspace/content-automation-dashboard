@@ -24,10 +24,12 @@ import {
 import { Loader2 } from "lucide-react";
 import { User } from "@/lib/api/users"; // Import type only
 
+import { getRoles, Role } from "@/lib/api/roles";
+
 const userSchema = z.object({
   email: z.string().email("Email không hợp lệ"),
   name: z.string().min(2, "Tên phải có ít nhất 2 ký tự"),
-  role: z.enum(["admin", "editor", "viewer"]),
+  role: z.string().min(1, "Vui lòng chọn vai trò"),
   password: z.string().optional(),
 });
 
@@ -48,6 +50,7 @@ export function UserFormModal({
   initialData,
   isSubmitting,
 }: UserFormModalProps) {
+  const [roles, setRoles] = useState<Role[]>([]);
   const {
     register,
     handleSubmit,
@@ -63,6 +66,16 @@ export function UserFormModal({
       password: "",
     },
   });
+
+  useEffect(() => {
+    const fetchRoles = async () => {
+      const data = await getRoles();
+      setRoles(data);
+    };
+    if (isOpen) {
+      fetchRoles();
+    }
+  }, [isOpen]);
 
   useEffect(() => {
     if (initialData) {
@@ -127,18 +140,18 @@ export function UserFormModal({
               Vai trò
             </Label>
             <Select
-              onValueChange={(val) =>
-                setValue("role", val as "admin" | "editor" | "viewer")
-              }
+              onValueChange={(val) => setValue("role", val)}
               defaultValue={initialData?.role || "viewer"}
             >
               <SelectTrigger className="bg-black/20 border-white/10 text-white">
                 <SelectValue placeholder="Chọn vai trò" />
               </SelectTrigger>
               <SelectContent className="bg-slate-900 border-white/10 text-white">
-                <SelectItem value="admin">Admin</SelectItem>
-                <SelectItem value="editor">Editor</SelectItem>
-                <SelectItem value="viewer">Viewer</SelectItem>
+                {roles.map((role) => (
+                  <SelectItem key={role.id} value={role.id}>
+                    {role.name}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
             {errors.role && (

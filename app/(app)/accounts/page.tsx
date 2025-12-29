@@ -17,12 +17,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Filter } from "lucide-react";
+import { usePermissions } from "@/hooks/use-permissions";
 
 export default function AccountsPage() {
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingAccount, setEditingAccount] = useState<Account | null>(null);
+  const { hasPermission } = usePermissions();
 
   // Filters
   const [projects, setProjects] = useState<Project[]>([]);
@@ -109,12 +111,14 @@ export default function AccountsPage() {
               className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`}
             />
           </Button>
-          <Button
-            onClick={handleCreate}
-            className="bg-gradient-to-r from-indigo-600 to-cyan-600 hover:from-indigo-700 hover:to-cyan-700 text-white shadow-md shadow-indigo-200 border-0"
-          >
-            <Plus className="mr-2 h-4 w-4" /> Thêm tài khoản
-          </Button>
+          {hasPermission("accounts.create") && (
+            <Button
+              onClick={handleCreate}
+              className="bg-gradient-to-r from-indigo-600 to-cyan-600 hover:from-indigo-700 hover:to-cyan-700 text-white shadow-md shadow-indigo-200 border-0"
+            >
+              <Plus className="mr-2 h-4 w-4" /> Thêm tài khoản
+            </Button>
+          )}
         </div>
       </div>
 

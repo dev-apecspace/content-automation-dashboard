@@ -26,6 +26,7 @@ import { platformColors, statusConfig, type Status } from "@/lib/types";
 import { useEffect, useState } from "react";
 import { getProjects } from "@/lib/api";
 import { toast } from "sonner";
+import { usePermissions } from "@/hooks/use-permissions";
 
 interface VideoTableProps {
   data: VideoItem[];
@@ -62,6 +63,7 @@ export function VideoTable({
   const allStatuses: Status[] = Object.keys(statusConfig) as Status[];
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(false);
+  const { hasPermission } = usePermissions();
 
   useEffect(() => {
     async function fetchProjects() {
@@ -140,24 +142,28 @@ export function VideoTable({
               </SelectContent>
             </Select>
           </div>
-          <Button
-            onClick={onAdd}
-            className="ml-auto bg-gradient-to-r from-indigo-600 to-cyan-600 hover:from-indigo-700 hover:to-cyan-700 text-white shadow-md shadow-indigo-200 border-0"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Thêm ý tưởng
-          </Button>
-          <Button
-            onClick={triggerAiSearchIdeas}
-            disabled={loading}
-            className={`flex items-center gap-2 font-medium transition-all duration-200 cursor-pointer border-0 shadow-md ${
-              loading
-                ? "bg-gray-100 text-gray-400"
-                : "bg-gradient-to-r from-amber-200 to-yellow-400 hover:from-amber-300 hover:to-yellow-500 text-amber-900"
-            }`}
-          >
-            {loading ? <>✨ Đang tạo...</> : <>✨ AI tạo ý tưởng</>}
-          </Button>
+          {hasPermission("videos.create") && (
+            <Button
+              onClick={onAdd}
+              className="ml-auto bg-gradient-to-r from-indigo-600 to-cyan-600 hover:from-indigo-700 hover:to-cyan-700 text-white shadow-md shadow-indigo-200 border-0"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Thêm ý tưởng
+            </Button>
+          )}
+          {hasPermission("videos.create") && (
+            <Button
+              onClick={triggerAiSearchIdeas}
+              disabled={loading}
+              className={`flex items-center gap-2 font-medium transition-all duration-200 cursor-pointer border-0 shadow-md ${
+                loading
+                  ? "bg-gray-100 text-gray-400"
+                  : "bg-gradient-to-r from-amber-200 to-yellow-400 hover:from-amber-300 hover:to-yellow-500 text-amber-900"
+              }`}
+            >
+              {loading ? <>✨ Đang tạo...</> : <>✨ AI tạo ý tưởng</>}
+            </Button>
+          )}
         </div>
       </div>
 
@@ -309,46 +315,49 @@ export function VideoTable({
                         </Button>
 
                         {/* Chỉnh sửa */}
-                        {(item.status === "idea" ||
-                          item.status === "awaiting_content_approval" ||
-                          item.status === "content_approved" ||
-                          item.status === "post_removed") && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => onEdit(item)}
-                            title="Chỉnh sửa"
-                            className="hover:bg-white/60 hover:text-indigo-600"
-                          >
-                            <Edit2 className="h-4 w-4" />
-                          </Button>
-                        )}
+                        {hasPermission("videos.edit") &&
+                          (item.status === "idea" ||
+                            item.status === "awaiting_content_approval" ||
+                            item.status === "content_approved" ||
+                            item.status === "post_removed") && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => onEdit(item)}
+                              title="Chỉnh sửa"
+                              className="hover:bg-white/60 hover:text-indigo-600"
+                            >
+                              <Edit2 className="h-4 w-4" />
+                            </Button>
+                          )}
 
                         {/* Phê duyệt ý tưởng */}
-                        {item.status === "idea" && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => onApproveIdea?.(item)}
-                            className="text-green-600 hover:text-green-700 hover:bg-green-50"
-                            title="Phê duyệt ý tưởng"
-                          >
-                            <CheckCircle className="h-4 w-4" />
-                          </Button>
-                        )}
+                        {hasPermission("videos.edit") &&
+                          item.status === "idea" && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => onApproveIdea?.(item)}
+                              className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                              title="Phê duyệt ý tưởng"
+                            >
+                              <CheckCircle className="h-4 w-4" />
+                            </Button>
+                          )}
 
                         {/* Phê duyệt nội dung */}
-                        {item.status === "awaiting_content_approval" && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => onApproveContent?.(item)}
-                            className="text-green-600 hover:text-green-700 hover:bg-green-50"
-                            title="Phê duyệt nội dung"
-                          >
-                            <CheckCircle className="h-4 w-4" />
-                          </Button>
-                        )}
+                        {hasPermission("videos.edit") &&
+                          item.status === "awaiting_content_approval" && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => onApproveContent?.(item)}
+                              className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                              title="Phê duyệt nội dung"
+                            >
+                              <CheckCircle className="h-4 w-4" />
+                            </Button>
+                          )}
 
                         {/* Xem ảnh */}
                         {item.imageLink &&
@@ -396,17 +405,18 @@ export function VideoTable({
                           )}
 
                         {/* Xóa */}
-                        {item.status === "idea" && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => onDelete(item.id)}
-                            className="text-red-400 hover:text-red-600 hover:bg-red-50"
-                            title="Xóa ý tưởng"
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
-                        )}
+                        {hasPermission("videos.delete") &&
+                          item.status === "idea" && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => onDelete(item.id)}
+                              className="text-red-400 hover:text-red-600 hover:bg-red-50"
+                              title="Xóa ý tưởng"
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          )}
                       </div>
                     </td>
                   </tr>

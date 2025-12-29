@@ -1,12 +1,15 @@
-// lib/api/content-items.ts
+"use server";
+
 import { supabase } from "@/lib/supabase";
 import camelcaseKeys from "camelcase-keys";
 import type { ContentItem, Status } from "@/lib/types";
+import { requirePermission } from "@/lib/auth/permissions";
 
 export async function getContentItems(filters?: {
   status?: Status | "all";
   projectId?: string;
 }): Promise<ContentItem[]> {
+  await requirePermission("content.view");
   let query = supabase.from("content_items").select("*");
 
   if (filters?.status && filters.status !== "all") {
@@ -50,6 +53,7 @@ export async function getContentItems(filters?: {
 export async function getContentItemById(
   id: string
 ): Promise<ContentItem | null> {
+  await requirePermission("content.view");
   const { data, error } = await supabase
     .from("content_items")
     .select("*")
@@ -82,6 +86,7 @@ export async function getContentItemById(
 export async function createContentItem(
   content: Omit<ContentItem, "id" | "createdAt" | "updatedAt">
 ): Promise<ContentItem> {
+  await requirePermission("content.create");
   const dbData = {
     status: content.status || "idea",
     idea: content.idea,
@@ -117,6 +122,7 @@ export async function updateContentItem(
   id: string,
   updates: Partial<ContentItem>
 ): Promise<ContentItem> {
+  await requirePermission("content.edit");
   const dbData: Record<string, any> = {
     updated_at: new Date().toISOString(),
   };
@@ -158,6 +164,7 @@ export async function updateContentItem(
 }
 
 export async function deleteContentItem(id: string): Promise<void> {
+  await requirePermission("content.delete");
   const { error } = await supabase.from("content_items").delete().eq("id", id);
 
   if (error) {
@@ -171,15 +178,11 @@ export async function updateContentStatus(
   id: string,
   status: Status
 ): Promise<ContentItem> {
+  await requirePermission("content.edit");
   const updates: Record<string, any> = {
     status,
     updated_at: new Date().toISOString(),
   };
-
-  // Nếu đăng thành công thì lưu thời gian published (Moved to posts table logic - handled elsewhere or legacy removal)
-  // if (status === "posted_successfully") {
-  //   updates.published_at = new Date().toISOString();
-  // }
 
   const { data, error } = await supabase
     .from("content_items")
@@ -205,6 +208,7 @@ export async function approveIdea(
   contentType: string,
   imageLink: string
 ): Promise<ContentItem> {
+  await requirePermission("content.approve");
   const { data, error } = await supabase
     .from("content_items")
     .update({
@@ -256,6 +260,7 @@ export async function approveContent(
   id: string,
   approvedBy: string
 ): Promise<ContentItem> {
+  await requirePermission("content.approve");
   const { data, error } = await supabase
     .from("content_items")
     .update({

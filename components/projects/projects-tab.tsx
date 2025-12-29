@@ -36,6 +36,7 @@ import {
   createActivityLog,
 } from "@/lib/api";
 import { toast } from "sonner";
+import { usePermissions } from "@/hooks/use-permissions";
 
 interface ProjectsTabProps {
   projects: Project[];
@@ -60,6 +61,7 @@ export function ProjectsTab({
   const [isSaving, setIsSaving] = useState(false);
   const [editItem, setEditItem] = useState<Project | null>(null);
   const [formData, setFormData] = useState<Partial<Project>>({});
+  const { hasPermission } = usePermissions();
 
   const getPlatformIcon = (platform: string) => {
     switch (platform) {
@@ -188,13 +190,15 @@ export function ProjectsTab({
             Quản lý các dự án nội dung
           </p>
         </div>
-        <Button
-          onClick={handleAdd}
-          className="bg-gradient-to-r from-indigo-600 to-cyan-600 hover:from-indigo-700 hover:to-cyan-700 text-white shadow-md shadow-indigo-200 border-0"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Thêm dự án
-        </Button>
+        {hasPermission("projects.create") && (
+          <Button
+            onClick={handleAdd}
+            className="bg-gradient-to-r from-indigo-600 to-cyan-600 hover:from-indigo-700 hover:to-cyan-700 text-white shadow-md shadow-indigo-200 border-0"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Thêm dự án
+          </Button>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -213,22 +217,26 @@ export function ProjectsTab({
                 <CardTitle className="text-lg">{project.name}</CardTitle>
 
                 <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleEdit(project)}
-                    className="hover:bg-white/60 hover:text-indigo-600 h-8 w-8"
-                  >
-                    <Edit2 className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleDelete(project.id)}
-                    className="text-red-600 hover:text-red-700"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                  {hasPermission("projects.edit") && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleEdit(project)}
+                      className="hover:bg-white/60 hover:text-indigo-600 h-8 w-8"
+                    >
+                      <Edit2 className="h-4 w-4" />
+                    </Button>
+                  )}
+                  {hasPermission("projects.delete") && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleDelete(project.id)}
+                      className="text-red-600 hover:text-red-700"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  )}
                 </div>
               </CardHeader>
               <CardContent className="flex flex-col justify-between h-full">
@@ -284,7 +292,7 @@ export function ProjectsTab({
                               title={acc.channelName}
                             >
                               {getPlatformIcon(acc.platform)}
-                              <span className="text-xs font-medium text-slate-700 truncate max-w-[80px]">
+                              <span className="text-xs font-medium text-slate-700 truncate max-w-[250px]">
                                 {acc.channelName}
                               </span>
                             </div>

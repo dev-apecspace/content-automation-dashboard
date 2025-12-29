@@ -3,6 +3,7 @@
 import { supabase } from "@/lib/supabase";
 import { encrypt } from "@/lib/server/encryption";
 import { Account } from "@/lib/types";
+import { requirePermission } from "@/lib/auth/permissions";
 
 // Helper to mask sensitive data
 const maskAccount = (acc: any): Account => ({
@@ -38,6 +39,7 @@ export async function getAccounts(): Promise<Account[]> {
 export async function createAccount(
   account: Omit<Account, "id" | "createdAt" | "updatedAt">
 ): Promise<Account> {
+  await requirePermission("accounts.create");
   const {
     platform,
     channelId,
@@ -90,6 +92,7 @@ export async function updateAccount(
   id: string,
   updates: Partial<Omit<Account, "id" | "createdAt" | "updatedAt">>
 ): Promise<Account> {
+  await requirePermission("accounts.edit");
   const dbUpdates: any = {
     updated_at: new Date().toISOString(),
   };
@@ -125,6 +128,7 @@ export async function updateAccount(
 }
 
 export async function deleteAccount(id: string): Promise<void> {
+  await requirePermission("accounts.delete");
   const { error } = await supabase.from("accounts").delete().eq("id", id);
 
   if (error) {
