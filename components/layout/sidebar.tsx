@@ -59,7 +59,7 @@ const menuItems: MenuItem[] = [
     route: "/schedules",
     label: "Lịch đăng",
     icon: Calendar,
-    permission: "schedule.view",
+    permission: "schedules.view",
   },
   {
     route: "/projects",

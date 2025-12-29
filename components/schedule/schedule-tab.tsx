@@ -510,7 +510,7 @@ export function ScheduleTab({
               Lịch
             </Button>
           </div>
-          {hasPermission("schedule.create") && (
+          {hasPermission("schedules.create") && (
             <Button
               onClick={handleAdd}
               className="bg-gradient-to-r from-indigo-600 to-cyan-600 hover:from-indigo-700 hover:to-cyan-700 text-white shadow-md shadow-indigo-200 border-0"
@@ -601,7 +601,7 @@ export function ScheduleTab({
                         </td>
                         <td className="p-4">
                           <div className="flex gap-1">
-                            {hasPermission("schedule.edit") && (
+                            {hasPermission("schedules.edit") && (
                               <Button
                                 variant="ghost"
                                 size="icon"
@@ -611,7 +611,7 @@ export function ScheduleTab({
                                 <Edit2 className="h-4 w-4" />
                               </Button>
                             )}
-                            {hasPermission("schedule.delete") && (
+                            {hasPermission("schedules.delete") && (
                               <Button
                                 variant="ghost"
                                 size="icon"
