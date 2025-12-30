@@ -3,7 +3,8 @@
 import { supabase } from "@/lib/supabase";
 import camelcaseKeys from "camelcase-keys";
 import type { ContentItem, Status } from "@/lib/types";
-import { requirePermission } from "@/lib/auth/permissions";
+import { requirePermission, getCurrentUser } from "@/lib/auth/permissions";
+import { createActivityLog } from "@/lib/api/activity-logs";
 
 export async function getContentItems(filters?: {
   status?: Status | "all";
@@ -115,6 +116,16 @@ export async function createContentItem(
     throw error;
   }
 
+  // Log activity
+  const user = await getCurrentUser();
+  if (user) {
+    await createActivityLog("create", "content", data.id, {
+      userId: user.userId,
+      newValues: data,
+      description: `Tạo nội dung mới ${data.id}`,
+    });
+  }
+
   return data;
 }
 
@@ -123,6 +134,14 @@ export async function updateContentItem(
   updates: Partial<ContentItem>
 ): Promise<ContentItem> {
   await requirePermission("content.edit");
+
+  // Fetch old data for logging
+  const { data: oldData } = await supabase
+    .from("content_items")
+    .select("*")
+    .eq("id", id)
+    .single();
+
   const dbData: Record<string, any> = {
     updated_at: new Date().toISOString(),
   };
@@ -160,16 +179,35 @@ export async function updateContentItem(
     throw error;
   }
 
+  // Log activity
+  const user = await getCurrentUser();
+  if (user) {
+    await createActivityLog("update", "content", id, {
+      userId: user.userId,
+      oldValues: oldData,
+      newValues: dbData,
+      description: `Cập nhật nội dung ${id}`,
+    });
+  }
+
   return camelcaseKeys(data || null, { deep: true }) as ContentItem;
 }
 
 export async function deleteContentItem(id: string): Promise<void> {
   await requirePermission("content.delete");
   const { error } = await supabase.from("content_items").delete().eq("id", id);
-
   if (error) {
     console.error("Error deleting content item:", error);
     throw error;
+  }
+
+  // Log activity
+  const user = await getCurrentUser();
+  if (user) {
+    await createActivityLog("delete", "content", id, {
+      userId: user.userId,
+      description: `Xóa nội dung ${id}`,
+    });
   }
 }
 
@@ -184,6 +222,13 @@ export async function updateContentStatus(
     updated_at: new Date().toISOString(),
   };
 
+  // Fetch old data for logging
+  const { data: oldData } = await supabase
+    .from("content_items")
+    .select("*")
+    .eq("id", id)
+    .single();
+
   const { data, error } = await supabase
     .from("content_items")
     .update(updates)
@@ -194,6 +239,17 @@ export async function updateContentStatus(
   if (error) {
     console.error("Error updating content status:", error);
     throw error;
+  }
+
+  // Log activity
+  const user = await getCurrentUser();
+  if (user) {
+    await createActivityLog("update", "content", id, {
+      userId: user.userId,
+      oldValues: oldData,
+      newValues: updates,
+      description: `Cập nhật trạng thái nội dung ${id} sang ${status}`,
+    });
   }
 
   return data;
@@ -209,6 +265,14 @@ export async function approveIdea(
   imageLink: string
 ): Promise<ContentItem> {
   await requirePermission("content.approve");
+
+  // Fetch old data for logging
+  const { data: oldData } = await supabase
+    .from("content_items")
+    .select("*")
+    .eq("id", id)
+    .single();
+
   const { data, error } = await supabase
     .from("content_items")
     .update({
@@ -252,6 +316,21 @@ export async function approveIdea(
     console.warn("Webhook URL not configured. Skipping webhook call.");
   }
 
+  // Log activity
+  const user = await getCurrentUser();
+  if (user) {
+    await createActivityLog("approve", "content", id, {
+      userId: user.userId,
+      oldValues: oldData,
+      newValues: {
+        status: "ai_generating_content",
+        approvedBy,
+        idea,
+      },
+      description: `Phê duyệt ý tưởng ${id}`,
+    });
+  }
+
   return camelcaseKeys(data || null, { deep: true }) as ContentItem;
 }
 
@@ -261,6 +340,14 @@ export async function approveContent(
   approvedBy: string
 ): Promise<ContentItem> {
   await requirePermission("content.approve");
+
+  // Fetch old data for logging
+  const { data: oldData } = await supabase
+    .from("content_items")
+    .select("*")
+    .eq("id", id)
+    .single();
+
   const { data, error } = await supabase
     .from("content_items")
     .update({
@@ -276,6 +363,20 @@ export async function approveContent(
   if (error) {
     console.error("Error approving content:", error);
     throw error;
+  }
+
+  // Log activity
+  const user = await getCurrentUser();
+  if (user) {
+    await createActivityLog("approve", "content", id, {
+      userId: user.userId,
+      oldValues: oldData,
+      newValues: {
+        status: "content_approved",
+        approvedBy,
+      },
+      description: `Phê duyệt nội dung ${id}`,
+    });
   }
 
   return camelcaseKeys(data || null, { deep: true }) as ContentItem;

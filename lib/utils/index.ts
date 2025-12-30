@@ -7,3 +7,4 @@ export function cn(...inputs: ClassValue[]) {
 
 export * from "./currency";
 export * from "./cost";
+export * from "./date";

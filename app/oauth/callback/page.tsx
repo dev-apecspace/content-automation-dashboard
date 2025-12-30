@@ -1,16 +1,17 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { Loader2 } from "lucide-react";
+import { useSearchParams } from "next/navigation";
 
-export default function OAuthCallbackPage() {
+function OAuthLogic() {
   const [status, setStatus] = useState("Đang xử lý đăng nhập...");
   const [error, setError] = useState<string | null>(null);
+  const searchParams = useSearchParams();
 
   useEffect(() => {
     async function handleCallback() {
       // 1. Parse code from URL
-      const searchParams = new URLSearchParams(window.location.search);
       const code = searchParams.get("code");
       const errorParam = searchParams.get("error");
 
@@ -93,23 +94,38 @@ export default function OAuthCallbackPage() {
     }
 
     handleCallback();
-  }, []);
+  }, [searchParams]);
 
   return (
+    <div className="bg-white p-8 rounded-2xl shadow-xl max-w-md w-full text-center space-y-4">
+      {error ? (
+        <div className="text-red-500 font-medium">{error}</div>
+      ) : (
+        <>
+          <Loader2 className="w-10 h-10 text-blue-600 animate-spin mx-auto" />
+          <h1 className="text-xl font-semibold text-slate-800">
+            Xác thực Google OAuth
+          </h1>
+          <p className="text-slate-500 text-sm">{status}</p>
+        </>
+      )}
+    </div>
+  );
+}
+
+export default function OAuthCallbackPage() {
+  return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-slate-50 p-4">
-      <div className="bg-white p-8 rounded-2xl shadow-xl max-w-md w-full text-center space-y-4">
-        {error ? (
-          <div className="text-red-500 font-medium">{error}</div>
-        ) : (
-          <>
+      <Suspense
+        fallback={
+          <div className="bg-white p-8 rounded-2xl shadow-xl max-w-md w-full text-center space-y-4">
             <Loader2 className="w-10 h-10 text-blue-600 animate-spin mx-auto" />
-            <h1 className="text-xl font-semibold text-slate-800">
-              Xác thực Google OAuth
-            </h1>
-            <p className="text-slate-500 text-sm">{status}</p>
-          </>
-        )}
-      </div>
+            <p className="text-slate-500 text-sm">Đang tải...</p>
+          </div>
+        }
+      >
+        <OAuthLogic />
+      </Suspense>
     </div>
   );
 }

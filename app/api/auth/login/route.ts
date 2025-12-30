@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 import { comparePassword, signToken } from "@/lib/server/encryption";
 import { serialize } from "cookie";
+import { createActivityLog } from "@/lib/api/activity-logs";
 
 export async function POST(req: NextRequest) {
   try {
@@ -66,6 +67,14 @@ export async function POST(req: NextRequest) {
     });
 
     response.headers.append("Set-Cookie", cookie);
+
+    response.headers.append("Set-Cookie", cookie);
+
+    // Log login activity
+    await createActivityLog("login", "auth", user.id, {
+      userId: user.id,
+      description: `${user.name} đăng nhập thành công`,
+    });
 
     return response;
   } catch (error) {

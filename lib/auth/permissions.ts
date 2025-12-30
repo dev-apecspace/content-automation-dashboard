@@ -3,7 +3,7 @@ import { verifyToken } from "@/lib/server/encryption";
 import { supabase } from "@/lib/supabase";
 import { PermissionId } from "@/lib/constants/permissions";
 
-export async function getCurrentUserRole(): Promise<string | null> {
+export async function getCurrentUser() {
   const cookieStore = await cookies();
   const token = cookieStore.get("auth_token")?.value;
 
@@ -11,12 +11,15 @@ export async function getCurrentUserRole(): Promise<string | null> {
 
   try {
     const payload = verifyToken(token);
-    // Assuming payload has property 'role' which is the role_id
-    // See app/api/auth/login/route.ts:47 -> role: user.role
-    return payload.role;
+    return payload;
   } catch (error) {
     return null;
   }
+}
+
+export async function getCurrentUserRole(): Promise<string | null> {
+  const user = await getCurrentUser();
+  return user?.role || null;
 }
 
 export async function hasPermission(

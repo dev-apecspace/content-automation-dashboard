@@ -82,11 +82,6 @@ export default function VideoPage() {
       await deleteVideoItem(id);
       setVideoItems((prev) => prev.filter((v) => v.id !== id));
       toast.success("Đã xóa ý tưởng!");
-
-      await createActivityLog("delete", "video", id, {
-        userId: "user_1",
-        description: `Xóa ý tưởng ${id}`,
-      });
     } catch (error) {
       toast.error("Xóa ý tưởng thất bại");
       console.error(error);
@@ -112,12 +107,6 @@ export default function VideoPage() {
       setVideoItems((prev) =>
         prev.map((v) => (v.id === item.id ? updated : v))
       );
-
-      await createActivityLog("approve", "video", item.id, {
-        userId: "user_1",
-        newValues: { status: "ai_generating_content" },
-        description: `Đã duyệt ý tưởng: ${item.idea}`,
-      });
     } catch (error) {
       toast.error("Duyệt ý tưởng thất bại");
       console.error(error);
@@ -133,12 +122,6 @@ export default function VideoPage() {
       setVideoItems((prev) =>
         prev.map((v) => (v.id === item.id ? updated : v))
       );
-
-      await createActivityLog("approve", "video", item.id, {
-        userId: "user_1",
-        newValues: { status: "content_approved" },
-        description: `Đã duyệt nội dung: ${item.idea}`,
-      });
     } catch (error) {
       toast.error("Duyệt nội dung thất bại");
       console.error(error);
@@ -193,12 +176,6 @@ export default function VideoPage() {
         }
 
         toast.success("Đã cập nhật video!");
-
-        await createActivityLog("update", "video", editVideo.id, {
-          userId: "user_1",
-          newValues: data,
-          description: `Đã cập nhật ý tưởng: ${data.idea || editVideo.idea}`,
-        });
       } else {
         const newVideo = await createVideoItem({
           status: data.status || "idea",
@@ -224,12 +201,6 @@ export default function VideoPage() {
 
         setVideoItems((prev) => [newVideo, ...prev]);
         toast.success("Đã tạo ý tưởng mới!");
-
-        await createActivityLog("create", "video", newVideo.id, {
-          userId: "user_1",
-          newValues: { idea: newVideo.idea, status: newVideo.status },
-          description: `Tạo ý tưởng: ${newVideo.idea}`,
-        });
       }
 
       setEditVideo(null);

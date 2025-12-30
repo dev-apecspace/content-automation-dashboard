@@ -141,12 +141,6 @@ export function ScheduleTab({
           contentItems.map((c) => (c.id === editContent.id ? updated : c))
         );
         toast.success("Cập nhật bài viết thành công!");
-
-        await createActivityLog("update", "content", editContent.id, {
-          userId: "user_1",
-          newValues: data,
-          description: `Cập nhật từ lịch: ${data.idea || editContent.idea}`,
-        });
       }
       setIsContentFormOpen(false);
       setEditContent(null);
@@ -167,12 +161,6 @@ export function ScheduleTab({
           videoItems.map((v) => (v.id === editVideo.id ? updated : v))
         );
         toast.success("Cập nhật video thành công!");
-
-        await createActivityLog("update", "video", editVideo.id, {
-          userId: "user_1",
-          newValues: data,
-          description: `Cập nhật từ lịch: ${data.idea || editVideo.idea}`,
-        });
       }
       setIsVideoFormOpen(false);
       setEditVideo(null);
@@ -209,11 +197,6 @@ export function ScheduleTab({
       await deleteSchedule(id);
       onUpdate(schedules.filter((s) => s.id !== id));
       toast.success("Đã xóa lịch đăng!");
-
-      await createActivityLog("delete", "schedule", id, {
-        userId: "user_1",
-        description: "Xóa lịch đăng",
-      });
     } catch (error) {
       toast.error("Xóa lịch đăng thất bại");
       console.error(error);
@@ -238,27 +221,12 @@ export function ScheduleTab({
         );
         onUpdate(schedules.map((s) => (s.id === editItem.id ? updated : s)));
         toast.success("Đã cập nhật lịch đăng!");
-
-        await createActivityLog("update", "schedule", editItem.id, {
-          userId: "user_1",
-          newValues: formData,
-          description: `Cập nhật lịch đăng cho ${formData.projectName}`,
-        });
       } else {
         const newSchedule = await createSchedule(
           formData as Omit<Schedule, "id">
         );
         onUpdate([...schedules, newSchedule]);
         toast.success("Đã tạo lịch đăng!");
-
-        await createActivityLog("create", "schedule", newSchedule.id, {
-          userId: "user_1",
-          newValues: {
-            projectName: newSchedule.projectName,
-            platform: newSchedule.platform,
-          },
-          description: `Tạo lịch đăng cho ${newSchedule.projectName}`,
-        });
       }
 
       setIsModalOpen(false);

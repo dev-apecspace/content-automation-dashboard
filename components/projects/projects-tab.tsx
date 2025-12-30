@@ -94,11 +94,6 @@ export function ProjectsTab({
       await deleteProject(id);
       onUpdateProjects(projects.filter((p) => p.id !== id));
       toast.success("Đã xóa dự án!");
-
-      await createActivityLog("delete", "project", id, {
-        userId: "user_1",
-        description: "Deleted project",
-      });
     } catch (error) {
       toast.error("Lỗi khi xóa dự án");
       console.error(error);
@@ -125,22 +120,10 @@ export function ProjectsTab({
           projects.map((p) => (p.id === editItem.id ? updated : p))
         );
         toast.success("Đã cập nhật dự án!");
-
-        await createActivityLog("update", "project", editItem.id, {
-          userId: "user_1",
-          newValues: formData,
-          description: `Cập nhật dự án: ${formData.name}`,
-        });
       } else {
         const newProject = await createProject(formData as Omit<Project, "id">);
         onUpdateProjects([...projects, newProject]);
         toast.success("Đã tạo dự án!");
-
-        await createActivityLog("create", "project", newProject.id, {
-          userId: "user_1",
-          newValues: { name: newProject.name, color: newProject.color },
-          description: `Tạo dự án: ${newProject.name}`,
-        });
       }
 
       setIsModalOpen(false);
