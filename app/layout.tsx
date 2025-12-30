@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { Providers } from "@/components/providers/providers";
+import { ActivityTracker } from "@/components/layout/activity-tracker";
 import "./globals.css";
 
 const _geist = Geist({ subsets: ["latin"] });
@@ -41,7 +42,10 @@ export default function RootLayout({
     // <CHANGE> Updated lang to 'vi' for Vietnamese
     <html lang="vi" suppressHydrationWarning>
       <body className={`font-sans antialiased`}>
-        <Providers>{children}</Providers>
+        <Providers>
+          {children}
+          <ActivityTracker />
+        </Providers>
         <Analytics />
       </body>
     </html>

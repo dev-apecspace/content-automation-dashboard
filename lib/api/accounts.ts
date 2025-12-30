@@ -3,7 +3,8 @@
 import { supabase } from "@/lib/supabase";
 import { encrypt } from "@/lib/server/encryption";
 import { Account } from "@/lib/types";
-import { requirePermission } from "@/lib/auth/permissions";
+import { requirePermission, getCurrentUser } from "@/lib/auth/permissions";
+import { createActivityLog } from "@/lib/api/activity-logs";
 
 // Helper to mask sensitive data
 const maskAccount = (acc: any): Account => ({
@@ -83,9 +84,20 @@ export async function createAccount(
     throw new Error(error.message);
   }
 
-  // Manually construct the response if join alias isn't perfect or just reuse maskAccount
-  // Note: projects(name) might return { projects: { name: ... } } structure which maskAccount handles via `acc.projects?.name`
-  return maskAccount(data);
+  // Manually construct the response
+  const newAccount = maskAccount(data);
+
+  // Log activity
+  const user = await getCurrentUser();
+  if (user) {
+    await createActivityLog("create", "settings", data.id, {
+      userId: user.userId,
+      newValues: newAccount,
+      description: `Thêm tài khoản ${channelName} trên ${platform}`,
+    });
+  }
+
+  return newAccount;
 }
 
 export async function updateAccount(
@@ -93,6 +105,14 @@ export async function updateAccount(
   updates: Partial<Omit<Account, "id" | "createdAt" | "updatedAt">>
 ): Promise<Account> {
   await requirePermission("accounts.edit");
+
+  // Fetch old data for logging
+  const { data: oldData } = await supabase
+    .from("accounts")
+    .select("*")
+    .eq("id", id)
+    .single();
+
   const dbUpdates: any = {
     updated_at: new Date().toISOString(),
   };
@@ -124,7 +144,20 @@ export async function updateAccount(
     throw new Error(error.message);
   }
 
-  return maskAccount(data);
+  const updatedAccount = maskAccount(data);
+
+  // Log activity
+  const user = await getCurrentUser();
+  if (user) {
+    await createActivityLog("update", "settings", id, {
+      userId: user.userId,
+      oldValues: oldData ? maskAccount(oldData) : undefined,
+      newValues: updatedAccount,
+      description: `Cập nhật tài khoản ${id}`,
+    });
+  }
+
+  return updatedAccount;
 }
 
 export async function deleteAccount(id: string): Promise<void> {
@@ -133,5 +166,14 @@ export async function deleteAccount(id: string): Promise<void> {
 
   if (error) {
     throw new Error(error.message);
+  }
+
+  // Log activity
+  const user = await getCurrentUser();
+  if (user) {
+    await createActivityLog("delete", "settings", id, {
+      userId: user.userId,
+      description: `Xóa tài khoản ${id}`,
+    });
   }
 }

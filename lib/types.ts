@@ -317,7 +317,11 @@ export type ActivityType =
   | "approve"
   | "publish"
   | "schedule"
-  | "remove-post";
+  | "remove-post"
+  | "login"
+  | "logout"
+  | "visit_page"
+  | "unauthorized_access";
 
 export type EntityType =
   | "content"
@@ -325,7 +329,10 @@ export type EntityType =
   | "project"
   | "user"
   | "settings"
-  | "video";
+  | "video"
+  | "auth"
+  | "page"
+  | "security";
 
 export interface ActivityLog {
   id: number;
@@ -344,3 +351,95 @@ export interface DashboardData {
   recentActivity: ActivityLog[];
   performanceHistory: ChartDataPoint[];
 }
+
+export const activityTypeConfig: Record<
+  ActivityType,
+  { label: string; className: string }
+> = {
+  create: {
+    label: "Tạo mới",
+    className: "bg-yellow-700 text-yellow-100",
+  },
+  update: {
+    label: "Cập nhật",
+    className: "bg-blue-700 text-blue-100",
+  },
+  delete: {
+    label: "Xóa ý tưởng",
+    className: "bg-orange-700 text-orange-100",
+  },
+  approve: {
+    label: "Phê duyệt",
+    className: "bg-cyan-700 text-cyan-100",
+  },
+  publish: {
+    label: "Đăng bài",
+    className: "bg-green-700 text-green-100",
+  },
+  schedule: {
+    label: "Tạo lịch",
+    className: "bg-pink-700 text-pink-100",
+  },
+  "remove-post": {
+    label: "Xóa bài đăng",
+    className: "bg-red-700 text-red-100",
+  },
+  login: {
+    label: "Đăng nhập",
+    className: "bg-green-600 text-green-100",
+  },
+  logout: {
+    label: "Đăng xuất",
+    className: "bg-slate-700 text-slate-100",
+  },
+  visit_page: {
+    label: "Truy cập trang",
+    className: "bg-indigo-100 text-indigo-600",
+  },
+  unauthorized_access: {
+    label: "Truy cập trái phép",
+    className: "bg-red-500 text-white",
+  },
+};
+
+export const entityTypeConfig: Record<
+  EntityType,
+  { label: string; className: string }
+> = {
+  content: {
+    label: "Nội dung",
+    className: "bg-indigo-700 text-indigo-100",
+  },
+  schedule: {
+    label: "Lịch đăng",
+    className: "bg-cyan-700 text-cyan-100",
+  },
+  project: {
+    label: "Dự án",
+    className: "bg-teal-700 text-teal-100",
+  },
+  user: {
+    label: "Người dùng",
+    className: "bg-amber-700 text-amber-100",
+  },
+  settings: {
+    label: "Cài đặt",
+    className: "bg-gray-700 text-gray-100",
+  },
+  video: {
+    label: "Video",
+    className: "bg-rose-700 text-rose-100",
+  },
+  auth: {
+    label: "Xác thực",
+    className: "bg-violet-700 text-violet-100",
+  },
+  page: {
+    label: "Trang",
+    className: "bg-indigo-600 text-indigo-100",
+  },
+  security: {
+    label: "Bảo mật",
+    className: "bg-red-700 text-red-100",
+  },
+};

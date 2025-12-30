@@ -2,7 +2,8 @@
 
 import { supabase } from "@/lib/supabase";
 import type { Project } from "@/lib/types";
-import { requirePermission } from "@/lib/auth/permissions";
+import { requirePermission, getCurrentUser } from "@/lib/auth/permissions";
+import { createActivityLog } from "@/lib/api/activity-logs";
 
 export async function getProjects(): Promise<Project[]> {
   const { data, error } = await supabase
@@ -51,6 +52,16 @@ export async function createProject(
     throw error;
   }
 
+  // Log activity
+  const user = await getCurrentUser();
+  if (user) {
+    await createActivityLog("create", "project", data.id, {
+      userId: user.userId,
+      newValues: data,
+      description: `Tạo dự án ${data.name}`,
+    });
+  }
+
   return data;
 }
 
@@ -59,6 +70,14 @@ export async function updateProject(
   updates: Partial<Project>
 ): Promise<Project> {
   await requirePermission("projects.edit");
+
+  // Fetch old data for logging
+  const { data: oldData } = await supabase
+    .from("projects")
+    .select("*")
+    .eq("id", id)
+    .single();
+
   const { data, error } = await supabase
     .from("projects")
     .update(updates)
@@ -71,6 +90,17 @@ export async function updateProject(
     throw error;
   }
 
+  // Log activity
+  const user = await getCurrentUser();
+  if (user) {
+    await createActivityLog("update", "project", id, {
+      userId: user.userId,
+      oldValues: oldData,
+      newValues: updates,
+      description: `Cập nhật dự án ${id}`,
+    });
+  }
+
   return data;
 }
 
@@ -81,5 +111,14 @@ export async function deleteProject(id: string): Promise<void> {
   if (error) {
     console.error("Error deleting project:", error);
     throw error;
+  }
+
+  // Log activity
+  const user = await getCurrentUser();
+  if (user) {
+    await createActivityLog("delete", "project", id, {
+      userId: user.userId,
+      description: `Xóa dự án ${id}`,
+    });
   }
 }

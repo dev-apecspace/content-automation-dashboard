@@ -4,7 +4,8 @@ import { supabase } from "@/lib/supabase";
 import type { Schedule } from "@/lib/types";
 import camelcaseKeys from "camelcase-keys";
 import snakecaseKeys from "snakecase-keys";
-import { requirePermission } from "@/lib/auth/permissions";
+import { requirePermission, getCurrentUser } from "@/lib/auth/permissions";
+import { createActivityLog } from "@/lib/api/activity-logs";
 
 export async function getSchedules(): Promise<Schedule[]> {
   const { data, error } = await supabase
@@ -74,6 +75,16 @@ export async function createSchedule(
     throw error;
   }
 
+  // Log activity
+  const user = await getCurrentUser();
+  if (user) {
+    await createActivityLog("create", "schedule", data.id, {
+      userId: user.userId,
+      newValues: data,
+      description: `Tạo lịch ${data.id}`,
+    });
+  }
+
   return camelcaseKeys(data || null, { deep: true }) as Schedule;
 }
 
@@ -82,6 +93,14 @@ export async function updateSchedule(
   updates: Partial<Schedule>
 ): Promise<Schedule> {
   await requirePermission("schedules.edit");
+
+  // Fetch old data for logging
+  const { data: oldData } = await supabase
+    .from("schedules")
+    .select("*")
+    .eq("id", id)
+    .single();
+
   const { data, error } = await supabase
     .from("schedules")
     .update(snakecaseKeys(updates, { deep: true }))
@@ -92,6 +111,17 @@ export async function updateSchedule(
   if (error) {
     console.error("Error updating schedule:", error);
     throw error;
+  }
+
+  // Log activity
+  const user = await getCurrentUser();
+  if (user) {
+    await createActivityLog("update", "schedule", id, {
+      userId: user.userId,
+      oldValues: oldData,
+      newValues: updates,
+      description: `Cập nhật lịch ${id}`,
+    });
   }
 
   return camelcaseKeys(data || null, { deep: true }) as Schedule;
@@ -105,6 +135,15 @@ export async function deleteSchedule(id: string): Promise<void> {
     console.error("Error deleting schedule:", error);
     throw error;
   }
+
+  // Log activity
+  const user = await getCurrentUser();
+  if (user) {
+    await createActivityLog("delete", "schedule", id, {
+      userId: user.userId,
+      description: `Xóa lịch ${id}`,
+    });
+  }
 }
 
 export async function toggleScheduleActive(
@@ -112,6 +151,14 @@ export async function toggleScheduleActive(
   isActive: boolean
 ): Promise<Schedule> {
   await requirePermission("schedules.edit");
+
+  // Fetch old data for logging
+  const { data: oldData } = await supabase
+    .from("schedules")
+    .select("*")
+    .eq("id", id)
+    .single();
+
   const { data, error } = await supabase
     .from("schedules")
     .update({ is_active: isActive })
@@ -122,6 +169,19 @@ export async function toggleScheduleActive(
   if (error) {
     console.error("Error toggling schedule:", error);
     throw error;
+  }
+
+  // Log activity
+  const user = await getCurrentUser();
+  if (user) {
+    await createActivityLog("update", "schedule", id, {
+      userId: user.userId,
+      description: `Đổi trạng thái lịch ${id} sang ${
+        isActive ? "Hoạt động" : "Tạm dừng"
+      }`,
+      oldValues: oldData,
+      newValues: { isActive },
+    });
   }
 
   return camelcaseKeys(data || null, { deep: true }) as Schedule;

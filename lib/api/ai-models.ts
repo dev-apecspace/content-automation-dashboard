@@ -1,5 +1,9 @@
+"use server";
+
 import { supabase } from "@/lib/supabase";
 import { AIModel } from "@/lib/types";
+import { getCurrentUser } from "@/lib/auth/permissions";
+import { createActivityLog } from "@/lib/api/activity-logs";
 
 export async function getAIModels(): Promise<AIModel[]> {
   const { data, error } = await supabase
@@ -63,13 +67,32 @@ export async function createAIModel(
     throw error;
   }
 
-  return mapDBToAIModel(data);
+  const newModel = mapDBToAIModel(data);
+
+  // Log activity
+  const user = await getCurrentUser();
+  if (user) {
+    await createActivityLog("create", "settings", String(data.id), {
+      userId: user.userId,
+      newValues: newModel,
+      description: `Thêm mô hình AI ${newModel.name}`,
+    });
+  }
+
+  return newModel;
 }
 
 export async function updateAIModel(
   id: number,
   updates: Partial<AIModel>
 ): Promise<AIModel> {
+  // Fetch old data for logging
+  const { data: oldData } = await supabase
+    .from("ai_models")
+    .select("*")
+    .eq("id", id)
+    .single();
+
   const dbUpdates: any = {};
   if (updates.name !== undefined) dbUpdates.name = updates.name;
   if (updates.modelType !== undefined) dbUpdates.model_type = updates.modelType;
@@ -94,7 +117,20 @@ export async function updateAIModel(
     throw error;
   }
 
-  return mapDBToAIModel(data);
+  const updatedModel = mapDBToAIModel(data);
+
+  // Log activity
+  const user = await getCurrentUser();
+  if (user) {
+    await createActivityLog("update", "settings", String(id), {
+      userId: user.userId,
+      oldValues: oldData ? mapDBToAIModel(oldData) : undefined,
+      newValues: updatedModel,
+      description: `Cập nhật mô hình AI ${id}`,
+    });
+  }
+
+  return updatedModel;
 }
 
 export async function deleteAIModel(id: number): Promise<void> {
@@ -103,6 +139,15 @@ export async function deleteAIModel(id: number): Promise<void> {
   if (error) {
     console.error("Error deleting AI model:", error);
     throw error;
+  }
+
+  // Log activity
+  const user = await getCurrentUser();
+  if (user) {
+    await createActivityLog("delete", "settings", String(id), {
+      userId: user.userId,
+      description: `Xóa mô hình AI ${id}`,
+    });
   }
 }
 

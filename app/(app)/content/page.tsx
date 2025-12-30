@@ -98,11 +98,6 @@ export default function ContentPage() {
       await deleteContentItem(id);
       setContentItems((prev) => prev.filter((c) => c.id !== id));
       toast.success("Đã xóa ý tưởng thành công!");
-
-      await createActivityLog("delete", "content", id, {
-        userId: "user_1",
-        description: `Xóa ý tưởng ${id}`,
-      });
     } catch (error) {
       toast.error("Xóa ý tưởng thất bại");
       console.error(error);
@@ -126,11 +121,6 @@ export default function ContentPage() {
         prev.map((c) => (c.id === item.id ? updated : c))
       );
       toast.success("Đã phê duyệt ý tưởng!");
-
-      await createActivityLog("approve", "content", item.id, {
-        userId: "user_1",
-        description: `Phê duyệt ý tưởng: ${item.idea}`,
-      });
     } catch (error) {
       toast.error("Phê duyệt ý tưởng thất bại");
       console.error(error);
@@ -179,11 +169,6 @@ export default function ContentPage() {
       setContentItems((prev) =>
         prev.map((c) => (c.id === item.id ? updated : c))
       );
-
-      await createActivityLog("approve", "content", item.id, {
-        userId: "user_1",
-        description: `Phê duyệt nội dung: ${item.idea}`,
-      });
     } catch (error) {
       toast.error("Phê duyệt nội dung thất bại");
       console.error(error);
@@ -209,12 +194,6 @@ export default function ContentPage() {
           }
         }
 
-        await createActivityLog("update", "content", editContent.id, {
-          userId: "user_1",
-          newValues: data,
-          description: `Cập nhật: ${data.idea || editContent.idea}`,
-        });
-
         toast.success("Cập nhật bài viết thành công!");
       } else {
         const newContent = await createContentItem({
@@ -236,12 +215,6 @@ export default function ContentPage() {
 
         setContentItems((prev) => [...prev, newContent]);
         toast.success("Tạo bài viết thành công!");
-
-        await createActivityLog("create", "content", newContent.id, {
-          userId: "user_1",
-          newValues: { idea: newContent.idea, status: "idea" },
-          description: `Tạo mới: ${newContent.idea}`,
-        });
       }
 
       setEditContent(null);

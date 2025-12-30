@@ -3,7 +3,8 @@
 import { supabase } from "@/lib/supabase";
 import camelcaseKeys from "camelcase-keys";
 import type { VideoItem, Status, Platform } from "@/lib/types";
-import { requirePermission } from "@/lib/auth/permissions";
+import { requirePermission, getCurrentUser } from "@/lib/auth/permissions";
+import { createActivityLog } from "@/lib/api/activity-logs";
 
 export async function getVideoItems(filters?: {
   status?: Status | "all";
@@ -123,7 +124,19 @@ export async function createVideoItem(
     throw error;
   }
 
-  return camelcaseKeys(data, { deep: true }) as VideoItem;
+  const item = camelcaseKeys(data, { deep: true }) as VideoItem;
+
+  // Log activity
+  const user = await getCurrentUser();
+  if (user) {
+    await createActivityLog("create", "video", item.id, {
+      userId: user.userId,
+      newValues: item,
+      description: `Tạo video mới ${item.id}`,
+    });
+  }
+
+  return item;
 }
 
 export async function updateVideoItem(
@@ -131,6 +144,14 @@ export async function updateVideoItem(
   updates: Partial<VideoItem>
 ): Promise<VideoItem> {
   await requirePermission("videos.edit");
+
+  // Fetch old data for logging
+  const { data: oldData } = await supabase
+    .from("video_items")
+    .select("*")
+    .eq("id", id)
+    .single();
+
   const dbData: Record<string, any> = {
     updated_at: new Date().toISOString(),
   };
@@ -169,16 +190,35 @@ export async function updateVideoItem(
     throw error;
   }
 
+  // Log activity
+  const user = await getCurrentUser();
+  if (user) {
+    await createActivityLog("update", "video", id, {
+      userId: user.userId,
+      oldValues: oldData,
+      newValues: dbData,
+      description: `Cập nhật video ${id}`,
+    });
+  }
+
   return camelcaseKeys(data || null, { deep: true }) as VideoItem;
 }
 
 export async function deleteVideoItem(id: string): Promise<void> {
   await requirePermission("videos.delete");
   const { error } = await supabase.from("video_items").delete().eq("id", id);
-
   if (error) {
     console.error("Error deleting video item:", error);
     throw error;
+  }
+
+  // Log activity
+  const user = await getCurrentUser();
+  if (user) {
+    await createActivityLog("delete", "video", id, {
+      userId: user.userId,
+      description: `Xóa video ${id}`,
+    });
   }
 }
 
@@ -204,6 +244,14 @@ export async function approveVideoIdea(
   imageLink?: string
 ): Promise<VideoItem> {
   await requirePermission("videos.edit");
+
+  // Fetch old data for logging
+  const { data: oldData } = await supabase
+    .from("video_items")
+    .select("*")
+    .eq("id", id)
+    .single();
+
   const { data, error } = await supabase
     .from("video_items")
     .update({
@@ -251,6 +299,21 @@ export async function approveVideoIdea(
     console.warn("Webhook URL not configured. Skipping webhook call.");
   }
 
+  // Log activity
+  const user = await getCurrentUser();
+  if (user) {
+    await createActivityLog("approve", "video", id, {
+      userId: user.userId,
+      oldValues: oldData,
+      newValues: {
+        status: "ai_generating_content",
+        approvedBy,
+        idea,
+      },
+      description: `Phê duyệt ý tưởng video ${id}`,
+    });
+  }
+
   return camelcaseKeys(data || null, { deep: true }) as VideoItem;
 }
 
@@ -260,6 +323,14 @@ export async function approveVideoContent(
   approvedBy: string
 ): Promise<VideoItem> {
   await requirePermission("videos.edit");
+
+  // Fetch old data for logging
+  const { data: oldData } = await supabase
+    .from("video_items")
+    .select("*")
+    .eq("id", id)
+    .single();
+
   const { data, error } = await supabase
     .from("video_items")
     .update({
@@ -275,6 +346,20 @@ export async function approveVideoContent(
   if (error) {
     console.error("Error approving content:", error);
     throw error;
+  }
+
+  // Log activity
+  const user = await getCurrentUser();
+  if (user) {
+    await createActivityLog("approve", "video", id, {
+      userId: user.userId,
+      oldValues: oldData,
+      newValues: {
+        status: "content_approved",
+        approvedBy,
+      },
+      description: `Phê duyệt nội dung video ${id}`,
+    });
   }
 
   return camelcaseKeys(data || null, { deep: true }) as VideoItem;

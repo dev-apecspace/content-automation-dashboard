@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { formatVietnamDate, formatVietnamDateFull } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -13,28 +14,16 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Loader2, Calendar, User, FileText } from "lucide-react";
-import { getActivityLogs } from "@/lib/api";
+import { getActivityLogs, getAllUsers } from "@/lib/api";
+import { type User as SystemUser } from "@/lib/api/users";
 import { toast } from "sonner";
-import type { ActivityLog, ActivityType, EntityType } from "@/lib/api";
-
-const activityTypeColors: Record<ActivityType, string> = {
-  create: "bg-yellow-100 text-yellow-700 border-yellow-300",
-  update: "bg-blue-100 text-blue-700 border-blue-300",
-  delete: "bg-red-100 text-red-700 border-red-300",
-  approve: "bg-cyan-100 text-cyan-700 border-cyan-300",
-  publish: "bg-green-100 text-green-700 border-green-300",
-  schedule: "bg-pink-100 text-pink-700 border-pink-300",
-  "remove-post": "bg-orange-100 text-orange-700 border-orange-300",
-};
-
-const entityTypeColors: Record<EntityType, string> = {
-  content: "bg-indigo-100 text-indigo-700",
-  schedule: "bg-cyan-100 text-cyan-700",
-  project: "bg-teal-100 text-teal-700",
-  user: "bg-amber-100 text-amber-700",
-  settings: "bg-gray-100 text-gray-700",
-  video: "bg-rose-100 text-rose-700",
-};
+import {
+  type ActivityLog,
+  type ActivityType,
+  type EntityType,
+  activityTypeConfig,
+  entityTypeConfig,
+} from "@/lib/types";
 
 export function ActivityLogsTab() {
   const [logs, setLogs] = useState<ActivityLog[]>([]);
@@ -42,6 +31,26 @@ export function ActivityLogsTab() {
   const [filterType, setFilterType] = useState<ActivityType | "all">("all");
   const [filterEntity, setFilterEntity] = useState<EntityType | "all">("all");
   const [searchTerm, setSearchTerm] = useState("");
+  const [userMap, setUserMap] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const users = await getAllUsers();
+        const map = users.reduce(
+          (acc: Record<string, string>, user: SystemUser) => {
+            acc[user.id] = user.name;
+            return acc;
+          },
+          {}
+        );
+        setUserMap(map);
+      } catch (error) {
+        console.error("Failed to fetch users:", error);
+      }
+    };
+    fetchUsers();
+  }, []);
 
   useEffect(() => {
     loadLogs();
@@ -76,11 +85,6 @@ export function ActivityLogsTab() {
     );
   });
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleString("vi-VN");
-  };
-
   return (
     <div className="space-y-6">
       <div className="bg-white/40 backdrop-blur-sm border border-white/60 shadow-sm rounded-xl p-4">
@@ -101,13 +105,11 @@ export function ActivityLogsTab() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Tất cả</SelectItem>
-                <SelectItem value="create">Tạo mới</SelectItem>
-                <SelectItem value="update">Cập nhật</SelectItem>
-                <SelectItem value="delete">Xóa ý tưởng</SelectItem>
-                <SelectItem value="approve">Phê duyệt</SelectItem>
-                <SelectItem value="publish">Đăng bài</SelectItem>
-                <SelectItem value="schedule">Tạo lịch</SelectItem>
-                <SelectItem value="remove-post">Xóa bài đăng</SelectItem>
+                {Object.entries(activityTypeConfig).map(([key, config]) => (
+                  <SelectItem key={key} value={key}>
+                    {config.label}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -125,12 +127,11 @@ export function ActivityLogsTab() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Tất cả</SelectItem>
-                <SelectItem value="content">Nội dung</SelectItem>
-                <SelectItem value="schedule">Lịch đăng</SelectItem>
-                <SelectItem value="project">Dự án</SelectItem>
-                <SelectItem value="user">Người dùng</SelectItem>
-                <SelectItem value="settings">Cài đặt</SelectItem>
-                <SelectItem value="video">Video</SelectItem>
+                {Object.entries(entityTypeConfig).map(([key, config]) => (
+                  <SelectItem key={key} value={key}>
+                    {config.label}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -172,30 +173,19 @@ export function ActivityLogsTab() {
                     <div className="flex items-center gap-2 flex-wrap">
                       <Badge
                         variant="outline"
-                        className={`border shadow-sm bg-white/50 backdrop-blur-sm ${
-                          activityTypeColors[log.activity_type]
+                        className={`shadow-sm bg-white/50 backdrop-blur-sm ${
+                          activityTypeConfig[log.activity_type].className
                         }`}
                       >
-                        {log.activity_type === "create" && "Tạo mới"}
-                        {log.activity_type === "update" && "Cập nhật"}
-                        {log.activity_type === "delete" && "Xóa ý tưởng"}
-                        {log.activity_type === "approve" && "Phê duyệt"}
-                        {log.activity_type === "publish" && "Đăng bài"}
-                        {log.activity_type === "schedule" && "Tạo lịch"}
-                        {log.activity_type === "remove-post" && "Xóa bài đăng"}
+                        {activityTypeConfig[log.activity_type].label}
                       </Badge>
                       <Badge
                         variant="outline"
                         className={`bg-white/50 backdrop-blur-sm shadow-sm ${
-                          entityTypeColors[log.entity_type]
+                          entityTypeConfig[log.entity_type].className
                         }`}
                       >
-                        {log.entity_type === "content" && "Nội dung"}
-                        {log.entity_type === "schedule" && "Lịch đăng"}
-                        {log.entity_type === "project" && "Dự án"}
-                        {log.entity_type === "user" && "Người dùng"}
-                        {log.entity_type === "settings" && "Cài đặt"}
-                        {log.entity_type === "video" && "Video"}
+                        {entityTypeConfig[log.entity_type].label}
                       </Badge>
                       <span className="text-xs font-mono text-slate-400">
                         ID: {log.entity_id.substring(0, 8)}...
@@ -247,13 +237,13 @@ export function ActivityLogsTab() {
                       <div className="flex items-center gap-1 bg-white/50 px-2 py-1 rounded-full border border-white/60 shadow-sm">
                         <User className="h-3 w-3 text-indigo-500" />
                         <span className="font-medium text-slate-700">
-                          {log.user_id}
+                          {userMap[log.user_id] || log.user_id}
                         </span>
                       </div>
                     )}
                     <div className="flex items-center gap-1">
                       <Calendar className="h-3 w-3" />
-                      <span>{formatDate(log.created_at)}</span>
+                      <span>{formatVietnamDateFull(log.created_at)}</span>
                     </div>
                   </div>
                 </div>
