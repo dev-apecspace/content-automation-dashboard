@@ -22,6 +22,8 @@ import {
   ChevronLeft,
   PanelLeft,
   Menu,
+  Users,
+  SquareUser,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -69,21 +71,21 @@ const menuItems: MenuItem[] = [
   },
   {
     route: "/accounts",
-    label: "Tài khoản",
-    icon: UserCircle,
+    label: "Tài khoản MXH",
+    icon: SquareUser,
     permission: "accounts.view",
+  },
+  {
+    route: "/users",
+    label: "Người dùng",
+    icon: Users,
+    permission: "users.view",
   },
   {
     route: "/roles",
     label: "Phân quyền",
     icon: ShieldCheck,
     permission: "roles.view",
-  },
-  {
-    route: "/users",
-    label: "Người dùng",
-    icon: Shield,
-    permission: "users.view",
   },
   {
     route: "/activity-logs",

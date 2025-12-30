@@ -78,6 +78,8 @@ export function VideoTable({
   }, []);
 
   const triggerAiSearchIdeas = async () => {
+    if (!confirm("Bạn có chắc chắn muốn gọi AI tạo ý tưởng?")) return;
+    
     setLoading(true);
     try {
       const res = await fetch("/api/webhook/ai-search-ideas", {
