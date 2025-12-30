@@ -21,6 +21,7 @@ import {
 import { Account, Project } from "@/lib/types";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { usePermissions } from "@/hooks/use-permissions";
 
 interface AccountsTableProps {
   accounts: Account[];
@@ -35,6 +36,8 @@ export const AccountsTable: React.FC<AccountsTableProps> = ({
   onEdit,
   onDelete,
 }) => {
+  const { hasPermission } = usePermissions();
+
   const getPlatformIcon = (platform: string) => {
     switch (platform) {
       case "Facebook":
@@ -182,24 +185,28 @@ export const AccountsTable: React.FC<AccountsTableProps> = ({
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-2">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => onEdit(account)}
-                      className="h-8 w-8 hover:bg-blue-50 hover:text-blue-600 rounded-full transition-colors"
-                      title="Chỉnh sửa"
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => onDelete(account.id)}
-                      className="h-8 w-8 hover:bg-red-50 hover:text-red-600 rounded-full transition-colors"
-                      title="Xóa"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    {hasPermission("accounts.edit") && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => onEdit(account)}
+                        className="h-8 w-8 hover:bg-blue-50 hover:text-blue-600 rounded-full transition-colors"
+                        title="Chỉnh sửa"
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                    )}
+                    {hasPermission("accounts.delete") && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => onDelete(account.id)}
+                        className="h-8 w-8 hover:bg-red-50 hover:text-red-600 rounded-full transition-colors"
+                        title="Xóa"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
                   </div>
                 </TableCell>
               </TableRow>

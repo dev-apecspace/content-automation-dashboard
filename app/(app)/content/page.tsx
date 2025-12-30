@@ -18,6 +18,7 @@ import { createActivityLog } from "@/lib/api/activity-logs";
 import { toast } from "sonner";
 import type { ContentItem } from "@/lib/types";
 import type { Status } from "@/lib/types";
+import { usePermissions } from "@/hooks/use-permissions";
 // import ImageFullScreenViewer from "@/components/shared/ImageFullScreenViewer";
 
 export default function ContentPage() {
@@ -32,10 +33,11 @@ export default function ContentPage() {
   );
   const [filterStatus, setFilterStatus] = useState<Status | "all">("all");
   const [filterProject, setFilterProject] = useState<string>("all");
+  const { hasPermission } = usePermissions();
 
   useEffect(() => {
     loadContentItems();
-  }, [filterStatus, filterProject, contentItems]);
+  }, [filterStatus, filterProject]);
 
   const loadContentItems = async () => {
     try {

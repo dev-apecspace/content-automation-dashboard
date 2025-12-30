@@ -1,7 +1,10 @@
+"use server";
+
 import { supabase } from "@/lib/supabase";
 import type { Schedule } from "@/lib/types";
 import camelcaseKeys from "camelcase-keys";
 import snakecaseKeys from "snakecase-keys";
+import { requirePermission } from "@/lib/auth/permissions";
 
 export async function getSchedules(): Promise<Schedule[]> {
   const { data, error } = await supabase
@@ -51,6 +54,7 @@ export async function getScheduleById(id: string): Promise<Schedule | null> {
 export async function createSchedule(
   schedule: Omit<Schedule, "id">
 ): Promise<Schedule> {
+  await requirePermission("schedules.create");
   const { data, error } = await supabase
     .from("schedules")
     .insert(
@@ -77,6 +81,7 @@ export async function updateSchedule(
   id: string,
   updates: Partial<Schedule>
 ): Promise<Schedule> {
+  await requirePermission("schedules.edit");
   const { data, error } = await supabase
     .from("schedules")
     .update(snakecaseKeys(updates, { deep: true }))
@@ -93,6 +98,7 @@ export async function updateSchedule(
 }
 
 export async function deleteSchedule(id: string): Promise<void> {
+  await requirePermission("schedules.delete");
   const { error } = await supabase.from("schedules").delete().eq("id", id);
 
   if (error) {
@@ -105,6 +111,7 @@ export async function toggleScheduleActive(
   id: string,
   isActive: boolean
 ): Promise<Schedule> {
+  await requirePermission("schedules.edit");
   const { data, error } = await supabase
     .from("schedules")
     .update({ is_active: isActive })

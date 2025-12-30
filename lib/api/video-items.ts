@@ -1,12 +1,16 @@
+"use server";
+
 import { supabase } from "@/lib/supabase";
 import camelcaseKeys from "camelcase-keys";
 import type { VideoItem, Status, Platform } from "@/lib/types";
+import { requirePermission } from "@/lib/auth/permissions";
 
 export async function getVideoItems(filters?: {
   status?: Status | "all";
   projectId?: string;
   platform?: Platform;
 }): Promise<VideoItem[]> {
+  await requirePermission("videos.view");
   let query = supabase.from("video_items").select("*");
 
   if (filters?.status && filters.status !== "all") {
@@ -54,6 +58,7 @@ export async function getVideoItems(filters?: {
 }
 
 export async function getVideoItemById(id: string): Promise<VideoItem | null> {
+  await requirePermission("videos.view");
   const { data, error } = await supabase
     .from("video_items")
     .select("*")
@@ -86,6 +91,7 @@ export async function getVideoItemById(id: string): Promise<VideoItem | null> {
 export async function createVideoItem(
   video: Omit<VideoItem, "id" | "createdAt" | "updatedAt">
 ): Promise<VideoItem> {
+  await requirePermission("videos.create");
   const dbData = {
     status: video.status || "idea",
     idea: video.idea,
@@ -124,11 +130,13 @@ export async function updateVideoItem(
   id: string,
   updates: Partial<VideoItem>
 ): Promise<VideoItem> {
+  await requirePermission("videos.edit");
   const dbData: Record<string, any> = {
     updated_at: new Date().toISOString(),
   };
 
   if (updates.status !== undefined) dbData.status = updates.status;
+  if (updates.title !== undefined) dbData.title = updates.title;
   if (updates.idea !== undefined) dbData.idea = updates.idea;
   if (updates.projectId !== undefined) dbData.project_id = updates.projectId;
   if (updates.projectName !== undefined)
@@ -147,12 +155,6 @@ export async function updateVideoItem(
   if (updates.postingTime !== undefined)
     dbData.posting_time = updates.postingTime;
   if (updates.caption !== undefined) dbData.caption = updates.caption;
-  if (updates.callToAction !== undefined)
-    dbData.call_to_action = updates.callToAction;
-  if (updates.title !== undefined) dbData.title = updates.title;
-  if (updates.videoLink !== undefined) dbData.video_link = updates.videoLink;
-  if (updates.approvedBy !== undefined) dbData.approved_by = updates.approvedBy;
-  if (updates.approvedAt !== undefined) dbData.approved_at = updates.approvedAt;
   if (updates.accountIds !== undefined) dbData.account_ids = updates.accountIds;
 
   const { data, error } = await supabase
@@ -171,6 +173,7 @@ export async function updateVideoItem(
 }
 
 export async function deleteVideoItem(id: string): Promise<void> {
+  await requirePermission("videos.delete");
   const { error } = await supabase.from("video_items").delete().eq("id", id);
 
   if (error) {
@@ -179,34 +182,12 @@ export async function deleteVideoItem(id: string): Promise<void> {
   }
 }
 
-// Hàm cập nhật trạng thái chung (dùng cho các bước chuyển status)
 export async function updateVideoStatus(
   id: string,
   status: Status
 ): Promise<VideoItem> {
-  const updates: Record<string, any> = {
-    status,
-    updated_at: new Date().toISOString(),
-  };
-
-  // Nếu đăng thành công thì lưu thời gian published (Moved to posts table)
-  // if (status === "posted_successfully") {
-  //   updates.published_at = new Date().toISOString();
-  // }
-
-  const { data, error } = await supabase
-    .from("video_items")
-    .update(updates)
-    .eq("id", id)
-    .select()
-    .single();
-
-  if (error) {
-    console.error("Error updating video status:", error);
-    throw error;
-  }
-
-  return camelcaseKeys(data || null, { deep: true }) as VideoItem;
+  await requirePermission("videos.edit");
+  return updateVideoItem(id, { status });
 }
 
 // Phê duyệt ý tưởng (từ idea → idea_approved)
@@ -222,6 +203,7 @@ export async function approveVideoIdea(
   existingVideoLink?: string,
   imageLink?: string
 ): Promise<VideoItem> {
+  await requirePermission("videos.edit");
   const { data, error } = await supabase
     .from("video_items")
     .update({
@@ -277,6 +259,7 @@ export async function approveVideoContent(
   id: string,
   approvedBy: string
 ): Promise<VideoItem> {
+  await requirePermission("videos.edit");
   const { data, error } = await supabase
     .from("video_items")
     .update({

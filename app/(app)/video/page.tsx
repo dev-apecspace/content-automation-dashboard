@@ -31,7 +31,7 @@ export default function VideoPage() {
 
   useEffect(() => {
     loadVideoItems();
-  }, [filterStatus, filterProject, videoItems]);
+  }, [filterStatus, filterProject]);
 
   const loadVideoItems = async () => {
     try {

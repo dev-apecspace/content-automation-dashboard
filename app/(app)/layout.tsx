@@ -8,14 +8,24 @@ import { Toaster } from "sonner";
 import { useFullscreen } from "@/stores/useFullscreenStore";
 import { ImageFullscreenViewer } from "@/components/shared/ImageFullScreenViewer";
 
+import { Button } from "@/components/ui/button";
+import { PanelLeft } from "lucide-react";
+
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isDesktopOpen, setIsDesktopOpen] = useState(true);
   const { imageSrc, close } = useFullscreen();
 
   return (
     <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
       <div className="flex h-screen bg-gradient-to-br from-slate-50 via-white to-cyan-50/50">
-        <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+        <Sidebar
+          isOpen={sidebarOpen}
+          onClose={() => setSidebarOpen(false)}
+          onMobileOpen={() => setSidebarOpen(true)}
+          isDesktopOpen={isDesktopOpen}
+          onDesktopToggle={() => setIsDesktopOpen(!isDesktopOpen)}
+        />
         <main className="flex-1 flex flex-col overflow-hidden">
           <div className="flex-1 overflow-auto">
             <div className="p-6">{children}</div>
