@@ -32,6 +32,7 @@ import {
   Trash2,
   DollarSign,
   Maximize2,
+  SquareUser,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -405,7 +406,7 @@ export function ContentDetailModal({
                 {/* --- Accounts Display --- */}
                 <div className="flex items-start gap-4 mb-6">
                   <div className="p-2 rounded-full bg-white/60 shadow-sm text-green-600 mt-1">
-                    <User className="h-5 w-5" />
+                    <SquareUser className="h-5 w-5" />
                   </div>
                   <div>
                     <h4 className={glassLabelClass}>Tài khoản sẽ đăng</h4>
@@ -578,19 +579,21 @@ export function ContentDetailModal({
                   <div className="flex-1">
                     <div className="flex items-center justify-between">
                       <div className={glassLabelClass}>Bài đăng</div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={handleRefreshEngagement}
-                        className="h-6 w-6 p-0 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full cursor-pointer"
-                        title="Cập nhật tương tác"
-                      >
-                        <RefreshCw
-                          className={`h-3.5 w-3.5 ${
-                            isSpinning ? "animate-spin" : ""
-                          }`}
-                        />
-                      </Button>
+                      {currentItem.posts && currentItem.posts.length > 0 && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={handleRefreshEngagement}
+                          className="h-6 w-6 p-0 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full cursor-pointer"
+                          title="Cập nhật tương tác"
+                        >
+                          <RefreshCw
+                            className={`h-3.5 w-3.5 ${
+                              isSpinning ? "animate-spin" : ""
+                            }`}
+                          />
+                        </Button>
+                      )}
                     </div>
                     {currentItem.posts && currentItem.posts.length > 0 ? (
                       <div className="flex flex-col gap-2 mt-1">
@@ -745,19 +748,21 @@ export function ContentDetailModal({
                       Thống kê hiệu quả
                     </span>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleRefreshEngagement}
-                    className="text-slate-600 hover:text-slate-900 hover:bg-white/50 cursor-pointer"
-                  >
-                    <RefreshCw
-                      className={`h-4 w-4 mr-2 ${
-                        isSpinning ? "animate-spin" : ""
-                      }`}
-                    />
-                    Cập nhật
-                  </Button>
+                  {currentItem.posts && currentItem.posts.length > 0 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleRefreshEngagement}
+                      className="text-slate-600 hover:text-slate-900 hover:bg-white/50 cursor-pointer"
+                    >
+                      <RefreshCw
+                        className={`h-4 w-4 mr-2 ${
+                          isSpinning ? "animate-spin" : ""
+                        }`}
+                      />
+                      Cập nhật
+                    </Button>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-3 gap-6 text-center">

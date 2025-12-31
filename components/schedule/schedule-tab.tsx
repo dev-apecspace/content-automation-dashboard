@@ -28,6 +28,7 @@ import {
   CalendarDays,
   FileImage,
   Video,
+  RefreshCcw,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -76,12 +77,15 @@ interface ScheduleTabProps {
   onUpdateContent?: (items: ContentItem[]) => void;
   onUpdateVideo?: (items: VideoItem[]) => void;
   isLoading?: boolean;
+  onRefresh?: () => void;
 }
 
 const platforms: Platform[] = [
   "Facebook Post",
   "Facebook Reels",
   "Youtube Shorts",
+  "Tiktok Carousel",
+  "Tiktok Video",
 ];
 
 const frequencies: Frequency[] = ["Tháng", "Tuần", "Ngày", "3 ngày/lần"];
@@ -95,6 +99,7 @@ export function ScheduleTab({
   onUpdateContent,
   onUpdateVideo,
   isLoading,
+  onRefresh,
 }: ScheduleTabProps) {
   const { hasPermission } = usePermissions();
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -450,6 +455,20 @@ export function ScheduleTab({
           </p>
         </div>
         <div className="flex gap-3 bg-white/40 p-1.5 rounded-xl border border-white/60 shadow-sm backdrop-blur-sm">
+          {onRefresh && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onRefresh}
+              disabled={isLoading}
+              className="bg-white/50 text-slate-500 hover:text-indigo-600 hover:bg-white shadow-sm h-9 w-9 cursor-pointer"
+              title="Làm mới"
+            >
+              <RefreshCcw
+                className={cn("h-4 w-4", isLoading && "animate-spin")}
+              />
+            </Button>
+          )}
           <div className="flex bg-slate-100/50 rounded-lg p-1">
             <Button
               variant={viewMode === "list" ? "default" : "ghost"}

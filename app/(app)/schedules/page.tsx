@@ -55,6 +55,7 @@ export default function SchedulesPage() {
         onUpdate={setSchedules}
         onUpdateContent={setContentItems}
         onUpdateVideo={setVideoItems}
+        onRefresh={loadData}
       />
     </div>
   );

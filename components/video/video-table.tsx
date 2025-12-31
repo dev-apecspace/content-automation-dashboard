@@ -176,7 +176,7 @@ export function VideoTable({
               size="icon"
               onClick={onReload}
               className="bg-white/40 p-1.5 rounded-lg border border-white/60 shadow-sm backdrop-blur-sm cursor-pointer"
-              title="Tải lại dữ liệu"
+              title="Làm mới"
               disabled={isLoading}
             >
               <RefreshCw

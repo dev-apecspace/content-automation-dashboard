@@ -34,6 +34,7 @@ import {
   Maximize2,
   DollarSign,
   Users,
+  SquareUser,
 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { getProjects, getAIModels } from "@/lib/api";
@@ -510,11 +511,35 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
                       <Monitor className="w-4 h-4 text-blue-500" />
                       Nền tảng
                     </Label>
-                    <Input
-                      value={formData.platform}
-                      disabled
-                      className="bg-slate-50/50 border-white/60 text-slate-500 cursor-not-allowed rounded-xl h-11 shadow-sm"
-                    />
+                    <div className="relative">
+                      <Select
+                        value={formData.platform}
+                        onValueChange={(v) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            platform: v as any,
+                          }))
+                        }
+                      >
+                        <SelectTrigger className="border-white/60 bg-white/50 focus:bg-white/80 focus:ring-blue-100 rounded-xl h-11 shadow-sm">
+                          <SelectValue placeholder="Chọn nền tảng" />
+                        </SelectTrigger>
+                        <SelectContent className="rounded-xl border-white/60 bg-white/90 backdrop-blur-xl shadow-lg">
+                          <SelectItem
+                            value="Facebook Post"
+                            className="focus:bg-blue-50 cursor-pointer rounded-lg"
+                          >
+                            Facebook Post
+                          </SelectItem>
+                          <SelectItem
+                            value="Tiktok Carousel"
+                            className="focus:bg-blue-50 cursor-pointer rounded-lg"
+                          >
+                            Tiktok Carousel
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
                 </div>
 
@@ -750,7 +775,7 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
                   {/* Tài khoản sẽ đăng */}
                   <div className="mt-6 border-b border-slate-200/50">
                     <Label className="flex items-center gap-2 text-base font-semibold text-slate-700 mb-3">
-                      <Users className="w-4 h-4 text-green-600" />
+                      <SquareUser className="w-4 h-4 text-green-600" />
                       Tài khoản sẽ đăng
                     </Label>
 
