@@ -171,7 +171,7 @@ export interface BaseContentItem {
 export interface ContentItem extends BaseContentItem {
   platform: Platform;
   contentType: string;
-  imageLink?: string;
+  imageLinks?: string[];
   editRequest?: string; // Không lưu db
   caption?: string;
 }

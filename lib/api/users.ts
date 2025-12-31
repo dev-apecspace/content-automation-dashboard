@@ -69,7 +69,6 @@ export async function createUser(
   const { data, error } = await supabase
     .from("users")
     .insert({
-      id: Date.now().toString(),
       ...user,
       password: hashedPassword,
     })

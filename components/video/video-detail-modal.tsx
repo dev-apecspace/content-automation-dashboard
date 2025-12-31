@@ -60,7 +60,9 @@ import {
   getAIModels,
   getProjects,
   getCostLogsByItem,
+  getAllUsers,
 } from "@/lib/api";
+import type { User as UserType } from "@/lib/api/users";
 import { triggerEngagementTracker } from "@/lib/utils/engagement";
 
 interface VideoDetailModalProps {
@@ -91,6 +93,7 @@ export function VideoDetailModal({
   const [costLogs, setCostLogs] = useState<CostLog[]>([]);
   const [projectList, setProjectList] = useState<Project[]>([]);
   const [allAccounts, setAllAccounts] = useState<Account[]>([]);
+  const [userList, setUserList] = useState<UserType[]>([]);
 
   useEffect(() => {
     setCurrentItem(content ?? item ?? null);
@@ -111,6 +114,19 @@ export function VideoDetailModal({
       }
     }
     fetchModels();
+  }, [isOpen]);
+
+  // Load Users
+  useEffect(() => {
+    async function fetchUsers() {
+      try {
+        const users = await getAllUsers();
+        setUserList(users);
+      } catch (error) {
+        console.error("Error loading users:", error);
+      }
+    }
+    fetchUsers();
   }, [isOpen]);
 
   // Load Projects
@@ -177,7 +193,7 @@ export function VideoDetailModal({
   };
 
   const handleRemovePost = async (post: Post) => {
-    confirm("Bạn có chắc chắn muốn xóa bài đăng này?")
+    confirm("Bạn có chắc chắn muốn xóa bài đăng này?");
     setIsLoading(true);
     try {
       const response = await fetch("/api/webhook/remove-post", {
@@ -701,7 +717,10 @@ export function VideoDetailModal({
                   <div>
                     <div className={glassLabelClass}>Người duyệt</div>
                     <div className="font-medium text-slate-900">
-                      {currentItem.approvedBy || "-"}
+                      {userList.find((u) => u.id === currentItem.approvedBy)
+                        ?.name ||
+                        currentItem.approvedBy ||
+                        "-"}
                     </div>
                   </div>
                 </div>
