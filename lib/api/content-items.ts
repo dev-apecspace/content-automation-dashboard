@@ -186,7 +186,7 @@ export async function updateContentItem(
       userId: user.userId,
       oldValues: oldData,
       newValues: dbData,
-      description: `Cập nhật nội dung ${id}`,
+      description: `Cập nhật nội dung ${oldData.idea}`,
     });
   }
 

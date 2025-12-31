@@ -49,7 +49,6 @@ import {
   statusConfig,
 } from "@/lib/types";
 import { calculateImageCost } from "@/lib/utils/cost";
-import { useFullscreen } from "@/stores/useFullscreenStore";
 import { uploadImageFile } from "@/app/api/cloudinary";
 import { AiRequirementDialog } from "@/components/shared/ai-requirement-dialog";
 import { getContentItemById } from "@/lib/api/content-items";
@@ -87,9 +86,6 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
   isSaving,
   isLoading,
 }) => {
-  const { open } = useFullscreen();
-
-  // ------------------- STATE -------------------
   const [projects, setProjects] = useState<Project[]>([]);
   const [modelsList, setModelsList] = useState<AIModel[]>([]);
   const [accounts, setAccounts] = useState<Account[]>([]);

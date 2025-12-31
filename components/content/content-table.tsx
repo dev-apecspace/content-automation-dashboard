@@ -19,6 +19,7 @@ import {
   ExternalLink,
   CheckCircle,
   X,
+  RefreshCw,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ContentItem, Project } from "@/lib/types";
@@ -43,6 +44,7 @@ interface ContentTableProps {
   onFilterChange: (status: Status | "all") => void;
   filterProject: string;
   onProjectFilterChange: (projectId: string) => void;
+  onReload?: () => void;
 }
 
 export function ContentTable({
@@ -59,6 +61,8 @@ export function ContentTable({
   onFilterChange,
   filterProject,
   onProjectFilterChange,
+  onReload,
+  isLoading,
 }: ContentTableProps) {
   const allStatuses: Status[] = Object.keys(statusConfig) as Status[];
   const [projects, setProjects] = useState<Project[]>([]);
@@ -164,6 +168,23 @@ export function ContentTable({
               }`}
             >
               {loading ? <>✨ Đang tạo...</> : <>✨ AI tạo ý tưởng</>}
+            </Button>
+          )}
+          {onReload && (
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={onReload}
+              className="bg-white/40 p-1.5 rounded-lg border border-white/60 shadow-sm backdrop-blur-sm cursor-pointer"
+              title="Tải lại dữ liệu"
+              disabled={isLoading}
+            >
+              <RefreshCw
+                className={cn(
+                  "h-4 w-4 text-slate-600",
+                  isLoading && "animate-spin"
+                )}
+              />
             </Button>
           )}
         </div>

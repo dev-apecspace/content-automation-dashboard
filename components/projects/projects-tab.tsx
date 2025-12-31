@@ -174,6 +174,7 @@ export function ProjectsTab({
           </p>
         </div>
         {hasPermission("projects.create") && (
+          <div className="flex gap-3 bg-white/40 p-1.5 rounded-xl border border-white/60 shadow-sm backdrop-blur-sm">
           <Button
             onClick={handleAdd}
             className="bg-gradient-to-r from-indigo-600 to-cyan-600 hover:from-indigo-700 hover:to-cyan-700 text-white shadow-md shadow-indigo-200 border-0"
@@ -181,6 +182,7 @@ export function ProjectsTab({
             <Plus className="h-4 w-4 mr-2" />
             Thêm dự án
           </Button>
+          </div>
         )}
       </div>
 
