@@ -46,6 +46,7 @@ export async function POST(req: NextRequest) {
       userId: user.id,
       email: user.email,
       role: user.role,
+      name: user.name,
     });
 
     // 4. Set Cookie

@@ -13,8 +13,20 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { Loader2, Calendar, User, FileText } from "lucide-react";
-import { getActivityLogs, getAllUsers } from "@/lib/api";
+import { GlassContainer } from "@/components/dashboard/dashboard-atoms";
+import {
+  Loader2,
+  Calendar,
+  User,
+  FileText,
+  RotateCw,
+  Filter,
+  Search,
+  Database,
+  Layers,
+} from "lucide-react";
+import { getAllUsers } from "@/lib/api";
+import { useActivityLogs } from "@/hooks/use-activity-logs";
 import { type User as SystemUser } from "@/lib/api/users";
 import { toast } from "sonner";
 import {
@@ -26,12 +38,21 @@ import {
 } from "@/lib/types";
 
 export function ActivityLogsTab() {
-  const [logs, setLogs] = useState<ActivityLog[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [filterType, setFilterType] = useState<ActivityType | "all">("all");
   const [filterEntity, setFilterEntity] = useState<EntityType | "all">("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [userMap, setUserMap] = useState<Record<string, string>>({});
+
+  const {
+    data: logs = [],
+    isLoading,
+    refetch,
+    isRefetching,
+  } = useActivityLogs({
+    activityType: filterType,
+    entityType: filterEntity,
+    limit: 100,
+  });
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -52,29 +73,6 @@ export function ActivityLogsTab() {
     fetchUsers();
   }, []);
 
-  useEffect(() => {
-    loadLogs();
-  }, [filterType, filterEntity]);
-
-  const loadLogs = async () => {
-    try {
-      setIsLoading(true);
-      const data = await getActivityLogs({
-        activityType:
-          filterType !== "all" ? (filterType as ActivityType) : undefined,
-        entityType:
-          filterEntity !== "all" ? (filterEntity as EntityType) : undefined,
-        limit: 100,
-      });
-      setLogs(data);
-    } catch (error) {
-      toast.error("Failed to load activity logs");
-      console.error(error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const filteredLogs = logs.filter((log) => {
     if (!searchTerm) return true;
     const searchLower = searchTerm.toLowerCase();
@@ -87,20 +85,46 @@ export function ActivityLogsTab() {
 
   return (
     <div className="space-y-6">
-      <div className="bg-white/40 backdrop-blur-sm border border-white/60 shadow-sm rounded-xl p-4">
-        <h3 className="text-sm font-semibold text-slate-700 mb-3">
-          Lọc và tìm kiếm
-        </h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-slate-600">
+      <GlassContainer className="p-5" intensity="low">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+          <div className="flex items-center gap-2">
+            <div className="p-2 bg-indigo-100 text-indigo-600 rounded-lg">
+              <Filter className="h-5 w-5" />
+            </div>
+            <h3 className="text-base font-bold text-slate-800">
+              Bộ lọc & Tìm kiếm
+            </h3>
+          </div>
+          <div className="flex items-center gap-2 self-end md:self-auto">
+            <span className="text-xs font-medium text-slate-500 bg-slate-100 px-2 py-1 rounded-full hidden sm:inline-block">
+              Tự động cập nhật 1 phút/lần
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => refetch()}
+              disabled={isRefetching}
+              className="bg-white/50 border-white/60 hover:bg-white/80 transition-all hover:scale-105 active:scale-95 shadow-sm cursor-pointer"
+            >
+              <RotateCw
+                className={`h-4 w-4 mr-2 ${isRefetching ? "animate-spin" : ""}`}
+              />
+              Làm mới
+            </Button>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="space-y-2.5">
+            <label className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+              <Layers className="h-4 w-4 text-indigo-500" />
               Loại hoạt động
             </label>
             <Select
               value={filterType}
               onValueChange={(v) => setFilterType(v as ActivityType | "all")}
             >
-              <SelectTrigger className="bg-white/60 border-white/60 focus:ring-indigo-500">
+              <SelectTrigger className="bg-white/50 border-white/40 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm transition-all hover:bg-white/70">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -114,15 +138,16 @@ export function ActivityLogsTab() {
             </Select>
           </div>
 
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-slate-600">
+          <div className="space-y-2.5">
+            <label className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+              <Database className="h-4 w-4 text-emerald-500" />
               Loại dữ liệu
             </label>
             <Select
               value={filterEntity}
               onValueChange={(v) => setFilterEntity(v as EntityType | "all")}
             >
-              <SelectTrigger className="bg-white/60 border-white/60 focus:ring-indigo-500">
+              <SelectTrigger className="bg-white/50 border-white/40 focus:ring-emerald-500 focus:border-emerald-500 shadow-sm transition-all hover:bg-white/70">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -136,19 +161,23 @@ export function ActivityLogsTab() {
             </Select>
           </div>
 
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-slate-600">
+          <div className="space-y-2.5">
+            <label className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+              <Search className="h-4 w-4 text-amber-500" />
               Tìm kiếm
             </label>
-            <Input
-              placeholder="ID, mô tả hoặc người dùng..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="bg-white/60 border-white/60 focus:ring-indigo-500"
-            />
+            <div className="relative">
+              <Input
+                placeholder="ID, mô tả hoặc người dùng..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="bg-white/50 border-white/40 focus:ring-amber-500 focus:border-amber-500 shadow-sm pl-10 transition-all hover:bg-white/70"
+              />
+              <Search className="h-4 w-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            </div>
           </div>
         </div>
-      </div>
+      </GlassContainer>
 
       {isLoading ? (
         <div className="flex justify-center items-center py-12">

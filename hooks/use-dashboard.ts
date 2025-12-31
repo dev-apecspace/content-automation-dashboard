@@ -16,6 +16,7 @@ export function useRecentActivity() {
     queryKey: ["dashboard-activity"],
     queryFn: DashboardService.getRecentActivity,
     staleTime: 1000 * 30, // 30 seconds
+    refetchInterval: 60000, // 1 minute
   });
 }
 
