@@ -17,7 +17,7 @@ import {
 } from "recharts";
 import { PieChart as PieIcon, BarChart3 } from "lucide-react";
 
-const COLORS = ["#6366f1", "#ef4444", "#10b981", "#f59e0b", "#8b5cf6"];
+const COLORS = ["#3d6effff", "#ef4444", "#111413ff", "#f59e0b", "#8b5cf6"];
 
 interface PlatformPieChartProps {
   data: PlatformDistribution[];

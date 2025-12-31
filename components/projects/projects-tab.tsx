@@ -22,6 +22,7 @@ import {
   Youtube,
   User,
 } from "lucide-react";
+import { TiktokIcon } from "@/components/ui/icons/tiktok";
 import type {
   Project,
   ContentItem,
@@ -70,7 +71,7 @@ export function ProjectsTab({
       case "Youtube":
         return <Youtube className="w-3.5 h-3.5 text-red-600" />;
       case "Tiktok":
-        return <Video className="w-3.5 h-3.5 text-black" />;
+        return <TiktokIcon className="w-3.5 h-3.5 text-black" />;
       default:
         return <User className="w-3.5 h-3.5 text-slate-500" />;
     }
@@ -175,13 +176,13 @@ export function ProjectsTab({
         </div>
         {hasPermission("projects.create") && (
           <div className="flex gap-3 bg-white/40 p-1.5 rounded-xl border border-white/60 shadow-sm backdrop-blur-sm">
-          <Button
-            onClick={handleAdd}
-            className="bg-gradient-to-r from-indigo-600 to-cyan-600 hover:from-indigo-700 hover:to-cyan-700 text-white shadow-md shadow-indigo-200 border-0"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Thêm dự án
-          </Button>
+            <Button
+              onClick={handleAdd}
+              className="bg-gradient-to-r from-indigo-600 to-cyan-600 hover:from-indigo-700 hover:to-cyan-700 text-white shadow-md shadow-indigo-200 border-0"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Thêm dự án
+            </Button>
           </div>
         )}
       </div>
