@@ -1,9 +1,17 @@
-export type Platform = "Facebook Post" | "Facebook Reels" | "Youtube Shorts";
+export type Platform =
+  | "Facebook Post"
+  | "Facebook Reels"
+  | "Youtube Shorts"
+  | "Tiktok Carousel"
+  | "Tiktok Video";
 
 export const platformColors: Record<string, string> = {
   "Facebook Post": "bg-blue-500 text-blue-100 border-blue-300",
   "Facebook Reels": "bg-blue-100 text-blue-700 border-blue-300",
   "Youtube Shorts": "bg-red-500 text-white border-red-300",
+  "Tiktok Carousel": "bg-black text-white border-gray-600",
+  "Tiktok Video": "bg-black text-white border-gray-600",
+  Tiktok: "bg-black text-white border-gray-600",
 };
 
 export type AccountPlatform = "Facebook" | "Youtube" | "Tiktok";
@@ -171,7 +179,7 @@ export interface BaseContentItem {
 export interface ContentItem extends BaseContentItem {
   platform: Platform;
   contentType: string;
-  imageLink?: string;
+  imageLinks?: string[];
   editRequest?: string; // Không lưu db
   caption?: string;
 }

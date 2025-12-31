@@ -5,16 +5,10 @@ import { useState } from "react";
 import { Sidebar } from "@/components/layout/sidebar";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { Toaster } from "sonner";
-import { useFullscreen } from "@/stores/useFullscreenStore";
-import { ImageFullscreenViewer } from "@/components/shared/ImageFullScreenViewer";
-
-import { Button } from "@/components/ui/button";
-import { PanelLeft } from "lucide-react";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isDesktopOpen, setIsDesktopOpen] = useState(true);
-  const { imageSrc, close } = useFullscreen();
 
   return (
     <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
@@ -33,13 +27,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </main>
       </div>
       <Toaster />
-
-      <ImageFullscreenViewer
-        src={imageSrc || ""}
-        alt="Ảnh fullscreen"
-        isOpen={!!imageSrc}
-        onClose={close}
-      />
     </ThemeProvider>
   );
 }

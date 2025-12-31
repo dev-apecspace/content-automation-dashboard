@@ -275,7 +275,7 @@ export function Sidebar({
         variant="ghost"
         size="icon"
         className={cn(
-          "fixed z-[60] hidden lg:flex items-center justify-center transition-all duration-300 ease-in-out",
+          "fixed z-[50] hidden lg:flex items-center justify-center transition-all duration-300 ease-in-out",
           "h-8 w-8 rounded-full",
           "bg-white/10 backdrop-blur-md border border-white/20 shadow-lg", // Glassmorphism
           "text-white hover:bg-white/20 hover:text-blue-300 hover:border-blue-300/50 hover:shadow-[0_0_15px_rgba(34,211,238,0.4)]",

@@ -19,7 +19,6 @@ import { toast } from "sonner";
 import type { ContentItem } from "@/lib/types";
 import type { Status } from "@/lib/types";
 import { usePermissions } from "@/hooks/use-permissions";
-// import ImageFullScreenViewer from "@/components/shared/ImageFullScreenViewer";
 
 export default function ContentPage() {
   const [contentItems, setContentItems] = useState<ContentItem[]>([]);
@@ -72,8 +71,8 @@ export default function ContentPage() {
   };
 
   const handleViewImage = (item: ContentItem) => {
-    if (item.imageLink) {
-      window.open(item.imageLink, "_blank");
+    if (item.imageLinks && item.imageLinks.length > 0) {
+      window.open(item.imageLinks[0], "_blank");
     } else {
       toast.error("Không có link ảnh");
     }
@@ -115,7 +114,7 @@ export default function ContentPage() {
         item.idea,
         item.projectId,
         item.contentType,
-        item.imageLink || ""
+        item.imageLinks || []
       );
       setContentItems((prev) =>
         prev.map((c) => (c.id === item.id ? updated : c))
@@ -204,7 +203,7 @@ export default function ContentPage() {
           projectName: data.projectName || "",
           platform: data.platform || "Facebook Post",
           contentType: data.contentType || "",
-          imageLink: data.imageLink || null,
+          imageLinks: data.imageLinks || undefined,
           topic: data.topic || null,
           targetAudience: data.targetAudience || null,
           researchNotes: data.researchNotes || null,
@@ -256,6 +255,7 @@ export default function ContentPage() {
         onViewImage={handleViewImage}
         onViewPost={handleViewPost}
         onAdd={handleCreateClick}
+        onReload={loadContentItems}
       />
 
       <ContentFormModal

@@ -34,6 +34,7 @@ import {
   Maximize2,
   DollarSign,
   Users,
+  SquareUser,
 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { getProjects, getAIModels } from "@/lib/api";
@@ -49,7 +50,6 @@ import {
   statusConfig,
 } from "@/lib/types";
 import { calculateImageCost } from "@/lib/utils/cost";
-import { useFullscreen } from "@/stores/useFullscreenStore";
 import { uploadImageFile } from "@/app/api/cloudinary";
 import { AiRequirementDialog } from "@/components/shared/ai-requirement-dialog";
 import { getContentItemById } from "@/lib/api/content-items";
@@ -87,9 +87,6 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
   isSaving,
   isLoading,
 }) => {
-  const { open } = useFullscreen();
-
-  // ------------------- STATE -------------------
   const [projects, setProjects] = useState<Project[]>([]);
   const [modelsList, setModelsList] = useState<AIModel[]>([]);
   const [accounts, setAccounts] = useState<Account[]>([]);
@@ -99,7 +96,7 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
     projectId: "",
     platform: "Facebook Post",
     contentType: "",
-    imageLink: undefined,
+    imageLinks: undefined,
     expectedPostDate: "",
     postingTime: "",
     caption: "",
@@ -133,7 +130,8 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
 
   const isApprovalValid =
     canEditContentApprovalFields &&
-    !!formData.imageLink &&
+    !!formData.imageLinks &&
+    formData.imageLinks.length > 0 &&
     !!formData.postingTime &&
     !!formData.caption?.trim();
 
@@ -161,11 +159,11 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
   // ------------------- KHI MỞ MODAL ĐỂ EDIT -------------------
   useEffect(() => {
     if (editContent) {
-      const currentImage = editContent.imageLink;
+      const currentImage = editContent.imageLinks;
 
       setFormData({
         ...editContent,
-        imageLink: currentImage,
+        imageLinks: currentImage,
         expectedPostDate:
           editContent.postingTime && editContent.postingTime.includes("/")
             ? editContent.postingTime
@@ -182,7 +180,7 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
         projectId: "",
         platform: "Facebook Post",
         contentType: "",
-        imageLink: undefined,
+        imageLinks: undefined,
         expectedPostDate: "",
         postingTime: "",
         caption: "",
@@ -203,27 +201,44 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
     }));
   };
 
-  // ------------------- XỬ LÝ ẢNH (chỉ 1 ảnh) -------------------
+  // ------------------- XỬ LÝ ẢNH (nhiều ảnh) -------------------
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
-    const file = files[0];
-    const url = await uploadImageFile(file);
-    if (url) {
-      setFormData((prev) => ({ ...prev, imageLink: url }));
+    // Upload từng file
+    const newLinks: string[] = [];
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const url = await uploadImageFile(file);
+      if (url) newLinks.push(url);
+    }
+
+    if (newLinks.length > 0) {
+      setFormData((prev) => ({
+        ...prev,
+        imageLinks: [...(prev.imageLinks || []), ...newLinks],
+      }));
     }
   };
 
   const handleReplaceImageLink = () => {
     if (newImageLink.trim()) {
-      setFormData((prev) => ({ ...prev, imageLink: newImageLink.trim() }));
+      setFormData((prev) => ({
+        ...prev,
+        imageLinks: [...(prev.imageLinks || []), newImageLink.trim()],
+      }));
       setNewImageLink("");
     }
   };
 
-  const handleRemoveImage = () => {
-    setFormData((prev) => ({ ...prev, imageLink: undefined }));
+  const handleRemoveImage = (indexToRemove: number) => {
+    setFormData((prev) => ({
+      ...prev,
+      imageLinks: (prev.imageLinks || []).filter(
+        (_, index) => index !== indexToRemove
+      ),
+    }));
   };
 
   // ------------------- XỬ LÝ ACCOUNT SELECTION -------------------
@@ -267,7 +282,7 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
     // 2. Has Image + Has Req => Paid (Edit)
     // 3. No Image => Paid (Generate)
 
-    if (formData.imageLink && !imageEditRequest?.trim()) {
+    if (formData.imageLinks && !imageEditRequest?.trim()) {
       return {
         total: 0,
         modelName: imageModel.name,
@@ -327,7 +342,7 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
         contentType: formData.contentType,
         imageUrl:
           finalType === "edit-image" || aiPromptType === "image"
-            ? formData.imageLink
+            ? formData.imageLinks?.[0]
             : undefined,
         projectId: formData.projectId,
         id: editContent?.id,
@@ -496,11 +511,35 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
                       <Monitor className="w-4 h-4 text-blue-500" />
                       Nền tảng
                     </Label>
-                    <Input
-                      value={formData.platform}
-                      disabled
-                      className="bg-slate-50/50 border-white/60 text-slate-500 cursor-not-allowed rounded-xl h-11 shadow-sm"
-                    />
+                    <div className="relative">
+                      <Select
+                        value={formData.platform}
+                        onValueChange={(v) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            platform: v as any,
+                          }))
+                        }
+                      >
+                        <SelectTrigger className="border-white/60 bg-white/50 focus:bg-white/80 focus:ring-blue-100 rounded-xl h-11 shadow-sm">
+                          <SelectValue placeholder="Chọn nền tảng" />
+                        </SelectTrigger>
+                        <SelectContent className="rounded-xl border-white/60 bg-white/90 backdrop-blur-xl shadow-lg">
+                          <SelectItem
+                            value="Facebook Post"
+                            className="focus:bg-blue-50 cursor-pointer rounded-lg"
+                          >
+                            Facebook Post
+                          </SelectItem>
+                          <SelectItem
+                            value="Tiktok Carousel"
+                            className="focus:bg-blue-50 cursor-pointer rounded-lg"
+                          >
+                            Tiktok Carousel
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
                 </div>
 
@@ -547,18 +586,25 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
                       placeholder="Dán link ảnh..."
                       value={newImageLink}
                       onChange={(e) => {
-                        const value = e.target.value.trim();
-                        setNewImageLink(value);
-                        // Tự động cập nhật ảnh nếu link hợp lệ
-                        if (value) {
-                          setFormData((prev) => ({
-                            ...prev,
-                            imageLink: value,
-                          }));
+                        setNewImageLink(e.target.value);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          handleReplaceImageLink();
                         }
                       }}
                       className="flex-1 border-white/60 bg-white/50 focus:bg-white/80 focus:border-indigo-400 rounded-xl shadow-sm"
                     />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      onClick={handleReplaceImageLink}
+                      disabled={!newImageLink.trim()}
+                      className="text-indigo-600 hover:bg-indigo-50"
+                    >
+                      <Plus className="w-4 h-4" />
+                    </Button>
                     <label>
                       <Button
                         type="button"
@@ -574,29 +620,46 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
                         id="file-upload-idea"
                         type="file"
                         accept="image/*"
+                        multiple
                         onChange={handleImageUpload}
                         className="hidden"
                       />
                     </label>
                   </div>
 
-                  {/* Hiển thị ảnh ngay khi có link */}
-                  {formData.imageLink && (
-                    <div className="relative group inline-block rounded-xl overflow-hidden shadow-md border border-white/60">
-                      <img
-                        src={formData.imageLink}
-                        alt="Preview"
-                        className="max-h-64 object-cover"
-                      />
-                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
-                        <button
-                          onClick={handleRemoveImage}
-                          className="p-3 bg-white/20 backdrop-blur-md border border-white/50 text-red-500 rounded-full hover:bg-white/40 transition-colors"
-                          title="Xóa"
+                  {/* Hiển thị danh sách ảnh */}
+                  {formData.imageLinks && formData.imageLinks.length > 0 && (
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-2">
+                      {formData.imageLinks.map((link, index) => (
+                        <div
+                          key={index}
+                          className="relative group rounded-xl overflow-hidden shadow-md border border-white/60 aspect-video bg-slate-100"
                         >
-                          <X className="w-5 h-5" />
-                        </button>
-                      </div>
+                          <img
+                            src={link}
+                            alt={`Preview ${index + 1}`}
+                            className="w-full h-full object-cover"
+                          />
+                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                            <a
+                              href={link}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="p-2 bg-white/20 backdrop-blur-md border border-white/50 text-white rounded-full hover:bg-white/40 transition-colors"
+                            >
+                              <Maximize2 className="w-4 h-4" />
+                            </a>
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveImage(index)}
+                              className="p-2 bg-white/20 backdrop-blur-md border border-white/50 text-red-500 rounded-full hover:bg-white/40 transition-colors"
+                              title="Xóa"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   )}
 
@@ -608,8 +671,8 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
                     </Label>
                     <Textarea
                       placeholder={
-                        formData.imageLink
-                          ? "Nhập yêu cầu chỉnh sửa ảnh này (VD: Xóa phông, đổi màu áo...)"
+                        formData.imageLinks && formData.imageLinks.length > 0
+                          ? "Nhập yêu cầu chỉnh sửa các ảnh này (VD: Xóa phông, đổi màu áo...)"
                           : "Mô tả ảnh bạn muốn tạo..."
                       }
                       value={imageEditRequest}
@@ -712,7 +775,7 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
                   {/* Tài khoản sẽ đăng */}
                   <div className="mt-6 border-b border-slate-200/50">
                     <Label className="flex items-center gap-2 text-base font-semibold text-slate-700 mb-3">
-                      <Users className="w-4 h-4 text-green-600" />
+                      <SquareUser className="w-4 h-4 text-green-600" />
                       Tài khoản sẽ đăng
                     </Label>
 
@@ -779,7 +842,7 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
                   <Label className="flex items-center justify-between text-base font-semibold text-slate-700">
                     <div className="flex items-center gap-2">
                       <Image className="w-4 h-4 text-emerald-600" />
-                      Ảnh bài đăng <span className="text-red-500">*</span>
+                      Ảnh bài đăng
                     </div>
                     {estimatedCost && estimatedCost.total > 0 && (
                       <div className="text-sm font-medium text-gray-700 px-3 flex items-center gap-1.5 bg-white/50 rounded-lg border border-white/60 py-1">
@@ -799,19 +862,27 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
                   <div className="flex gap-3">
                     <Input
                       placeholder="Dán link ảnh..."
-                      value={newImageLink || formData.imageLink}
+                      value={newImageLink}
                       onChange={(e) => {
-                        const value = e.target.value.trim();
-                        setNewImageLink(value);
-                        if (value) {
-                          setFormData((prev) => ({
-                            ...prev,
-                            imageLink: value,
-                          }));
+                        setNewImageLink(e.target.value);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          handleReplaceImageLink();
                         }
                       }}
                       className="flex-1 border-white/60 bg-white/50 focus:bg-white/80 focus:border-emerald-500 rounded-xl shadow-sm"
                     />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      onClick={handleReplaceImageLink}
+                      disabled={!newImageLink.trim()}
+                      className="text-indigo-600 hover:bg-indigo-50"
+                    >
+                      <Plus className="w-4 h-4" />
+                    </Button>
                     <label>
                       <Button
                         type="button"
@@ -829,6 +900,7 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
                         id="file-upload-approval"
                         type="file"
                         accept="image/*"
+                        multiple
                         onChange={handleImageUpload}
                         className="hidden"
                       />
@@ -836,29 +908,36 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
                   </div>
 
                   {/* Hiển thị ảnh ngay lập tức */}
-                  {formData.imageLink && (
-                    <div className="relative group inline-block rounded-xl overflow-hidden shadow-lg border border-white/60">
-                      <img
-                        src={formData.imageLink}
-                        alt="Ảnh đăng"
-                        className="max-h-96 object-cover"
-                      />
-                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
-                        <button
-                          onClick={() => handleEditWithAI("image")}
-                          className="p-3 bg-white/20 backdrop-blur-md border border-white/50 text-white rounded-full hover:bg-white/40 transition-colors"
-                          title="AI chỉnh sửa"
+                  {formData.imageLinks && formData.imageLinks.length > 0 && (
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                      {formData.imageLinks.map((link, index) => (
+                        <div
+                          key={index}
+                          className="relative group rounded-xl overflow-hidden shadow-lg border border-white/60 aspect-video"
                         >
-                          <Sparkles className="w-5 h-5" />
-                        </button>
-                        <button
-                          onClick={handleRemoveImage}
-                          className="p-3 bg-white/20 backdrop-blur-md border border-white/50 text-red-500 rounded-full hover:bg-white/40 transition-colors"
-                          title="Xóa"
-                        >
-                          <X className="w-5 h-5" />
-                        </button>
-                      </div>
+                          <img
+                            src={link}
+                            alt={`Ảnh đăng ${index + 1}`}
+                            className="w-full h-full object-cover"
+                          />
+                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
+                            <button
+                              onClick={() => handleEditWithAI("image")} // AI edit might need to know WHICH image. For now, opens generic dialog.
+                              className="p-2 bg-white/20 backdrop-blur-md border border-white/50 text-white rounded-full hover:bg-white/40 transition-colors"
+                              title="AI chỉnh sửa"
+                            >
+                              <Sparkles className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => handleRemoveImage(index)}
+                              className="p-2 bg-white/20 backdrop-blur-md border border-white/50 text-red-500 rounded-full hover:bg-white/40 transition-colors"
+                              title="Xóa"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   )}
                 </div>
@@ -918,7 +997,7 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
         onClose={() => setAiPromptOpen(false)}
         type={aiPromptType}
         initialRequirement={aiPromptType === "image" ? imageEditRequest : ""}
-        hasImage={!!formData.imageLink}
+        hasImage={!!formData.imageLinks}
         onConfirm={handleConfirmAiEdit}
         isLoading={isAiLoading}
       />

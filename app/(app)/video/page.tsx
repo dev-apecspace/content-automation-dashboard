@@ -239,6 +239,8 @@ export default function VideoPage() {
         onApproveIdea={handleApproveIdea}
         onApproveContent={handleApproveContent}
         onAdd={handleCreateClick}
+        onReload={loadVideoItems}
+        isLoading={isLoading}
       />
 
       <VideoFormModal

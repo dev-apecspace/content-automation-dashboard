@@ -11,8 +11,12 @@ import {
   Users,
   Calendar,
   Folder,
+  Settings,
+  ShieldAlert,
+  Key,
+  Layout,
 } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow, addHours } from "date-fns";
 import { vi } from "date-fns/locale";
 
 interface ScheduleStatsGridProps {
@@ -129,6 +133,18 @@ function ActivityItem({ activity }: ActivityItemProps) {
         return <FileText className="text-blue-500" size={18} />;
       case "project":
         return <Folder className="text-green-700" size={18} />;
+      case "schedule":
+        return <Calendar className="text-cyan-600" size={18} />;
+      case "user":
+        return <Users className="text-amber-600" size={18} />;
+      case "settings":
+        return <Settings className="text-gray-600" size={18} />;
+      case "auth":
+        return <Key className="text-violet-600" size={18} />;
+      case "page":
+        return <Layout className="text-indigo-600" size={18} />;
+      case "security":
+        return <ShieldAlert className="text-red-600" size={18} />;
       default:
         return <AlertCircle className="text-slate-400" size={18} />;
     }
@@ -145,7 +161,7 @@ function ActivityItem({ activity }: ActivityItemProps) {
         </p>
         <div className="flex items-center text-xs text-slate-500">
           <span>
-            {formatDistanceToNow(new Date(activity.created_at), {
+            {formatDistanceToNow(addHours(new Date(activity.created_at), 7), {
               addSuffix: true,
               locale: vi,
             })}

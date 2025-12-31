@@ -95,7 +95,7 @@ export async function createContentItem(
     project_name: content.projectName,
     platform: content.platform,
     content_type: content.contentType,
-    image_link: content.imageLink,
+    image_links: content.imageLinks,
     topic: content.topic,
     target_audience: content.targetAudience,
     research_notes: content.researchNotes,
@@ -154,7 +154,7 @@ export async function updateContentItem(
   if (updates.platform !== undefined) dbData.platform = updates.platform;
   if (updates.contentType !== undefined)
     dbData.content_type = updates.contentType;
-  if (updates.imageLink !== undefined) dbData.image_link = updates.imageLink;
+  if (updates.imageLinks !== undefined) dbData.image_links = updates.imageLinks;
   if (updates.topic !== undefined) dbData.topic = updates.topic;
   if (updates.targetAudience !== undefined)
     dbData.target_audience = updates.targetAudience;
@@ -186,7 +186,7 @@ export async function updateContentItem(
       userId: user.userId,
       oldValues: oldData,
       newValues: dbData,
-      description: `Cập nhật nội dung ${id}`,
+      description: `Cập nhật nội dung ${oldData.idea}`,
     });
   }
 
@@ -262,7 +262,7 @@ export async function approveIdea(
   idea: string,
   projectId: string,
   contentType: string,
-  imageLink: string
+  imageLinks: string[]
 ): Promise<ContentItem> {
   await requirePermission("content.approve");
 
@@ -306,7 +306,7 @@ export async function approveIdea(
           idea,
           projectId,
           contentType,
-          imageLink,
+          imageLinks,
         },
       }),
     }).catch((webhookError) => {

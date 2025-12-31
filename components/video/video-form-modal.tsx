@@ -33,6 +33,7 @@ import {
   CheckCircle,
   Sparkles,
   DollarSign,
+  SquareUser,
 } from "lucide-react";
 import { getProjects, getAIModels } from "@/lib/api";
 import { VideoItem, Project, AIModel } from "@/lib/types";
@@ -231,6 +232,7 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
   ): AccountPlatform | null => {
     if (videoPlatform === "Facebook Reels") return "Facebook";
     if (videoPlatform === "Youtube Shorts") return "Youtube";
+    if (videoPlatform === "Tiktok Video") return "Tiktok";
     return null;
   };
 
@@ -500,26 +502,28 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
                   Nền tảng <span className="text-red-500">*</span>
                 </Label>
                 <div className="flex flex-wrap gap-4 p-4 border border-white/60 bg-white/40 backdrop-blur-md rounded-2xl shadow-sm">
-                  {["Facebook Reels", "Youtube Shorts"].map((platform) => (
-                    <div key={platform} className="flex items-center gap-2">
-                      <Checkbox
-                        id={platform}
-                        checked={
-                          Array.isArray(formData.platform)
-                            ? formData.platform.includes(platform as any)
-                            : false
-                        }
-                        onCheckedChange={() => handlePlatformToggle(platform)}
-                        className="data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600 border-slate-300"
-                      />
-                      <label
-                        htmlFor={platform}
-                        className="text-sm font-medium cursor-pointer text-slate-700"
-                      >
-                        {platform}
-                      </label>
-                    </div>
-                  ))}
+                  {["Facebook Reels", "Youtube Shorts", "Tiktok Video"].map(
+                    (platform) => (
+                      <div key={platform} className="flex items-center gap-2">
+                        <Checkbox
+                          id={platform}
+                          checked={
+                            Array.isArray(formData.platform)
+                              ? formData.platform.includes(platform as any)
+                              : false
+                          }
+                          onCheckedChange={() => handlePlatformToggle(platform)}
+                          className="data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600 border-slate-300"
+                        />
+                        <label
+                          htmlFor={platform}
+                          className="text-sm font-medium cursor-pointer text-slate-700"
+                        >
+                          {platform}
+                        </label>
+                      </div>
+                    )
+                  )}
                 </div>
               </div>
 
@@ -766,7 +770,7 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
 
               <div className="bg-white/40 backdrop-blur-md border border-white/60 rounded-2xl shadow-sm p-6 hover:bg-white/60 transition-all duration-300">
                 <Label className="flex items-center gap-2 text-base font-semibold text-slate-700 mb-4">
-                  <CheckCircle className="w-4 h-4 text-green-600" />
+                  <SquareUser className="w-4 h-4 text-green-600" />
                   Tài khoản sẽ đăng
                 </Label>
 

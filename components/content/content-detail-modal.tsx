@@ -31,6 +31,8 @@ import {
   RefreshCw,
   Trash2,
   DollarSign,
+  Maximize2,
+  SquareUser,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -56,7 +58,9 @@ import {
   getAIModels,
   getProjects,
   getCostLogsByItem,
+  getAllUsers,
 } from "@/lib/api";
+import type { User as UserType } from "@/lib/api/users";
 import {
   calculateImageCost,
   calculateTotalCostFromLogs,
@@ -92,6 +96,7 @@ export function ContentDetailModal({
   const [costLogs, setCostLogs] = useState<CostLog[]>([]);
   const [projectList, setProjectList] = useState<Project[]>([]);
   const [allAccounts, setAllAccounts] = useState<Account[]>([]);
+  const [userList, setUserList] = useState<UserType[]>([]);
 
   useEffect(() => {
     setCurrentItem(content ?? item ?? null);
@@ -134,6 +139,19 @@ export function ContentDetailModal({
       }
     }
     fetchProjects();
+  }, [isOpen]);
+
+  // Load Users
+  useEffect(() => {
+    async function fetchUsers() {
+      try {
+        const users = await getAllUsers();
+        setUserList(users);
+      } catch (error) {
+        console.error("Error loading users:", error);
+      }
+    }
+    fetchUsers();
   }, [isOpen]);
 
   // Load Cost Logs
@@ -228,7 +246,7 @@ export function ContentDetailModal({
     if (!currentItem) return null;
 
     // Check if there is an image to calculate cost for
-    if (!currentItem.imageLink) return null;
+    if (!currentItem.imageLinks) return null;
 
     // Use Cost Logs if available
     if (costLogs.length > 0) {
@@ -241,7 +259,7 @@ export function ContentDetailModal({
     }
 
     // Else if image exists but no logs => "Available" (Cost = 0 or specific flag)
-    if (currentItem.imageLink) {
+    if (currentItem.imageLinks && currentItem.imageLinks.length > 0) {
       // User requested: "không có thì hiển thị text ảnh/video có sẵn"
       // Return a flag to show text instead of price
       return {
@@ -388,7 +406,7 @@ export function ContentDetailModal({
                 {/* --- Accounts Display --- */}
                 <div className="flex items-start gap-4 mb-6">
                   <div className="p-2 rounded-full bg-white/60 shadow-sm text-green-600 mt-1">
-                    <User className="h-5 w-5" />
+                    <SquareUser className="h-5 w-5" />
                   </div>
                   <div>
                     <h4 className={glassLabelClass}>Tài khoản sẽ đăng</h4>
@@ -517,31 +535,41 @@ export function ContentDetailModal({
                   </div>
                 ) : null}
 
-                {currentItem.imageLink && (
-                  <div className="flex items-start gap-4 mb-6">
-                    <div className="p-2 rounded-full bg-white/60 shadow-sm mt-1 text-blue-600">
-                      <Link className="h-4 w-4" />
-                    </div>
-                    <div className="flex-1">
-                      <div className={cn(glassLabelClass, "mb-2")}>
-                        Ảnh đính kèm
+                {currentItem.imageLinks &&
+                  currentItem.imageLinks.length > 0 && (
+                    <div className="flex items-start gap-4 mb-6">
+                      <div className="p-2 rounded-full bg-white/60 shadow-sm mt-1 text-blue-600">
+                        <Link className="h-4 w-4" />
                       </div>
-                      <a
-                        href={currentItem.imageLink}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-600 hover:text-blue-700 hover:underline break-all text-sm mb-3 block truncate"
-                      >
-                        {currentItem.imageLink}
-                      </a>
-                      <img
-                        src={currentItem.imageLink}
-                        alt="Preview"
-                        className="max-h-[380px]"
-                      />
+                      <div className="flex-1">
+                        <div className={cn(glassLabelClass, "mb-2")}>
+                          Ảnh đính kèm
+                        </div>
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                          {currentItem.imageLinks.map((link, index) => (
+                            <div
+                              key={index}
+                              className="relative group rounded-xl overflow-hidden shadow-md border border-white/60 aspect-video bg-slate-100"
+                            >
+                              <img
+                                src={link}
+                                alt={`Attachment ${index + 1}`}
+                                className="w-full h-full object-cover"
+                              />
+                              <a
+                                href={link}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white"
+                              >
+                                <Maximize2 className="w-6 h-6" />
+                              </a>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
 
                 {/* Post URL List */}
                 <div className="flex items-start gap-4">
@@ -551,19 +579,21 @@ export function ContentDetailModal({
                   <div className="flex-1">
                     <div className="flex items-center justify-between">
                       <div className={glassLabelClass}>Bài đăng</div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={handleRefreshEngagement}
-                        className="h-6 w-6 p-0 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full cursor-pointer"
-                        title="Cập nhật tương tác"
-                      >
-                        <RefreshCw
-                          className={`h-3.5 w-3.5 ${
-                            isSpinning ? "animate-spin" : ""
-                          }`}
-                        />
-                      </Button>
+                      {currentItem.posts && currentItem.posts.length > 0 && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={handleRefreshEngagement}
+                          className="h-6 w-6 p-0 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full cursor-pointer"
+                          title="Cập nhật tương tác"
+                        >
+                          <RefreshCw
+                            className={`h-3.5 w-3.5 ${
+                              isSpinning ? "animate-spin" : ""
+                            }`}
+                          />
+                        </Button>
+                      )}
                     </div>
                     {currentItem.posts && currentItem.posts.length > 0 ? (
                       <div className="flex flex-col gap-2 mt-1">
@@ -656,7 +686,10 @@ export function ContentDetailModal({
                   <div>
                     <div className={glassLabelClass}>Người duyệt</div>
                     <div className="font-medium text-slate-900">
-                      {currentItem.approvedBy || "-"}
+                      {userList.find((u) => u.id === currentItem.approvedBy)
+                        ?.name ||
+                        currentItem.approvedBy ||
+                        "-"}
                     </div>
                   </div>
                 </div>
@@ -715,19 +748,21 @@ export function ContentDetailModal({
                       Thống kê hiệu quả
                     </span>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleRefreshEngagement}
-                    className="text-slate-600 hover:text-slate-900 hover:bg-white/50 cursor-pointer"
-                  >
-                    <RefreshCw
-                      className={`h-4 w-4 mr-2 ${
-                        isSpinning ? "animate-spin" : ""
-                      }`}
-                    />
-                    Cập nhật
-                  </Button>
+                  {currentItem.posts && currentItem.posts.length > 0 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleRefreshEngagement}
+                      className="text-slate-600 hover:text-slate-900 hover:bg-white/50 cursor-pointer"
+                    >
+                      <RefreshCw
+                        className={`h-4 w-4 mr-2 ${
+                          isSpinning ? "animate-spin" : ""
+                        }`}
+                      />
+                      Cập nhật
+                    </Button>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-3 gap-6 text-center">

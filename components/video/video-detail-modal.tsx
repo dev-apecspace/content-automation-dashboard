@@ -60,7 +60,9 @@ import {
   getAIModels,
   getProjects,
   getCostLogsByItem,
+  getAllUsers,
 } from "@/lib/api";
+import type { User as UserType } from "@/lib/api/users";
 import { triggerEngagementTracker } from "@/lib/utils/engagement";
 
 interface VideoDetailModalProps {
@@ -91,6 +93,7 @@ export function VideoDetailModal({
   const [costLogs, setCostLogs] = useState<CostLog[]>([]);
   const [projectList, setProjectList] = useState<Project[]>([]);
   const [allAccounts, setAllAccounts] = useState<Account[]>([]);
+  const [userList, setUserList] = useState<UserType[]>([]);
 
   useEffect(() => {
     setCurrentItem(content ?? item ?? null);
@@ -111,6 +114,19 @@ export function VideoDetailModal({
       }
     }
     fetchModels();
+  }, [isOpen]);
+
+  // Load Users
+  useEffect(() => {
+    async function fetchUsers() {
+      try {
+        const users = await getAllUsers();
+        setUserList(users);
+      } catch (error) {
+        console.error("Error loading users:", error);
+      }
+    }
+    fetchUsers();
   }, [isOpen]);
 
   // Load Projects
@@ -177,7 +193,7 @@ export function VideoDetailModal({
   };
 
   const handleRemovePost = async (post: Post) => {
-    confirm("Bạn có chắc chắn muốn xóa bài đăng này?")
+    confirm("Bạn có chắc chắn muốn xóa bài đăng này?");
     setIsLoading(true);
     try {
       const response = await fetch("/api/webhook/remove-post", {
@@ -595,19 +611,21 @@ export function VideoDetailModal({
                   <div className="flex-1">
                     <div className="flex items-center justify-between">
                       <div className={glassLabelClass}>Bài đăng</div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={handleRefreshEngagement}
-                        className="h-6 w-6 p-0 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full"
-                        title="Cập nhật tương tác"
-                      >
-                        <RefreshCw
-                          className={`h-3.5 w-3.5 ${
-                            isSpinning ? "animate-spin" : ""
-                          }`}
-                        />
-                      </Button>
+                      {currentItem.posts && currentItem.posts.length > 0 && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={handleRefreshEngagement}
+                          className="h-6 w-6 p-0 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full"
+                          title="Cập nhật tương tác"
+                        >
+                          <RefreshCw
+                            className={`h-3.5 w-3.5 ${
+                              isSpinning ? "animate-spin" : ""
+                            }`}
+                          />
+                        </Button>
+                      )}
                     </div>
                     {currentItem.posts && currentItem.posts.length > 0 ? (
                       <div className="flex flex-col gap-2 mt-1">
@@ -701,7 +719,10 @@ export function VideoDetailModal({
                   <div>
                     <div className={glassLabelClass}>Người duyệt</div>
                     <div className="font-medium text-slate-900">
-                      {currentItem.approvedBy || "-"}
+                      {userList.find((u) => u.id === currentItem.approvedBy)
+                        ?.name ||
+                        currentItem.approvedBy ||
+                        "-"}
                     </div>
                   </div>
                 </div>
@@ -760,19 +781,21 @@ export function VideoDetailModal({
                       Thống kê hiệu quả
                     </span>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleRefreshEngagement}
-                    className="text-slate-600 hover:text-slate-900 hover:bg-white/50 cursor-pointer"
-                  >
-                    <RefreshCw
-                      className={`h-4 w-4 mr-2 ${
-                        isSpinning ? "animate-spin" : ""
-                      }`}
-                    />
-                    Cập nhật
-                  </Button>
+                  {currentItem.posts && currentItem.posts.length > 0 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleRefreshEngagement}
+                      className="text-slate-600 hover:text-slate-900 hover:bg-white/50 cursor-pointer"
+                    >
+                      <RefreshCw
+                        className={`h-4 w-4 mr-2 ${
+                          isSpinning ? "animate-spin" : ""
+                        }`}
+                      />
+                      Cập nhật
+                    </Button>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-4 gap-4 text-center">

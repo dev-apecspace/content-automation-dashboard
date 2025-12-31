@@ -19,6 +19,7 @@ import {
   ExternalLink,
   CheckCircle,
   X,
+  RefreshCw,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ContentItem, Project } from "@/lib/types";
@@ -43,6 +44,7 @@ interface ContentTableProps {
   onFilterChange: (status: Status | "all") => void;
   filterProject: string;
   onProjectFilterChange: (projectId: string) => void;
+  onReload?: () => void;
 }
 
 export function ContentTable({
@@ -59,6 +61,8 @@ export function ContentTable({
   onFilterChange,
   filterProject,
   onProjectFilterChange,
+  onReload,
+  isLoading,
 }: ContentTableProps) {
   const allStatuses: Status[] = Object.keys(statusConfig) as Status[];
   const [projects, setProjects] = useState<Project[]>([]);
@@ -79,7 +83,7 @@ export function ContentTable({
 
   const triggerAiSearchIdeas = async () => {
     if (!confirm("Bạn có chắc chắn muốn gọi AI tạo ý tưởng?")) return;
-    
+
     setLoading(true);
     try {
       const res = await fetch("/api/webhook/ai-search-ideas", {
@@ -164,6 +168,23 @@ export function ContentTable({
               }`}
             >
               {loading ? <>✨ Đang tạo...</> : <>✨ AI tạo ý tưởng</>}
+            </Button>
+          )}
+          {onReload && (
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={onReload}
+              className="bg-white/40 p-1.5 rounded-lg border border-white/60 shadow-sm backdrop-blur-sm cursor-pointer"
+              title="Làm mới"
+              disabled={isLoading}
+            >
+              <RefreshCw
+                className={cn(
+                  "h-4 w-4 text-slate-600",
+                  isLoading && "animate-spin"
+                )}
+              />
             </Button>
           )}
         </div>
@@ -332,17 +353,23 @@ export function ContentTable({
                           )}
 
                         {/* Xem ảnh */}
-                        {item.imageLink &&
+                        {item.imageLinks &&
+                          item.imageLinks.length > 0 &&
                           (!item.posts || item.posts.length === 0) &&
                           onViewImage && (
                             <Button
                               variant="ghost"
                               size="icon"
                               onClick={() => onViewImage(item)}
-                              title="Xem ảnh"
-                              className="hover:bg-white/60 hover:text-indigo-600"
+                              title={`Xem ${item.imageLinks.length} ảnh`}
+                              className="hover:bg-white/60 hover:text-indigo-600 w-auto px-2"
                             >
                               <Image className="h-4 w-4" />
+                              {item.imageLinks.length > 1 && (
+                                <span className="ml-1 text-[10px] font-bold">
+                                  {item.imageLinks.length}
+                                </span>
+                              )}
                             </Button>
                           )}
 
