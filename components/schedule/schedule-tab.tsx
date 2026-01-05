@@ -1024,6 +1024,10 @@ export function ScheduleTab({
         onSave={handleSaveVideo}
         editVideo={editVideo}
         isSaving={isSaving}
+        onViewDetail={(item) => {
+          setIsVideoFormOpen(false);
+          setSelectedVideo(item);
+        }}
       />
     </div>
   );

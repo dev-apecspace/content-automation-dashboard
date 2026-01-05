@@ -68,7 +68,7 @@ export const AiRequirementDialog: React.FC<AiRequirementDialogProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-lg bg-white/80 backdrop-blur-2xl border-white/60 shadow-2xl rounded-[32px] p-0 overflow-hidden">
+      <DialogContent className="max-w-[95vw] lg:max-w-xl bg-white/80 backdrop-blur-2xl border-white/60 shadow-2xl rounded-[32px] p-0 overflow-hidden">
         {/* Decorative Background Gradient */}
         <div className="absolute inset-0 -z-10 bg-gradient-to-br from-[#FFFBEB]/40 via-[#FEF3C7]/20 to-[#FAFAF9]/40 blur-3xl pointer-events-none" />
 

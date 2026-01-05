@@ -105,13 +105,13 @@ export function FeatureCard({
   return (
     <div
       className={cn(
-        "bg-white border border-slate-200 rounded-[20px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] transition-all duration-300 overflow-hidden group",
+        "bg-white border border-slate-200 rounded-[20px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] transition-all duration-300 overflow-hidden group border-b-3 border-slate-300",
         theme.hoverShadow,
         className
       )}
       {...props}
     >
-      <div className="px-6 py-3 border-b border-slate-100 flex items-center justify-between gap-3 bg-blue-50">
+      <div className="px-6 py-3 border-b border-slate-300 flex items-center justify-between gap-3 bg-blue-50">
         <div className="flex items-center gap-3">
           <div
             className={cn(

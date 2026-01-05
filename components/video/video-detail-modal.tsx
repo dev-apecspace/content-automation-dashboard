@@ -9,8 +9,6 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   CheckCircle,
   Edit2,
@@ -33,8 +31,15 @@ import {
   ThumbsUp,
   Share2,
   DollarSign,
+  Maximize2,
+  SquareUser,
+  Image as ImageIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { FeatureCard } from "@/components/ui/feature-card";
+import { InfoCard } from "@/components/ui/info-card";
+import { SectionLabel } from "@/components/ui/section-label";
+import { BackgroundStyle } from "@/components/ui/background-style";
 import {
   platformColors,
   statusConfig,
@@ -265,22 +270,10 @@ export function VideoDetailModal({
 
   const estimatedCost = calculateEstimatedCost();
 
-  // Glassmorphism helper classes (Light Mode)
-  const glassCardClass =
-    "bg-white/40 backdrop-blur-md border border-white/60 rounded-2xl shadow-sm hover:bg-white/60 transition-all duration-300";
-  const glassTextClass = "text-slate-900";
-  const glassTextMutedClass = "text-slate-600";
-  const glassLabelClass =
-    "text-slate-500 text-xs uppercase tracking-wider font-semibold";
-
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange || onClose}>
-      <DialogContent
-        className="max-w-5xl max-h-[90vh] overflow-y-auto bg-white/80 backdrop-blur-2xl border-white/60 shadow-2xl rounded-[32px] p-0 sm:max-w-5xl [&>button]:text-slate-600 [&>button]:hover:text-slate-900"
-        showCloseButton={true}
-      >
-        {/* Vibrant Gradient Background Layer */}
-        <div className="absolute inset-0 -z-10 bg-gradient-to-br from-[#a8c0ff]/40 via-[#3f2b96]/10 to-[#ffafbd]/40 blur-3xl pointer-events-none" />
+      <DialogContent className="" showCloseButton={true}>
+        <BackgroundStyle />
 
         <div className="p-8 relative z-10">
           <DialogHeader className="space-y-6">
@@ -288,12 +281,12 @@ export function VideoDetailModal({
               {currentItem.idea}
             </DialogTitle>
             <div className="space-y-3">
-              {/* Các badge */}
+              {/* Badges */}
               <div className="flex flex-wrap items-center gap-3">
                 <Badge
                   variant="outline"
                   className={cn(
-                    "border-slate-200/60 bg-white/50 text-slate-700 backdrop-blur-sm px-3 py-1",
+                    "border-slate-200 bg-white text-slate-700 px-3 py-1",
                     statusConfig[currentItem.status].className
                   )}
                 >
@@ -302,11 +295,15 @@ export function VideoDetailModal({
                 <Badge
                   variant="outline"
                   style={{
-                    backgroundColor: `${project?.color}15`,
-                    borderColor: `${project?.color}40`,
+                    backgroundColor: project?.color
+                      ? `${project.color}15`
+                      : undefined,
                     color: project?.color,
+                    borderColor: project?.color
+                      ? `${project.color}40`
+                      : undefined,
                   }}
-                  className="backdrop-blur-sm shadow-sm px-3 py-1"
+                  className="backdrop-blur-sm px-3 py-1"
                 >
                   {currentItem.projectName}
                 </Badge>
@@ -316,7 +313,11 @@ export function VideoDetailModal({
                       <Badge
                         key={p}
                         variant="outline"
-                        className={`border-slate-200/60 bg-white/50 text-slate-700 backdrop-blur-sm px-3 py-1 flex items-center gap-1 ${platformColors[p]}`}
+                        className={cn(
+                          "backdrop-blur-sm px-3 py-1 flex items-center gap-1",
+                          platformColors[p] ||
+                            "bg-slate-50 text-slate-700 border-slate-200"
+                        )}
                       >
                         {p}
                       </Badge>
@@ -327,54 +328,47 @@ export function VideoDetailModal({
             </div>
           </DialogHeader>
 
-          <Tabs defaultValue="info" className="w-full mt-8">
-            <TabsList className="bg-slate-100/50 border border-white/50 p-1 rounded-xl w-full max-w-md mx-auto grid grid-cols-3 mb-3 shadow-inner">
-              <TabsTrigger
-                value="info"
-                className="data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm text-slate-500 rounded-lg transition-all"
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mt-8">
+            {/* Left Column (Metadata, AI, Stats, Posts) */}
+            <div className="lg:col-span-5 space-y-6">
+              {/* General Info */}
+              <FeatureCard
+                title="Thông tin chung"
+                icon={Target}
+                colorTheme="blue"
               >
-                Thông tin
-              </TabsTrigger>
-              <TabsTrigger
-                value="interaction"
-                className="data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm text-slate-500 rounded-lg transition-all"
-              >
-                Thống kê
-              </TabsTrigger>
-              <TabsTrigger
-                value="ai"
-                className="data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm text-slate-500 rounded-lg transition-all"
-              >
-                AI phân tích
-              </TabsTrigger>
-            </TabsList>
-
-            {/* Tab 1: Thông tin */}
-            <TabsContent
-              value="info"
-              className="space-y-6 focus-visible:outline-none"
-            >
-              <div className={cn(glassCardClass, "p-6")}>
-                {/* Thời gian đăng */}
-                <div className="flex items-center gap-4 mb-6">
-                  <div className="p-2 rounded-full bg-white/60 shadow-sm text-blue-600">
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="p-2 rounded-full bg-blue-50 shadow-sm text-blue-600">
                     <Clock className="h-5 w-5" />
                   </div>
                   <div>
-                    <p className={glassLabelClass}>Thời gian đăng</p>
-                    <p className="text-lg font-medium text-slate-900">
+                    <SectionLabel>Thời gian đăng</SectionLabel>
+                    <p className="text-md font-medium text-slate-900">
                       {currentItem.postingTime || "-"}
                     </p>
                   </div>
                 </div>
 
-                {/* --- Accounts Display --- */}
-                <div className="flex items-start gap-4 mb-6">
-                  <div className="p-2 rounded-full bg-white/60 shadow-sm text-green-600 mt-1">
-                    <User className="h-5 w-5" />
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="p-2 rounded-full bg-amber-50 shadow-sm text-amber-600">
+                    <Clock className="h-5 w-5" />
                   </div>
                   <div>
-                    <h4 className={glassLabelClass}>Tài khoản sẽ đăng</h4>
+                    <SectionLabel>Thời lượng</SectionLabel>
+                    <div className="inline-flex items-center px-2.5 py-1 rounded-md bg-white text-slate-700 border border-slate-200 text-sm font-medium shadow-sm">
+                      {currentItem.videoDuration
+                        ? `${currentItem.videoDuration}s`
+                        : "-"}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-4 mb-4">
+                  <div className="p-2 rounded-full bg-green-50 shadow-sm text-green-600 mt-1">
+                    <SquareUser className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <SectionLabel>Tài khoản sẽ đăng</SectionLabel>
                     {currentItem.accountIds &&
                     currentItem.accountIds.length > 0 ? (
                       <div className="flex flex-wrap gap-2 mt-1">
@@ -388,14 +382,14 @@ export function VideoDetailModal({
                               variant="outline"
                               size="sm"
                               className={`
-                                h-auto py-1.5 px-3 text-sm font-medium rounded-lg border shadow-sm transition-all
-                                ${
-                                  acc.channelLink
-                                    ? "cursor-pointer hover:-translate-y-0.5"
-                                    : "cursor-default"
-                                }
-                                bg-green-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 hover:border-emerald-300
-                              `}
+                                                  h-auto py-1.5 px-3 text-sm font-medium rounded-lg border shadow-sm transition-all
+                                                  ${
+                                                    acc.channelLink
+                                                      ? "cursor-pointer hover:-translate-y-0.5"
+                                                      : "cursor-default"
+                                                  }
+                                                  bg-green-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 hover:border-emerald-300
+                                              `}
                               onClick={() => {
                                 if (acc.channelLink) {
                                   window.open(acc.channelLink, "_blank");
@@ -420,519 +414,526 @@ export function VideoDetailModal({
                   </div>
                 </div>
 
-                {/* Tiêu đề & Thời lượng */}
-                <div className="flex items-start gap-4 mb-6">
-                  <div className="p-2 rounded-full bg-white/60 shadow-sm text-blue-600">
-                    <Film className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <div className={glassLabelClass}>Tiêu đề</div>
-                    <p className="font-medium text-slate-900 text-lg">
-                      {currentItem.title || "-"}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Caption */}
-                <div className="mb-6">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="p-2 rounded-full bg-white/60 shadow-sm text-blue-600">
-                      <Captions className="h-5 w-5" />
-                    </div>
-                    <h4 className="font-semibold text-slate-900">Caption</h4>
-                  </div>
-                  <div className="bg-white/50 rounded-xl p-4 border border-white/60 shadow-inner">
-                    <p className="text-slate-700 whitespace-pre-wrap leading-relaxed">
-                      {currentItem.caption || "Chưa có caption"}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-4 mb-6">
-                  <div className="p-2 rounded-full bg-white/60 shadow-sm text-blue-600">
-                    <Clock className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <div className={glassLabelClass}>Thời lượng</div>
-                    <div className="inline-flex items-center px-2.5 py-1 rounded-md bg-white/50 text-slate-700 border border-white/60 text-sm font-medium shadow-sm">
-                      {currentItem.videoDuration
-                        ? `${currentItem.videoDuration}s`
-                        : "-"}
-                    </div>
-                  </div>
-                </div>
-
                 {/* Cost Display */}
                 {estimatedCost && !estimatedCost.isAvailable ? (
-                  <div className="flex items-center gap-4 mb-6">
-                    <div className="p-2 rounded-full bg-white/60 shadow-sm text-emerald-600">
+                  <div className="flex items-center gap-4">
+                    <div className="p-2 rounded-full bg-emerald-50 shadow-sm text-emerald-600">
                       <DollarSign className="h-5 w-5" />
                     </div>
                     <div>
-                      <div className={glassLabelClass}>
-                        {estimatedCost.isReal ? "Chi phí" : "Chi phí"}
-                      </div>
+                      <SectionLabel>Chi phí</SectionLabel>
                       <div className="inline-flex items-center gap-2">
                         <span className="font-medium text-slate-900 text-lg">
                           ${estimatedCost.total.toFixed(3)}
                         </span>
                         <span className="text-slate-500 text-sm">
-                          (~{" "}
+                          (~
                           {(estimatedCost.total * 26000).toLocaleString(
                             "vi-VN"
-                          )}{" "}
-                          ₫ )
-                        </span>
-                        {/* Breakdown for Real Log */}
-                        {estimatedCost.isReal &&
-                          typeof estimatedCost.breakdown === "object" && (
-                            <div className="flex flex-col gap-1 mt-1 text-xs text-slate-500">
-                              {estimatedCost.breakdown.generateCost > 0 && (
-                                <div className="flex justify-between gap-4">
-                                  <span>Tạo mới:</span>
-                                  <span>
-                                    $
-                                    {estimatedCost.breakdown.generateCost.toFixed(
-                                      3
-                                    )}
-                                  </span>
-                                </div>
-                              )}
-                              {(estimatedCost.breakdown.details.video.edit >
-                                0 ||
-                                estimatedCost.breakdown.details.audio.edit >
-                                  0) && (
-                                <div className="flex justify-between gap-4">
-                                  <span>
-                                    Chỉnh sửa (
-                                    {Math.max(
-                                      estimatedCost.breakdown.details.video
-                                        .editCount,
-                                      estimatedCost.breakdown.details.audio
-                                        .editCount
-                                    )}{" "}
-                                    lần):
-                                  </span>
-                                  <span>
-                                    $
-                                    {(
-                                      estimatedCost.breakdown.details.video
-                                        .edit +
-                                      estimatedCost.breakdown.details.audio.edit
-                                    ).toFixed(3)}
-                                  </span>
-                                </div>
-                              )}
-                            </div>
                           )}
+                          đ)
+                        </span>
                       </div>
+                      {/* Breakdown for Real Log */}
+                      {estimatedCost.isReal &&
+                        typeof estimatedCost.breakdown === "object" && (
+                          <div className="flex flex-col gap-1 mt-1 text-xs text-slate-500">
+                            {estimatedCost.breakdown.generateCost > 0 && (
+                              <div className="flex justify-between gap-4">
+                                <span>Tạo mới:</span>
+                                <span>
+                                  $
+                                  {estimatedCost.breakdown.generateCost.toFixed(
+                                    3
+                                  )}
+                                </span>
+                              </div>
+                            )}
+                            {(estimatedCost.breakdown.details.video.edit > 0 ||
+                              estimatedCost.breakdown.details.audio.edit >
+                                0) && (
+                              <div className="flex justify-between gap-4">
+                                <span>
+                                  Chỉnh sửa (
+                                  {Math.max(
+                                    estimatedCost.breakdown.details.video
+                                      .editCount,
+                                    estimatedCost.breakdown.details.audio
+                                      .editCount
+                                  )}{" "}
+                                  lần):
+                                </span>
+                                <span>
+                                  $
+                                  {(
+                                    estimatedCost.breakdown.details.video.edit +
+                                    estimatedCost.breakdown.details.audio.edit
+                                  ).toFixed(3)}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        )}
                     </div>
                   </div>
                 ) : estimatedCost?.isAvailable ? (
-                  <div className="flex items-center gap-4 mb-6">
+                  <div className="flex items-center gap-4">
                     <div className="p-2 rounded-full bg-white/60 shadow-sm text-blue-600">
                       <DollarSign className="h-5 w-5" />
                     </div>
                     <div>
-                      <div className={glassLabelClass}>Chi phí</div>
+                      <SectionLabel>Chi phí</SectionLabel>
                       <div className="font-medium text-blue-700 text-lg">
                         Video có sẵn
                       </div>
                     </div>
                   </div>
                 ) : null}
+              </FeatureCard>
 
-                {currentItem.videoLink && (
-                  <div className="flex items-start gap-4 mb-6">
-                    <div className="p-2 rounded-full bg-white/60 shadow-sm text-red-500">
-                      <Play className="h-5 w-5" />
-                    </div>
-                    <div className="w-full">
-                      <div className={cn(glassLabelClass, "mb-2")}>Video</div>
-                      <div className="mb-2">
-                        <a
-                          href={currentItem.videoLink}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-sm text-blue-600 hover:underline hover:text-blue-700 break-all"
+              {/* Posts List */}
+              <FeatureCard
+                title="Danh sách bài đăng"
+                icon={Globe}
+                colorTheme="indigo"
+              >
+                <div className="space-y-3">
+                  {currentItem.posts && currentItem.posts.length > 0 ? (
+                    <div className="space-y-3">
+                      {currentItem.posts.map((post) => (
+                        <div
+                          key={post.id}
+                          className="flex flex-col gap-2 p-3 rounded-xl bg-blue-50/50 border border-blue-100 transition-all hover:bg-blue-50"
                         >
-                          {currentItem.videoLink}
-                        </a>
-                      </div>
-                      <div className="bg-black/5 rounded-xl border border-black/10 overflow-hidden mt-1">
-                        <video
-                          src={currentItem.videoLink}
-                          controls
-                          className="w-full max-h-[300px] bg-black"
-                        >
-                          Trình duyệt của bạn không hỗ trợ thẻ video.
-                        </video>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Ảnh */}
-                {currentItem.imageLink && (
-                  <div className="flex items-start gap-4 mb-6">
-                    <div className="p-2 rounded-full bg-white/60 shadow-sm mt-1 text-blue-600">
-                      <Eye className="h-5 w-5" />
-                    </div>
-                    <div className="flex-1">
-                      <div className={cn(glassLabelClass, "mb-2")}>
-                        Ảnh thumbnail
-                      </div>
-                      <div className="relative group overflow-hidden rounded-xl shadow-md border border-white/60">
-                        <img
-                          src={currentItem.imageLink}
-                          alt="Preview"
-                          className="w-full object-cover max-h-[400px] transition-transform duration-500 group-hover:scale-105"
-                        />
-                        <a
-                          href={currentItem.imageLink}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center p-4"
-                        >
-                          <span className="bg-white/90 text-slate-900 px-4 py-2 rounded-full text-sm font-medium shadow-lg backdrop-blur-sm">
-                            Xem kích thước đầy đủ
-                          </span>
-                        </a>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Post URL List */}
-                <div className="flex items-start gap-4">
-                  <div className="p-2 rounded-full bg-white/60 shadow-sm text-blue-600 mt-1">
-                    <Globe className="h-5 w-5" />
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between">
-                      <div className={glassLabelClass}>Bài đăng</div>
-                      {currentItem.posts && currentItem.posts.length > 0 && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={handleRefreshEngagement}
-                          className="h-6 w-6 p-0 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full"
-                          title="Cập nhật tương tác"
-                        >
-                          <RefreshCw
-                            className={`h-3.5 w-3.5 ${
-                              isSpinning ? "animate-spin" : ""
-                            }`}
-                          />
-                        </Button>
-                      )}
-                    </div>
-                    {currentItem.posts && currentItem.posts.length > 0 ? (
-                      <div className="flex flex-col gap-2 mt-1">
-                        {currentItem.posts.map((post) => (
-                          <div
-                            key={post.id}
-                            className="flex flex-col gap-1 p-2 rounded-lg bg-blue-50/50 border border-blue-100"
-                          >
-                            <div className="flex items-center justify-between gap-2">
-                              {(() => {
-                                const account = allAccounts.find(
-                                  (a) => a.id === post.accountId
-                                );
-                                return (
-                                  <span className="font-semibold text-xs text-slate-800 flex-1 truncate">
-                                    {account ? (
-                                      post.postUrl ? (
-                                        <div className="flex items-center gap-2">
-                                          <a
-                                            href={post.postUrl}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className={`hover:underline flex items-center gap-1 ${
-                                              post.status === "removed"
-                                                ? "text-gray-400 line-through"
-                                                : "hover:text-blue-600"
-                                            }`}
-                                          >
-                                            {account.channelName}
-                                            <Link className="h-3 w-3 opacity-50" />
-                                          </a>
-                                          {post.status &&
-                                            post.status !== "published" && (
-                                              <span
-                                                className={`text-[10px] px-1.5 py-0.5 rounded border capitalize ${
-                                                  post.status === "removed"
-                                                    ? "bg-gray-100 text-gray-500 border-gray-200"
-                                                    : "bg-blue-50 text-blue-600 border-blue-200"
-                                                }`}
-                                              >
-                                                {post.status}
-                                              </span>
-                                            )}
-                                        </div>
-                                      ) : (
-                                        account.channelName
-                                      )
+                          <div className="flex items-center justify-between gap-2">
+                            {(() => {
+                              const account = allAccounts.find(
+                                (a) => a.id === post.accountId
+                              );
+                              return (
+                                <span className="font-semibold text-sm text-slate-900 flex-1 truncate">
+                                  {account ? (
+                                    post.postUrl ? (
+                                      <div className="flex items-center gap-2">
+                                        <a
+                                          href={post.postUrl}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className={`hover:underline flex items-center gap-1.5 ${
+                                            post.status === "removed"
+                                              ? "text-gray-400 line-through"
+                                              : "hover:text-blue-600"
+                                          }`}
+                                        >
+                                          {account.channelName}
+                                          <Link className="h-3.5 w-3.5 opacity-60" />
+                                        </a>
+                                        {post.status &&
+                                          post.status !== "published" && (
+                                            <span
+                                              className={`text-[10px] px-1.5 py-0.5 rounded border capitalize ${
+                                                post.status === "removed"
+                                                  ? "bg-gray-100 text-gray-500 border-gray-200"
+                                                  : "bg-blue-50 text-blue-600 border-blue-200"
+                                              }`}
+                                            >
+                                              {post.status}
+                                            </span>
+                                          )}
+                                      </div>
                                     ) : (
-                                      post.platform
-                                    )}
-                                  </span>
-                                );
-                              })()}
+                                      account.channelName
+                                    )
+                                  ) : (
+                                    post.platform
+                                  )}
+                                </span>
+                              );
+                            })()}
 
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-6 w-6 p-0 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-full"
-                                onClick={() => handleRemovePost(post)}
-                                title="Xóa bài đăng này"
-                              >
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </Button>
-                            </div>
-                            <div className="flex gap-2 text-[10px] text-gray-500">
-                              <span>Views: {post.views || 0}</span>
-                              <span>Likes: {post.reactions || 0}</span>
-                              <span>Cmt: {post.comments || 0}</span>
-                              <span>Share: {post.shares || 0}</span>
-                            </div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 w-7 p-0 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-full cursor-pointer"
+                              onClick={() => handleRemovePost(post)}
+                              title="Xóa bài đăng này"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
                           </div>
-                        ))}
+                          <div className="flex gap-3 text-xs text-slate-500 font-medium">
+                            <span>Views: {post.views || 0}</span>
+                            <span className="w-1 h-1 rounded-full bg-slate-300 transform translate-y-2"></span>
+                            <span>Likes: {post.reactions || 0}</span>
+                            <span className="w-1 h-1 rounded-full bg-slate-300 transform translate-y-2"></span>
+                            <span>Cmts: {post.comments || 0}</span>
+                            <span className="w-1 h-1 rounded-full bg-slate-300 transform translate-y-2"></span>
+                            <span>Shares: {post.shares || 0}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-4 text-slate-500 italic bg-slate-50/50 rounded-xl border border-dashed border-slate-200">
+                      Chưa có bài đăng nào
+                    </div>
+                  )}
+                </div>
+              </FeatureCard>
+
+              {/* Interaction & Stats */}
+              <FeatureCard
+                title="Hiệu quả"
+                icon={BarChart3}
+                colorTheme="teal"
+                action={
+                  currentItem.posts &&
+                  currentItem.posts.length > 0 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleRefreshEngagement}
+                      className="text-slate-600 hover:text-slate-900 hover:bg-slate-100 cursor-pointer h-8 px-2"
+                    >
+                      <RefreshCw
+                        className={`h-3.5 w-3.5 mr-1.5 ${
+                          isSpinning ? "animate-spin" : ""
+                        }`}
+                      />
+                      Cập nhật
+                    </Button>
+                  )
+                }
+              >
+                <div className="grid grid-cols-4 gap-3 text-center mb-4">
+                  {/* Stat Items */}
+                  {[
+                    {
+                      icon: Eye,
+                      color: "text-black-600",
+                      bg: "bg-gray-200",
+                      label: "Views",
+                      value: (items: any[]) =>
+                        items.reduce((acc, p) => acc + (p.views || 0), 0),
+                    },
+                    {
+                      icon: ThumbsUp,
+                      color: "text-blue-600",
+                      bg: "bg-blue-100",
+                      label: "Likes",
+                      value: (items: any[]) =>
+                        items.reduce((acc, p) => acc + (p.reactions || 0), 0),
+                    },
+                    {
+                      icon: MessageCircle,
+                      color: "text-green-600",
+                      bg: "bg-green-100",
+                      label: "Cmts",
+                      value: (items: any[]) =>
+                        items.reduce((acc, p) => acc + (p.comments || 0), 0),
+                    },
+                    {
+                      icon: Share2,
+                      color: "text-orange-600",
+                      bg: "bg-orange-100",
+                      label: "Shares",
+                      value: (items: any[]) =>
+                        items.reduce((acc, p) => acc + (p.shares || 0), 0),
+                    },
+                  ].map((stat, idx) => (
+                    <div
+                      key={idx}
+                      className="p-3 rounded-xl bg-slate-50 border border-slate-100 flex flex-col items-center justify-center"
+                    >
+                      <div
+                        className={`w-8 h-8 rounded-full ${stat.bg} flex items-center justify-center mb-1 ${stat.color}`}
+                      >
+                        <stat.icon className="h-4 w-4" />
                       </div>
-                    ) : (
-                      <p className="text-slate-500 italic mt-1">
-                        Chưa có bài đăng
-                      </p>
-                    )}
+                      <div className="text-lg font-bold text-slate-900">
+                        {stat.value(currentItem.posts || [])}
+                      </div>
+                      <div className="text-xs text-slate-500">{stat.label}</div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="text-center">
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100/80 text-xs text-slate-500">
+                    <Calendar className="h-3 w-3" />
+                    <span>
+                      Cập nhật:{" "}
+                      {currentItem.posts?.[0]?.statsAt
+                        ? formatDate(currentItem.posts[0].statsAt)
+                        : "Chưa có dữ liệu"}
+                    </span>
                   </div>
                 </div>
-              </div>
+              </FeatureCard>
 
-              {/* Metadata */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div
-                  className={cn(glassCardClass, "p-4 flex items-center gap-4")}
-                >
-                  <div className="p-2 rounded-full bg-white/60 shadow-sm text-slate-600">
+              {/* AI Analysis */}
+              <FeatureCard
+                title="Phân tích AI"
+                icon={BarChart3}
+                colorTheme="purple"
+              >
+                <div className="space-y-4">
+                  <div className="flex items-start gap-3">
+                    <div className="p-1.5 rounded-full bg-purple-50 shadow-sm mt-1 text-slate-600">
+                      <FileText className="h-4 w-4" />
+                    </div>
+                    <div className="flex-1">
+                      <SectionLabel className="mb-1">Chủ đề</SectionLabel>
+                      <p className="text-slate-800 text-sm leading-relaxed">
+                        {currentItem.topic || (
+                          <span className="text-slate-400 italic">
+                            Chưa xác định
+                          </span>
+                        )}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="w-full h-px bg-slate-200/50" />
+
+                  <div className="flex items-start gap-3">
+                    <div className="p-1.5 rounded-full bg-blue-50 shadow-sm mt-1 text-slate-600">
+                      <Target className="h-4 w-4" />
+                    </div>
+                    <div className="flex-1">
+                      <SectionLabel className="mb-1">
+                        Đối tượng tiếp cận
+                      </SectionLabel>
+                      <p className="text-slate-800 text-sm leading-relaxed line-clamp-4">
+                        {currentItem.targetAudience || (
+                          <span className="text-slate-400 italic">
+                            Chưa xác định
+                          </span>
+                        )}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="w-full h-px bg-slate-200/50" />
+
+                  <div className="flex items-start gap-3">
+                    <div className="p-1.5 rounded-full bg-blue-50 shadow-sm mt-1 text-slate-600">
+                      <Target className="h-4 w-4" />
+                    </div>
+                    <div className="flex-1">
+                      <SectionLabel className="mb-1">
+                        Lưu ý nghiên cứu
+                      </SectionLabel>
+                      <p className="text-slate-800 text-sm leading-relaxed line-clamp-4">
+                        {currentItem.researchNotes || (
+                          <span className="text-slate-400 italic">
+                            Chưa xác định
+                          </span>
+                        )}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </FeatureCard>
+
+              {/* System Info */}
+              <div className="grid grid-cols-2 gap-4">
+                <InfoCard className="p-4 flex items-center gap-3">
+                  <div className="p-2 rounded-full bg-slate-100 shadow-sm text-slate-600">
                     <User className="h-4 w-4" />
                   </div>
-                  <div>
-                    <div className={glassLabelClass}>Người duyệt</div>
-                    <div className="font-medium text-slate-900">
+                  <div className="overflow-hidden">
+                    <SectionLabel className="text-[10px]">
+                      Người duyệt
+                    </SectionLabel>
+                    <div className="font-medium text-slate-900 truncate text-sm">
                       {userList.find((u) => u.id === currentItem.approvedBy)
                         ?.name ||
                         currentItem.approvedBy ||
                         "-"}
                     </div>
                   </div>
-                </div>
-                <div
-                  className={cn(glassCardClass, "p-4 flex items-center gap-4")}
-                >
-                  <div className="p-2 rounded-full bg-white/60 shadow-sm text-slate-600">
+                </InfoCard>
+                <InfoCard className="p-4 flex items-center gap-3">
+                  <div className="p-2 rounded-full bg-slate-100 shadow-sm text-slate-600">
                     <Clock className="h-4 w-4" />
                   </div>
-                  <div>
-                    <div className={glassLabelClass}>Thời gian duyệt</div>
-                    <div className="font-medium text-slate-900">
+                  <div className="overflow-hidden">
+                    <SectionLabel className="text-[10px]">
+                      Thời gian duyệt
+                    </SectionLabel>
+                    <div className="font-medium text-slate-900 truncate text-sm">
                       {formatDate(currentItem.approvedAt)}
                     </div>
                   </div>
-                </div>
-                <div
-                  className={cn(glassCardClass, "p-4 flex items-center gap-4")}
-                >
-                  <div className="p-2 rounded-full bg-white/60 shadow-sm text-slate-600">
-                    <Clock className="h-4 w-4" />
+                </InfoCard>
+                <InfoCard className="p-4 flex items-center gap-3">
+                  <div className="p-2 rounded-full bg-slate-100 shadow-sm text-slate-600">
+                    <Calendar className="h-4 w-4" />
                   </div>
-                  <div>
-                    <div className={glassLabelClass}>Thời gian tạo</div>
-                    <div className="font-medium text-slate-900">
+                  <div className="overflow-hidden">
+                    <SectionLabel className="text-[10px]">
+                      Ngày tạo
+                    </SectionLabel>
+                    <div className="font-medium text-slate-900 truncate text-sm">
                       {formatDate(currentItem.createdAt)}
                     </div>
                   </div>
-                </div>
-                <div
-                  className={cn(glassCardClass, "p-4 flex items-center gap-4")}
-                >
-                  <div className="p-2 rounded-full bg-white/60 shadow-sm text-slate-600">
-                    <Clock className="h-4 w-4" />
+                </InfoCard>
+                <InfoCard className="p-4 flex items-center gap-3">
+                  <div className="p-2 rounded-full bg-slate-100 shadow-sm text-slate-600">
+                    <RefreshCw className="h-4 w-4" />
                   </div>
-                  <div>
-                    <div className={glassLabelClass}>Cập nhật cuối</div>
-                    <div className="font-medium text-slate-900">
+                  <div className="overflow-hidden">
+                    <SectionLabel className="text-[10px]">
+                      Cập nhật
+                    </SectionLabel>
+                    <div className="font-medium text-slate-900 truncate text-sm">
                       {formatDate(currentItem.updatedAt)}
                     </div>
                   </div>
-                </div>
+                </InfoCard>
               </div>
-            </TabsContent>
+            </div>
 
-            {/* Tab 2: Lượt tương tác */}
-            <TabsContent
-              value="interaction"
-              className="focus-visible:outline-none"
-            >
-              <div className={cn(glassCardClass, "p-6")}>
-                <div className="flex items-center justify-between mb-2 border-b border-slate-200/50 pb-4">
-                  <div className="flex items-center gap-3">
-                    <BarChart3 className="h-6 w-6 text-slate-800" />
-                    <span className="text-xl font-bold text-slate-900">
-                      Thống kê hiệu quả
-                    </span>
+            {/* Right Column (Caption & Video) */}
+            <div className="lg:col-span-7 space-y-6">
+              {/* Video Title - Only for Youtube Shorts */}
+              {Array.isArray(currentItem.platform) &&
+                currentItem.platform.includes("Youtube Shorts") && (
+                  <FeatureCard
+                    title="Tiêu đề Video"
+                    icon={FileText}
+                    colorTheme="rose"
+                  >
+                    <div className="bg-slate-50 rounded-xl p-4 border border-slate-200 shadow-inner">
+                      <p className="text-slate-800 text-base font-medium leading-relaxed">
+                        {currentItem.title || "Chưa có tiêu đề"}
+                      </p>
+                    </div>
+                  </FeatureCard>
+                )}
+
+              {/* Caption */}
+              <FeatureCard
+                title="Caption"
+                icon={Captions}
+                colorTheme="amber"
+                className="flex flex-col"
+              >
+                <div className="bg-slate-50 rounded-xl p-4 border border-slate-200 shadow-inner min-h-[150px]">
+                  <p className="text-slate-800 whitespace-pre-wrap leading-relaxed text-base font-normal">
+                    {currentItem.caption || "Chưa có caption"}
+                  </p>
+                </div>
+              </FeatureCard>
+
+              {/* Video Player */}
+              <FeatureCard
+                title="Video"
+                icon={Play}
+                colorTheme="rose"
+                className="flex flex-col"
+              >
+                {currentItem.videoLink ? (
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2 text-sm">
+                      <div className="p-1.5 rounded-full bg-blue-50 text-blue-600">
+                        <Link className="h-4 w-4" />
+                      </div>
+                      <a
+                        href={currentItem.videoLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:underline hover:text-blue-700 truncate flex-1"
+                      >
+                        {currentItem.videoLink}
+                      </a>
+                    </div>
+                    <div className="bg-black rounded-xl overflow-hidden shadow-lg border border-slate-200 aspect-video relative group">
+                      <video
+                        src={currentItem.videoLink}
+                        controls
+                        className="w-full h-full"
+                      >
+                        Trình duyệt của bạn không hỗ trợ thẻ video.
+                      </video>
+                    </div>
                   </div>
-                  {currentItem.posts && currentItem.posts.length > 0 && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={handleRefreshEngagement}
-                      className="text-slate-600 hover:text-slate-900 hover:bg-white/50 cursor-pointer"
+                ) : (
+                  <div className="text-center py-8 text-slate-500 italic bg-slate-50/50 rounded-xl border border-dashed border-slate-200">
+                    Chưa có video
+                  </div>
+                )}
+              </FeatureCard>
+
+              {/* Thumbnail Image */}
+              <FeatureCard
+                title="Thumbnail"
+                icon={ImageIcon}
+                colorTheme="purple"
+                className="flex flex-col"
+              >
+                {currentItem.imageLink ? (
+                  <div className="relative group rounded-xl overflow-hidden shadow-sm border border-slate-200 aspect-video bg-slate-100 hover:shadow-md transition-all max-w-md mx-auto">
+                    <img
+                      src={currentItem.imageLink}
+                      alt="Thumbnail"
+                      className="w-full h-full object-cover"
+                    />
+                    <a
+                      href={currentItem.imageLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white backdrop-blur-[2px]"
                     >
-                      <RefreshCw
-                        className={`h-4 w-4 mr-2 ${
-                          isSpinning ? "animate-spin" : ""
-                        }`}
-                      />
-                      Cập nhật
-                    </Button>
-                  )}
-                </div>
+                      <div className="bg-white/20 p-2 rounded-full backdrop-blur-md">
+                        <Maximize2 className="w-6 h-6" />
+                      </div>
+                    </a>
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-slate-500 italic bg-slate-50/50 rounded-xl border border-dashed border-slate-200">
+                    Chưa có thumbnail
+                  </div>
+                )}
+              </FeatureCard>
+            </div>
+          </div>
 
-                <div className="grid grid-cols-4 gap-4 text-center">
-                  <div className="p-6 rounded-2xl bg-white/60 border border-white/60 shadow-sm hover:shadow-md transition-all">
-                    <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-3 text-slate-600">
-                      <Eye className="h-6 w-6" />
-                    </div>
-                    <div className="text-3xl font-bold text-slate-900 mb-1">
-                      {(currentItem.posts || []).reduce(
-                        (acc, p) => acc + (p.views || 0),
-                        0
-                      )}
-                    </div>
-                    <div className="text-sm text-slate-500">Views</div>
-                  </div>
-                  <div className="p-6 rounded-2xl bg-white/60 border border-white/60 shadow-sm hover:shadow-md transition-all">
-                    <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center mx-auto mb-3 text-blue-600">
-                      <ThumbsUp className="h-6 w-6" />
-                    </div>
-                    <div className="text-3xl font-bold text-slate-900 mb-1">
-                      {(currentItem.posts || []).reduce(
-                        (acc, p) => acc + (p.reactions || 0),
-                        0
-                      )}
-                    </div>
-                    <div className="text-sm text-slate-500">Reactions</div>
-                  </div>
-                  <div className="p-6 rounded-2xl bg-white/60 border border-white/60 shadow-sm hover:shadow-md transition-all">
-                    <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-3 text-green-600">
-                      <MessageCircle className="h-6 w-6" />
-                    </div>
-                    <div className="text-3xl font-bold text-slate-900 mb-1">
-                      {(currentItem.posts || []).reduce(
-                        (acc, p) => acc + (p.comments || 0),
-                        0
-                      )}
-                    </div>
-                    <div className="text-sm text-slate-500">Comments</div>
-                  </div>
-                  <div className="p-6 rounded-2xl bg-white/60 border border-white/60 shadow-sm hover:shadow-md transition-all">
-                    <div className="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center mx-auto mb-3 text-purple-600">
-                      <Share2 className="h-6 w-6" />
-                    </div>
-                    <div className="text-3xl font-bold text-slate-900 mb-1">
-                      {(currentItem.posts || []).reduce(
-                        (acc, p) => acc + (p.shares || 0),
-                        0
-                      )}
-                    </div>
-                    <div className="text-sm text-slate-500">Shares</div>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-center gap-2 mt-8 text-slate-400 text-sm">
-                  <Calendar className="h-4 w-4" />
-                  <span>
-                    Dữ liệu cập nhật lúc:{" "}
-                    {currentItem.posts?.[0]?.statsAt
-                      ? formatDate(currentItem.posts[0].statsAt)
-                      : "Chưa có dữ liệu"}
-                  </span>
-                </div>
-              </div>
-            </TabsContent>
-
-            {/* Tab 3: AI phân tích */}
-            <TabsContent
-              value="ai"
-              className="space-y-6 focus-visible:outline-none"
-            >
-              <div className={cn(glassCardClass, "p-6 space-y-6")}>
-                <div className="flex items-start gap-4">
-                  <div className="p-2 rounded-full bg-white/60 shadow-sm mt-1 text-slate-600">
-                    <FileText className="h-5 w-5" />
-                  </div>
-                  <div className="flex-1">
-                    <h4 className={cn(glassLabelClass, "mb-1")}>Chủ đề</h4>
-                    <p className="text-slate-800 text-base leading-relaxed">
-                      {currentItem.topic || "Chưa xác định"}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="w-full h-px bg-slate-200/50" />
-
-                <div className="flex items-start gap-4">
-                  <div className="p-2 rounded-full bg-white/60 shadow-sm mt-1 text-slate-600">
-                    <Target className="h-5 w-5" />
-                  </div>
-                  <div className="flex-1">
-                    <h4 className={cn(glassLabelClass, "mb-1")}>
-                      Đối tượng tiếp cận
-                    </h4>
-                    <p className="text-slate-800 text-base leading-relaxed">
-                      {currentItem.targetAudience || "Chưa xác định"}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="w-full h-px bg-slate-200/50" />
-
-                <div className="flex items-start gap-4">
-                  <div className="p-2 rounded-full bg-white/60 shadow-sm mt-1 text-slate-600">
-                    <Notebook className="h-5 w-5" />
-                  </div>
-                  <div className="flex-1">
-                    <h4 className={cn(glassLabelClass, "mb-1")}>
-                      Lưu ý nghiên cứu
-                    </h4>
-                    <p className="text-slate-800 text-base leading-relaxed">
-                      {currentItem.researchNotes || "Chưa có ghi chú"}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </TabsContent>
-          </Tabs>
-
-          <DialogFooter className="flex flex-col sm:flex-row gap-3 mt-3 border-t border-slate-200/50 pt-6">
+          <DialogFooter className="mt-8">
             <Button
               variant="outline"
               onClick={() => onEdit?.(currentItem)}
-              className="bg-white/50 hover:bg-white/80 border-slate-200 text-slate-700 hover:text-slate-900 backdrop-blur-sm"
+              className="mr-auto bg-white hover:bg-slate-50 border-slate-200 text-slate-700 hover:text-slate-900 shadow-sm"
             >
               <Edit2 className="h-4 w-4 mr-2" />
               Chỉnh sửa
             </Button>
-            {currentItem.status === "awaiting_content_approval" && (
-              <Button
-                onClick={() => onApprove?.(currentItem)}
-                disabled={isLoading}
-                className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white border-none shadow-lg shadow-emerald-500/20"
-              >
-                <CheckCircle className="h-4 w-4 mr-2" />
-                {isLoading ? "Đang duyệt..." : "Duyệt nội dung"}
-              </Button>
-            )}
+
+            <div className="flex gap-2">
+              {currentItem.status === "idea" && (
+                <Button
+                  onClick={() => onApprove?.(currentItem)}
+                  disabled={isLoading}
+                  className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-white border-none shadow-lg shadow-cyan-500/20"
+                >
+                  <CheckCircle className="h-4 w-4 mr-2" />
+                  {isLoading ? "Đang duyệt..." : "Duyệt ý tưởng"}
+                </Button>
+              )}
+
+              {currentItem.status === "awaiting_content_approval" && (
+                <Button
+                  onClick={() => onApprove?.(currentItem)}
+                  disabled={isLoading}
+                  className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white border-none shadow-lg shadow-emerald-500/20"
+                >
+                  <CheckCircle className="h-4 w-4 mr-2" />
+                  {isLoading ? "Đang duyệt..." : "Duyệt video"}
+                </Button>
+              )}
+            </div>
           </DialogFooter>
         </div>
       </DialogContent>

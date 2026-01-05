@@ -31,6 +31,7 @@ import {
   DollarSign,
   Maximize2,
   SquareUser,
+  Image,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { FeatureCard } from "@/components/ui/feature-card";
@@ -803,7 +804,7 @@ export function ContentDetailModal({
                 title={`Ảnh đính kèm (${
                   currentItem.imageLinks?.length || 0
                 })`}
-                icon={Link}
+                icon={Image}
                 colorTheme="rose"
                 className="flex flex-col"
               >

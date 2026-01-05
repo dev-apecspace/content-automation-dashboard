@@ -771,10 +771,10 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
                 {/* 1. NỘI DUNG (IDEA / CAPTION) */}
                 <FeatureCard
                   title={
-                    canEditIdeaFields ? "Ý tưởng nội dung" : "Caption bài đăng"
+                    canEditIdeaFields ? "Ý tưởng" : "Caption"
                   }
                   icon={canEditIdeaFields ? Lightbulb : Captions}
-                  colorTheme={canEditIdeaFields ? "amber" : "indigo"}
+                  colorTheme="amber"
                   action={
                     canEditContentApprovalFields && (
                       <Button
@@ -827,9 +827,9 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
 
                 {/* 2. MEDIA (IMAGES) */}
                 <FeatureCard
-                  title="Hình ảnh"
+                  title="Ảnh đính kèm"
                   icon={Image}
-                  colorTheme="teal"
+                  colorTheme="rose"
                   action={
                     estimatedCost &&
                     estimatedCost.total > 0 && (
@@ -963,7 +963,7 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
               </div>
             </div>
 
-            <DialogFooter className="">
+            <DialogFooter className="-mx-6">
               {editContent && onViewDetail ? (
                 <Button
                   variant="ghost"

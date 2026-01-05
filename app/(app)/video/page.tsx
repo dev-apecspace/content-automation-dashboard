@@ -251,6 +251,11 @@ export default function VideoPage() {
         onApprove={handleApproveContent}
         editVideo={editVideo}
         isSaving={isSaving}
+        onViewDetail={(item) => {
+          setIsFormModalOpen(false);
+          setSelectedVideo(item);
+          setIsDetailModalOpen(true);
+        }}
       />
 
       <VideoDetailModal
