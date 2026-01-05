@@ -39,12 +39,14 @@ export async function getActivityLogs(filters?: {
   entityType?: EntityType;
   entityId?: string;
   activityType?: ActivityType;
+  startDate?: Date;
+  endDate?: Date;
   page?: number;
   pageSize?: number;
 }): Promise<{ data: ActivityLog[]; total: number }> {
   let query = supabase.from("activity_logs").select("*", { count: "exact" });
 
-  if (filters?.userId) {
+  if (filters?.userId && filters.userId !== "all") {
     query = query.eq("user_id", filters.userId);
   }
 
@@ -58,6 +60,17 @@ export async function getActivityLogs(filters?: {
 
   if (filters?.activityType) {
     query = query.eq("activity_type", filters.activityType);
+  }
+
+  if (filters?.startDate) {
+    query = query.gte("created_at", filters.startDate.toISOString());
+  }
+
+  if (filters?.endDate) {
+    // End of the day
+    const endOfDay = new Date(filters.endDate);
+    endOfDay.setHours(23, 59, 59, 999);
+    query = query.lte("created_at", endOfDay.toISOString());
   }
 
   const page = filters?.page || 1;

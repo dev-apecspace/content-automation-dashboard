@@ -5,13 +5,23 @@ import { ActivityType, EntityType } from "@/lib/types";
 interface UseActivityLogsOptions {
   activityType?: ActivityType | "all";
   entityType?: EntityType | "all";
-  userId?: string;
+  userId?: string | "all";
+  startDate?: Date;
+  endDate?: Date;
   page?: number;
   pageSize?: number;
 }
 
 export function useActivityLogs(options: UseActivityLogsOptions = {}) {
-  const { activityType, entityType, userId, page = 1, pageSize = 20 } = options;
+  const {
+    activityType,
+    entityType,
+    userId,
+    startDate,
+    endDate,
+    page = 1,
+    pageSize = 20,
+  } = options;
 
   return useQuery({
     queryKey: [
@@ -19,6 +29,8 @@ export function useActivityLogs(options: UseActivityLogsOptions = {}) {
       activityType,
       entityType,
       userId,
+      startDate,
+      endDate,
       page,
       pageSize,
     ],
@@ -26,7 +38,9 @@ export function useActivityLogs(options: UseActivityLogsOptions = {}) {
       getActivityLogs({
         activityType: activityType !== "all" ? activityType : undefined,
         entityType: entityType !== "all" ? entityType : undefined,
-        userId,
+        userId: userId !== "all" ? userId : undefined,
+        startDate,
+        endDate,
         page,
         pageSize,
       }),

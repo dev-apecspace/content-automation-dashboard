@@ -744,7 +744,7 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
 
               {/* System Info (Static) */}
               {editVideo && (
-                <div className="grid grid-cols-2 gap-4 px-8">
+                <div className="grid grid-cols-2 gap-4">
                   <InfoCard className="p-4 flex items-center gap-3">
                     <div className="p-2 rounded-full bg-slate-100 shadow-sm text-slate-600">
                       <Calendar className="h-4 w-4" />

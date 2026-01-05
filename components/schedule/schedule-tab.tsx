@@ -583,7 +583,7 @@ export function ScheduleTab({
                         <td className="p-4 text-sm text-slate-600">
                           {item.postingDays}
                         </td>
-                        <td className="p-4 text-sm font-semibold text-indigo-600 font-mono tracking-tight">
+                        <td className="p-4 text-sm font-semibold text-indigo-600 tracking-tight">
                           {item.postingTime}
                         </td>
                         <td className="p-4">
