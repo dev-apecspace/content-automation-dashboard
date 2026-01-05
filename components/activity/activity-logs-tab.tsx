@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 import { getAllUsers } from "@/lib/api";
 import { useActivityLogs } from "@/hooks/use-activity-logs";
+import { useRealtimeSubscription } from "@/hooks/use-realtime-subscription";
 import { type User as SystemUser } from "@/lib/api/users";
 import { toast } from "sonner";
 import {
@@ -52,6 +53,11 @@ export function ActivityLogsTab() {
     activityType: filterType,
     entityType: filterEntity,
     limit: 100,
+  });
+
+  // Realtime subscription
+  useRealtimeSubscription("activity_logs", () => {
+    refetch();
   });
 
   useEffect(() => {
@@ -96,9 +102,6 @@ export function ActivityLogsTab() {
             </h3>
           </div>
           <div className="flex items-center gap-2 self-end md:self-auto">
-            <span className="text-xs font-medium text-slate-500 bg-slate-100 px-2 py-1 rounded-full hidden sm:inline-block">
-              Tự động cập nhật 1 phút/lần
-            </span>
             <Button
               variant="outline"
               size="sm"

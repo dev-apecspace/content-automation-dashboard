@@ -17,6 +17,7 @@ import {
 } from "@/lib/api";
 import { toast } from "sonner";
 import type { Status, VideoItem } from "@/lib/types";
+import { useRealtimeSubscription } from "@/hooks/use-realtime-subscription";
 
 export default function VideoPage() {
   const [videoItems, setVideoItems] = useState<VideoItem[]>([]);
@@ -32,6 +33,11 @@ export default function VideoPage() {
   useEffect(() => {
     loadVideoItems();
   }, [filterStatus, filterProject]);
+
+  // Subscribe to realtime changes
+  useRealtimeSubscription("video_items", () => {
+    loadVideoItems();
+  });
 
   const loadVideoItems = async () => {
     try {

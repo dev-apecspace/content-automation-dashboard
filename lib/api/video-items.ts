@@ -197,7 +197,7 @@ export async function updateVideoItem(
       userId: user.userId,
       oldValues: oldData,
       newValues: dbData,
-      description: `Cập nhật video ${id}`,
+      description: `Cập nhật video ${oldData.idea}`,
     });
   }
 

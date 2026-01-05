@@ -19,6 +19,7 @@ import { toast } from "sonner";
 import type { ContentItem } from "@/lib/types";
 import type { Status } from "@/lib/types";
 import { usePermissions } from "@/hooks/use-permissions";
+import { useRealtimeSubscription } from "@/hooks/use-realtime-subscription";
 
 export default function ContentPage() {
   const [contentItems, setContentItems] = useState<ContentItem[]>([]);
@@ -37,6 +38,11 @@ export default function ContentPage() {
   useEffect(() => {
     loadContentItems();
   }, [filterStatus, filterProject]);
+
+  // Subscribe to realtime changes
+  useRealtimeSubscription("content_items", () => {
+    loadContentItems();
+  });
 
   const loadContentItems = async () => {
     try {

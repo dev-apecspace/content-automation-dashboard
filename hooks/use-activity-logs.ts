@@ -30,7 +30,6 @@ export function useActivityLogs(options: UseActivityLogsOptions = {}) {
         limit,
         offset,
       }),
-    refetchInterval: 60000, // 1 minute
     staleTime: 1000 * 30, // 30 seconds
   });
 }
