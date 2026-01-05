@@ -81,7 +81,7 @@ export async function createSchedule(
     await createActivityLog("create", "schedule", data.id, {
       userId: user.userId,
       newValues: data,
-      description: `Tạo lịch ${data.id}`,
+      description: `Tạo lịch đăng cho dự án ${data.project_name} trên ${data.platform} (${data.frequency})`,
     });
   }
 
@@ -120,7 +120,7 @@ export async function updateSchedule(
       userId: user.userId,
       oldValues: oldData,
       newValues: updates,
-      description: `Cập nhật lịch ${id}`,
+      description: `Cập nhật lịch đăng dự án ${oldData.project_name} trên ${oldData.platform}`,
     });
   }
 
@@ -129,6 +129,13 @@ export async function updateSchedule(
 
 export async function deleteSchedule(id: string): Promise<void> {
   await requirePermission("schedules.delete");
+  // Fetch old data for logging
+  const { data: oldData } = await supabase
+    .from("schedules")
+    .select("*")
+    .eq("id", id)
+    .single();
+
   const { error } = await supabase.from("schedules").delete().eq("id", id);
 
   if (error) {
@@ -138,10 +145,11 @@ export async function deleteSchedule(id: string): Promise<void> {
 
   // Log activity
   const user = await getCurrentUser();
-  if (user) {
+  if (user && oldData) {
     await createActivityLog("delete", "schedule", id, {
       userId: user.userId,
-      description: `Xóa lịch ${id}`,
+      oldValues: oldData,
+      description: `Xóa lịch đăng dự án ${oldData.project_name} trên ${oldData.platform}`,
     });
   }
 }
@@ -176,9 +184,9 @@ export async function toggleScheduleActive(
   if (user) {
     await createActivityLog("update", "schedule", id, {
       userId: user.userId,
-      description: `Đổi trạng thái lịch ${id} sang ${
-        isActive ? "Hoạt động" : "Tạm dừng"
-      }`,
+      description: `Đổi trạng thái lịch đăng dự án ${
+        oldData.project_name
+      } trên ${oldData.platform} sang ${isActive ? "Hoạt động" : "Tạm dừng"}`,
       oldValues: oldData,
       newValues: { isActive },
     });

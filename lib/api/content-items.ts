@@ -195,7 +195,13 @@ export async function updateContentItem(
 
 export async function deleteContentItem(id: string): Promise<void> {
   await requirePermission("content.delete");
-  const { error } = await supabase.from("content_items").delete().eq("id", id);
+  const { data: oldData, error } = await supabase
+    .from("content_items")
+    .delete()
+    .eq("id", id)
+    .select()
+    .single();
+
   if (error) {
     console.error("Error deleting content item:", error);
     throw error;
@@ -203,10 +209,10 @@ export async function deleteContentItem(id: string): Promise<void> {
 
   // Log activity
   const user = await getCurrentUser();
-  if (user) {
+  if (user && oldData) {
     await createActivityLog("delete", "content", id, {
       userId: user.userId,
-      description: `Xóa nội dung ${id}`,
+      description: `Xóa nội dung ${oldData.idea}`,
     });
   }
 }
@@ -248,7 +254,7 @@ export async function updateContentStatus(
       userId: user.userId,
       oldValues: oldData,
       newValues: updates,
-      description: `Cập nhật trạng thái nội dung ${id} sang ${status}`,
+      description: `Cập nhật trạng thái nội dung ${oldData.idea} sang ${status}`,
     });
   }
 
@@ -327,7 +333,7 @@ export async function approveIdea(
         approvedBy,
         idea,
       },
-      description: `Phê duyệt ý tưởng ${id}`,
+      description: `Phê duyệt ý tưởng ${oldData.idea}`,
     });
   }
 
@@ -375,7 +381,7 @@ export async function approveContent(
         status: "content_approved",
         approvedBy,
       },
-      description: `Phê duyệt nội dung ${id}`,
+      description: `Phê duyệt nội dung ${oldData.idea}`,
     });
   }
 

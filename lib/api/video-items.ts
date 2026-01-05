@@ -132,7 +132,7 @@ export async function createVideoItem(
     await createActivityLog("create", "video", item.id, {
       userId: user.userId,
       newValues: item,
-      description: `Tạo video mới ${item.id}`,
+      description: `Tạo video: ${item.idea}`,
     });
   }
 
@@ -206,6 +206,14 @@ export async function updateVideoItem(
 
 export async function deleteVideoItem(id: string): Promise<void> {
   await requirePermission("videos.delete");
+
+  // Fetch old data for logging
+  const { data: oldData } = await supabase
+    .from("video_items")
+    .select("*")
+    .eq("id", id)
+    .single();
+
   const { error } = await supabase.from("video_items").delete().eq("id", id);
   if (error) {
     console.error("Error deleting video item:", error);
@@ -214,10 +222,10 @@ export async function deleteVideoItem(id: string): Promise<void> {
 
   // Log activity
   const user = await getCurrentUser();
-  if (user) {
+  if (user && oldData) {
     await createActivityLog("delete", "video", id, {
       userId: user.userId,
-      description: `Xóa video ${id}`,
+      description: `Xóa video ${oldData.idea}`,
     });
   }
 }
@@ -310,7 +318,7 @@ export async function approveVideoIdea(
         approvedBy,
         idea,
       },
-      description: `Phê duyệt ý tưởng video ${id}`,
+      description: `Phê duyệt ý tưởng video ${oldData.idea}`,
     });
   }
 
@@ -358,7 +366,7 @@ export async function approveVideoContent(
         status: "content_approved",
         approvedBy,
       },
-      description: `Phê duyệt nội dung video ${id}`,
+      description: `Phê duyệt nội dung video ${oldData.idea}`,
     });
   }
 
