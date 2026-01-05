@@ -33,11 +33,14 @@ export default function ContentPage() {
   );
   const [filterStatus, setFilterStatus] = useState<Status | "all">("all");
   const [filterProject, setFilterProject] = useState<string>("all");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(15);
+  const [totalCount, setTotalCount] = useState(0);
   const { hasPermission } = usePermissions();
 
   useEffect(() => {
     loadContentItems();
-  }, [filterStatus, filterProject]);
+  }, [filterStatus, filterProject, page, pageSize]);
 
   // Subscribe to realtime changes
   useRealtimeSubscription("content_items", () => {
@@ -47,11 +50,14 @@ export default function ContentPage() {
   const loadContentItems = async () => {
     try {
       setIsLoading(true);
-      const data = await getContentItems({
+      const { data, total } = await getContentItems({
         status: filterStatus !== "all" ? filterStatus : undefined,
         projectId: filterProject !== "all" ? filterProject : undefined,
+        page,
+        pageSize,
       });
       setContentItems(data);
+      setTotalCount(total);
     } catch (error) {
       toast.error("Không tải được danh sách bài viết");
       console.error(error);
@@ -262,6 +268,11 @@ export default function ContentPage() {
         onViewPost={handleViewPost}
         onAdd={handleCreateClick}
         onReload={loadContentItems}
+        page={page}
+        pageSize={pageSize}
+        totalCount={totalCount}
+        onPageChange={setPage}
+        onPageSizeChange={setPageSize}
       />
 
       <ContentFormModal

@@ -29,13 +29,13 @@ export default function SchedulesPage() {
         await Promise.all([
           getSchedules(),
           getProjects(),
-          getContentItems(),
-          getVideoItems(),
+          getContentItems({ pageSize: 1000 }),
+          getVideoItems({ pageSize: 1000 }),
         ]);
       setSchedules(schedulesData);
       setProjects(projectsData);
-      setContentItems(contentData);
-      setVideoItems(videoData);
+      setContentItems(contentData.data || []);
+      setVideoItems(videoData.data || []);
     } catch (error) {
       toast.error("Failed to load schedules");
       console.error(error);

@@ -9,9 +9,11 @@ import { createActivityLog } from "@/lib/api/activity-logs";
 export async function getContentItems(filters?: {
   status?: Status | "all";
   projectId?: string;
-}): Promise<ContentItem[]> {
+  page?: number;
+  pageSize?: number;
+}): Promise<{ data: ContentItem[]; total: number }> {
   await requirePermission("content.view");
-  let query = supabase.from("content_items").select("*");
+  let query = supabase.from("content_items").select("*", { count: "exact" });
 
   if (filters?.status && filters.status !== "all") {
     query = query.eq("status", filters.status);
@@ -21,7 +23,14 @@ export async function getContentItems(filters?: {
     query = query.eq("project_id", filters.projectId);
   }
 
-  const { data, error } = await query.order("created_at", { ascending: false });
+  const page = filters?.page || 1;
+  const pageSize = filters?.pageSize || 15;
+  const from = (page - 1) * pageSize;
+  const to = from + pageSize - 1;
+
+  const { data, error, count } = await query
+    .order("created_at", { ascending: false })
+    .range(from, to);
 
   if (error) {
     console.error("Error fetching content items:", error);
@@ -48,7 +57,7 @@ export async function getContentItems(filters?: {
     });
   }
 
-  return items;
+  return { data: items, total: count || 0 };
 }
 
 export async function getContentItemById(

@@ -10,9 +10,11 @@ export async function getVideoItems(filters?: {
   status?: Status | "all";
   projectId?: string;
   platform?: Platform;
-}): Promise<VideoItem[]> {
+  page?: number;
+  pageSize?: number;
+}): Promise<{ data: VideoItem[]; total: number }> {
   await requirePermission("videos.view");
-  let query = supabase.from("video_items").select("*");
+  let query = supabase.from("video_items").select("*", { count: "exact" });
 
   if (filters?.status && filters.status !== "all") {
     query = query.eq("status", filters.status);
@@ -26,9 +28,15 @@ export async function getVideoItems(filters?: {
     query = query.contains("platform", [filters.platform]);
   }
 
-  const { data, error } = await query
+  const page = filters?.page || 1;
+  const pageSize = filters?.pageSize || 15;
+  const from = (page - 1) * pageSize;
+  const to = from + pageSize - 1;
+
+  const { data, error, count } = await query
     .order("created_at", { ascending: false })
-    .order("idea", { ascending: true });
+    .order("idea", { ascending: true })
+    .range(from, to);
 
   if (error) {
     console.error("Error fetching video items:", error);
@@ -55,7 +63,7 @@ export async function getVideoItems(filters?: {
     });
   }
 
-  return items;
+  return { data: items, total: count || 0 };
 }
 
 export async function getVideoItemById(id: string): Promise<VideoItem | null> {

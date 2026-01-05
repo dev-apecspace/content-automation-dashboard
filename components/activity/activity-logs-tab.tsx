@@ -37,23 +37,32 @@ import {
   activityTypeConfig,
   entityTypeConfig,
 } from "@/lib/types";
+import { PaginationControl } from "@/components/ui/pagination-control";
 
 export function ActivityLogsTab() {
   const [filterType, setFilterType] = useState<ActivityType | "all">("all");
   const [filterEntity, setFilterEntity] = useState<EntityType | "all">("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [userMap, setUserMap] = useState<Record<string, string>>({});
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(15);
 
   const {
-    data: logs = [],
+    data: { data: logs = [], total = 0 } = {},
     isLoading,
     refetch,
     isRefetching,
   } = useActivityLogs({
     activityType: filterType,
     entityType: filterEntity,
-    limit: 100,
+    page,
+    pageSize,
   });
+
+  // Reset page when filter changes
+  useEffect(() => {
+    setPage(1);
+  }, [filterType, filterEntity]);
 
   // Realtime subscription
   useRealtimeSubscription("activity_logs", () => {
@@ -281,6 +290,16 @@ export function ActivityLogsTab() {
                 </div>
               </div>
             ))}
+          </div>
+          <div className="border-t border-gray-200">
+            <PaginationControl
+              currentPage={page}
+              pageSize={pageSize}
+              totalCount={total}
+              onPageChange={setPage}
+              onPageSizeChange={setPageSize}
+              pageSizeOptions={[20, 50, 100]}
+            />
           </div>
         </Card>
       )}

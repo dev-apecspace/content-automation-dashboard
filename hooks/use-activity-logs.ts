@@ -6,12 +6,12 @@ interface UseActivityLogsOptions {
   activityType?: ActivityType | "all";
   entityType?: EntityType | "all";
   userId?: string;
-  limit?: number;
-  offset?: number;
+  page?: number;
+  pageSize?: number;
 }
 
 export function useActivityLogs(options: UseActivityLogsOptions = {}) {
-  const { activityType, entityType, userId, limit = 100, offset = 0 } = options;
+  const { activityType, entityType, userId, page = 1, pageSize = 20 } = options;
 
   return useQuery({
     queryKey: [
@@ -19,16 +19,16 @@ export function useActivityLogs(options: UseActivityLogsOptions = {}) {
       activityType,
       entityType,
       userId,
-      limit,
-      offset,
+      page,
+      pageSize,
     ],
     queryFn: () =>
       getActivityLogs({
         activityType: activityType !== "all" ? activityType : undefined,
         entityType: entityType !== "all" ? entityType : undefined,
         userId,
-        limit,
-        offset,
+        page,
+        pageSize,
       }),
     staleTime: 1000 * 30, // 30 seconds
   });
