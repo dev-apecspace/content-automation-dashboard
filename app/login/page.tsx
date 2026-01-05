@@ -20,6 +20,12 @@ export default function LoginPage() {
   // Mouse move effect for subtle background parallax or spotlight could go here
   // For now, we use CSS animations for reliability
 
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -55,21 +61,66 @@ export default function LoginPage() {
 
   return (
     <div className="relative flex items-center justify-center min-h-screen bg-[#0a0a0a] overflow-hidden selection:bg-indigo-500/30">
-      {/* Noise Texture Overlay */}
-      <div
-        className="absolute inset-0 z-[1] opacity-20 pointer-events-none mix-blend-overlay"
-        style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='1'/%3E%3C/svg%3E")`,
-        }}
-      ></div>
+      {/* Flying Particles Background */}
+      <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
+        {/* Helper style for the animation */}
+        <style jsx>{`
+          @keyframes float-up {
+            0% {
+              transform: translateY(120vh) translateX(-10vw) rotate(0deg);
+              opacity: 0;
+            }
+            10% {
+              opacity: 0.8;
+            }
+            90% {
+              opacity: 0.8;
+            }
+            100% {
+              transform: translateY(-20vh) translateX(10vw) rotate(180deg);
+              opacity: 0;
+            }
+          }
+        `}</style>
 
-      {/* Deep Space Gradients */}
-      <div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0 pointer-events-none">
-        <div className="absolute top-[70%] -left-[10%] w-[80vw] h-[70vw] bg-indigo-600/20 rounded-full blur-[120px] mix-blend-screen animate-pulse duration-[25s]"></div>
-        <div className="absolute top-[5%] right-[5%] w-[40vw] h-[30vw] bg-purple-600/20 rounded-full blur-[150px] mix-blend-screen animate-pulse duration-[30s]"></div>
+        {/* Deep atmospheric glow */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black via-indigo-950/20 to-black z-0" />
+
+        {/* Particles - Client Side Only to avoid mismatch */}
+        {mounted &&
+          Array.from({ length: 30 }).map((_, i) => {
+            const colors = [
+              "#6366f1",
+              "#8b5cf6",
+              "#ec4899",
+              "#3b82f6",
+              "#14b8a6",
+            ];
+            const color = colors[Math.floor(Math.random() * colors.length)];
+
+            return (
+              <div
+                key={i}
+                className="absolute rounded-full mix-blend-screen filter blur-[1px]"
+                style={{
+                  left: `${Math.random() * 100}%`,
+                  top: `${Math.random() * 100}%`,
+                  width: `${Math.random() * 6 + 3}px`,
+                  height: `${Math.random() * 6 + 3}px`,
+                  backgroundColor: color,
+                  opacity: Math.random() * 0.5 + 0.3,
+                  animation: `float-up ${
+                    Math.random() * 15 + 10
+                  }s linear infinite`,
+                  animationDelay: `-${Math.random() * 20}s`,
+                  boxShadow: `0 0 ${Math.random() * 10 + 5}px ${color}`,
+                }}
+              />
+            );
+          })}
       </div>
 
-      <div className="relative z-10 w-full max-w-[420px] p-8 md:p-12 space-y-8 bg-white/[0.03] backdrop-blur-3xl border border-white/[0.08] rounded-3xl shadow-[0_30px_60px_-12px_rgba(0,0,0,0.5)] ring-1 ring-white/10">
+      <div className="relative z-10 w-full max-w-[420px] p-8 md:p-12 space-y-8 bg-white/5 backdrop-blur-3xl border border-white/20 rounded-3xl shadow-[0_30px_60px_-12px_rgba(0,0,0,0.5)] ring-1 ring-white/10">
         {/* Header */}
         <div className="text-center space-y-3 relative">
           <div className="absolute -top-20 left-1/2 -translate-x-1/2 w-40 h-40 bg-indigo-500/20 blur-[50px] rounded-full pointer-events-none"></div>
@@ -103,8 +154,8 @@ export default function LoginPage() {
                 <Input
                   id="email"
                   type="email"
-                  placeholder="name@company.com"
-                  className="pl-12 h-12 bg-black/40 border-white/5 text-slate-200 placeholder:text-slate-600 focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 transition-all rounded-2xl shadow-inner backdrop-blur-sm"
+                  className="pl-12 h-12 bg-black/40 border-white/20 text-slate-200 placeholder:text-slate-600 focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 transition-all rounded-2xl shadow-inner backdrop-blur-sm"
+                  placeholder="Nhập email"
                   value={formData.email}
                   onChange={(e) =>
                     setFormData({ ...formData, email: e.target.value })
@@ -130,8 +181,8 @@ export default function LoginPage() {
                 <Input
                   id="password"
                   type={showPassword ? "text" : "password"}
-                  placeholder="••••••••"
-                  className="pl-12 pr-12 h-12 bg-black/40 border-white/5 text-slate-200 placeholder:text-slate-600 focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 transition-all rounded-2xl shadow-inner backdrop-blur-sm"
+                  className="pl-12 pr-12 h-12 bg-black/40 border-white/20 text-slate-200 placeholder:text-slate-600 focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 transition-all rounded-2xl shadow-inner backdrop-blur-sm"
+                  placeholder="Nhập mật khẩu"
                   value={formData.password}
                   onChange={(e) =>
                     setFormData({ ...formData, password: e.target.value })
@@ -171,11 +222,6 @@ export default function LoginPage() {
             </span>
           </Button>
         </form>
-
-        {/* Footer/Copyright */}
-        <p className="text-center text-[10px] text-slate-600 font-medium tracking-widest uppercase opacity-60">
-          SECURED BY APEC GLOBAL
-        </p>
       </div>
     </div>
   );
