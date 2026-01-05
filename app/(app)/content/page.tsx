@@ -264,6 +264,7 @@ export default function ContentPage() {
         onSave={handleSaveContent}
         editContent={editContent}
         isSaving={isSaving}
+        onViewDetail={handleViewClick}
       />
 
       <ContentDetailModal
@@ -271,6 +272,7 @@ export default function ContentPage() {
         onOpenChange={setIsDetailModalOpen}
         content={selectedContent}
         onEdit={handleEditClick}
+        onApproveIdea={handleApproveIdea}
       />
     </div>
   );

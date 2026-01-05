@@ -1012,6 +1012,10 @@ export function ScheduleTab({
         onSave={handleSaveContent}
         editContent={editContent}
         isSaving={isSaving}
+        onViewDetail={(item) => {
+          setIsContentFormOpen(false);
+          setSelectedContent(item);
+        }}
       />
 
       <VideoFormModal

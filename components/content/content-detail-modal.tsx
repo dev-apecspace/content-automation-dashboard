@@ -77,6 +77,7 @@ interface ContentDetailModalProps {
   item?: ContentItem | null;
   content?: ContentItem | null;
   onApprove?: (item: ContentItem) => void;
+  onApproveIdea?: (item: ContentItem) => void;
   onEdit?: (item: ContentItem) => void;
 }
 
@@ -87,6 +88,7 @@ export function ContentDetailModal({
   item,
   content,
   onApprove,
+  onApproveIdea,
   onEdit,
 }: ContentDetailModalProps) {
   const [isLoading, setIsLoading] = useState(false);
@@ -797,9 +799,8 @@ export function ContentDetailModal({
               </FeatureCard>
 
               {/* Attachments */}
-
               <FeatureCard
-                title={`Files đính kèm (${
+                title={`Ảnh đính kèm (${
                   currentItem.imageLinks?.length || 0
                 })`}
                 icon={Link}
@@ -807,7 +808,7 @@ export function ContentDetailModal({
                 className="flex flex-col"
               >
                 {currentItem.imageLinks && currentItem.imageLinks.length > 0 ? (
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-3 gap-4">
                     {currentItem.imageLinks.map((link, index) => (
                       <div
                         key={index}
@@ -840,26 +841,39 @@ export function ContentDetailModal({
             </div>
           </div>
 
-          <DialogFooter className="flex flex-col sm:flex-row gap-3 mt-6 border-t border-slate-200/50 pt-6">
+          <DialogFooter className="">
             <Button
               variant="outline"
               onClick={() => onEdit?.(currentItem)}
-              className="bg-white hover:bg-slate-50 border-slate-200 text-slate-700 hover:text-slate-900 shadow-sm"
+              className="mr-auto bg-white hover:bg-slate-50 border-slate-200 text-slate-700 hover:text-slate-900 shadow-sm"
             >
               <Edit2 className="h-4 w-4 mr-2" />
               Chỉnh sửa
             </Button>
 
-            {currentItem.status === "awaiting_content_approval" && (
-              <Button
-                onClick={() => onApprove?.(currentItem)}
-                disabled={isLoading}
-                className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white border-none shadow-lg shadow-emerald-500/20"
-              >
-                <CheckCircle className="h-4 w-4 mr-2" />
-                {isLoading ? "Đang duyệt..." : "Duyệt bài"}
-              </Button>
-            )}
+            <div className="flex gap-2">
+              {currentItem.status === "idea" && (
+                <Button
+                  onClick={() => onApproveIdea?.(currentItem)}
+                  disabled={isLoading}
+                  className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-white border-none shadow-lg shadow-cyan-500/20"
+                >
+                  <CheckCircle className="h-4 w-4 mr-2" />
+                  {isLoading ? "Đang duyệt..." : "Duyệt ý tưởng"}
+                </Button>
+              )}
+
+              {currentItem.status === "awaiting_content_approval" && (
+                <Button
+                  onClick={() => onApprove?.(currentItem)}
+                  disabled={isLoading}
+                  className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white border-none shadow-lg shadow-emerald-500/20"
+                >
+                  <CheckCircle className="h-4 w-4 mr-2" />
+                  {isLoading ? "Đang duyệt..." : "Duyệt nội dung"}
+                </Button>
+              )}
+            </div>
           </DialogFooter>
         </div>
       </DialogContent>
