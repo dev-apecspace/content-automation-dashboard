@@ -19,12 +19,7 @@ import {
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
-  Lightbulb,
-  Folder,
-  Film,
-  Monitor,
   Clock,
-  MessageSquare,
   Upload,
   X,
   CheckCircle2,
@@ -34,18 +29,30 @@ import {
   Sparkles,
   DollarSign,
   SquareUser,
+  Target,
+  FileText,
+  Captions,
+  Calendar,
+  RefreshCw,
+  Eye,
 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { getProjects, getAIModels } from "@/lib/api";
-import { VideoItem, Project, AIModel } from "@/lib/types";
+import { VideoItem, Project, AIModel, statusConfig } from "@/lib/types";
 import { uploadImageFile, uploadVideoFile } from "@/app/api/cloudinary";
 import { AiRequirementDialog } from "@/components/shared/ai-requirement-dialog";
-import { getContentItemById } from "@/lib/api/content-items";
 import { getVideoItemById } from "@/lib/api/video-items";
 import { toast } from "sonner";
 import { calculateVideoCost } from "@/lib/utils/cost";
 import { AccountService } from "@/lib/services/account-service";
 import { Account, AccountPlatform } from "@/lib/types";
 import { AccountSelector } from "@/components/shared/account-selector";
+import { BackgroundStyle } from "@/components/ui/background-style";
+import { FeatureCard } from "@/components/ui/feature-card";
+import { SectionLabel } from "@/components/ui/section-label";
+import { InfoCard } from "@/components/ui/info-card";
+import { cn } from "@/lib/utils";
+import { format } from "date-fns";
 
 interface VideoFormModalProps {
   isOpen: boolean;
@@ -57,6 +64,7 @@ interface VideoFormModalProps {
   editVideo?: VideoItem | null;
   isSaving?: boolean;
   isLoading?: boolean;
+  onViewDetail?: (item: VideoItem) => void;
 }
 
 export const VideoFormModal: React.FC<VideoFormModalProps> = ({
@@ -69,6 +77,7 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
   editVideo,
   isSaving,
   isLoading,
+  onViewDetail,
 }) => {
   const [projects, setProjects] = useState<Project[]>([]);
   const [modelsList, setModelsList] = useState<AIModel[]>([]);
@@ -84,6 +93,7 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
     videoLink: "",
     imageLink: undefined,
     postingTime: "",
+    expectedPostDate: "", // Added to keep date separate
     caption: "",
     callToAction: "",
     topic: "",
@@ -94,7 +104,14 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
 
   const [newImageLink, setNewImageLink] = useState("");
 
-  // ------------------- MOVED UP PERMISSIONS -------------------
+  const [aiPromptOpen, setAiPromptOpen] = useState(false);
+  const [aiPromptType, setAiPromptType] = useState<
+    "caption" | "schedule" | "image" | null
+  >(null);
+  const [aiPromptContent, setAiPromptContent] = useState("");
+  const [isAiLoading, setIsAiLoading] = useState(false);
+
+  // Permissions Logic
   const currentStatus = editVideo?.status || "idea";
   const canEditIdeaFields = currentStatus === "idea";
   const canEditContentApprovalFields =
@@ -102,23 +119,7 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
     currentStatus === "content_approved" ||
     currentStatus === "post_removed";
 
-  const isIdeaValid =
-    canEditIdeaFields &&
-    !!formData.idea?.trim() &&
-    !!formData.projectId &&
-    Array.isArray(formData.platform) &&
-    formData.platform.length > 0 &&
-    formData.videoDuration !== undefined &&
-    formData.videoDuration > 0;
-
-  const isApprovalValid =
-    canEditContentApprovalFields &&
-    !!formData.postingTime &&
-    !!formData.caption?.trim();
-
-  const isFormValid = isIdeaValid || isApprovalValid;
-
-  // Load Projects and AI Models
+  // Data Loading
   useEffect(() => {
     async function fetchData() {
       try {
@@ -157,6 +158,7 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
         videoLink: "",
         imageLink: undefined,
         postingTime: "",
+        expectedPostDate: "",
         caption: "",
         callToAction: "",
         topic: "",
@@ -168,12 +170,78 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
     }
   }, [editVideo, isOpen]);
 
+  const handleEditWithAI = (
+    type: "caption" | "schedule" | "image",
+    content?: string
+  ) => {
+    setAiPromptType(type);
+    setAiPromptContent(content || "");
+    setAiPromptOpen(true);
+  };
+
+  const handleConfirmAiEdit = async (
+    requirement: string,
+    imageAction?: "create" | "edit",
+    duration?: number
+  ) => {
+    if (!aiPromptType) return;
+
+    setIsAiLoading(true);
+    try {
+      const payload = {
+        type: aiPromptType, // "caption" | "schedule" | "image"
+        topic: formData.topic,
+        content: formData.caption,
+        contentType: "Video", // Explicitly Video
+        projectId: formData.projectId,
+        id: editVideo?.id,
+        require: requirement,
+        platform: formData.platform?.[0] || "Facebook Reels",
+      };
+
+      const res = await fetch("/api/webhook/edit-content-text", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) throw new Error("API request failed");
+
+      toast.success("AI đã xử lý xong!");
+      setAiPromptOpen(false);
+
+      if (editVideo?.id) {
+        const updatedItem = await getVideoItemById(editVideo.id);
+        if (updatedItem) {
+          setFormData((prev) => ({
+            ...prev,
+            caption: updatedItem.caption,
+            postingTime: updatedItem.postingTime,
+            expectedPostDate:
+              updatedItem.postingTime && updatedItem.postingTime.includes(" ")
+                ? updatedItem.postingTime
+                    .split(" ")[0]
+                    .split("/")
+                    .reverse()
+                    .join("-")
+                : prev.expectedPostDate,
+            idea: updatedItem.idea,
+          }));
+        }
+      }
+    } catch (error) {
+      console.error("Lỗi gửi webhook:", error);
+      toast.error("Gửi yêu cầu thất bại, vui lòng thử lại.");
+    } finally {
+      setIsAiLoading(false);
+    }
+  };
+
   // Cost Calculation
   const calculateEstimatedCost = () => {
     // Only calculate if in Idea phase
     if (!canEditIdeaFields) return null;
 
-    // CASE 1: Has Video Link => FREE (User provided video)
     if (formData.videoLink) {
       return {
         total: 0,
@@ -184,9 +252,7 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
 
     if (!formData.videoDuration || formData.videoDuration <= 0) return null;
 
-    // CASE 2: No Video Link => PAID (Generate Video or Image-to-Video)
     const duration = formData.videoDuration;
-
     const videoModel = modelsList.find(
       (m) => m.modelType === "video" && m.isActive
     );
@@ -212,21 +278,18 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
   };
 
   const handlePlatformToggle = (platform: string) => {
+    if (!canEditIdeaFields) return; // Prevent toggle if readonly logic fails (though input is hidden)
     setFormData((prev) => {
       const currentPlatforms: any[] = Array.isArray(prev.platform)
         ? prev.platform
         : [];
-
-      const p = platform;
-
-      const updated = currentPlatforms.includes(p)
-        ? currentPlatforms.filter((item) => item !== p)
-        : [...currentPlatforms, p];
+      const updated = currentPlatforms.includes(platform)
+        ? currentPlatforms.filter((item) => item !== platform)
+        : [...currentPlatforms, platform];
       return { ...prev, platform: updated };
     });
   };
 
-  // ------------------- ACCOUNT SELECTION LOGIC -------------------
   const mapVideoPlatformToAccountPlatform = (
     videoPlatform: string
   ): AccountPlatform | null => {
@@ -237,127 +300,16 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
   };
 
   const filteredAccounts = accounts.filter((acc) => {
-    // 1. Filter by Platform (Show ALL accounts that match ANY of the selected platforms)
     if (!formData.platform || formData.platform.length === 0) return false;
-
-    // Get list of required account platforms
     const requiredPlatforms = formData.platform
       .map(mapVideoPlatformToAccountPlatform)
       .filter(Boolean) as AccountPlatform[];
-
     return requiredPlatforms.includes(acc.platform);
   });
-
-  const handleAccountToggle = (accountId: string) => {
-    setFormData((prev) => {
-      const currentIds = prev.accountIds || [];
-      if (currentIds.includes(accountId)) {
-        return {
-          ...prev,
-          accountIds: currentIds.filter((id) => id !== accountId),
-        };
-      } else {
-        return {
-          ...prev,
-          accountIds: [...currentIds, accountId],
-        };
-      }
-    });
-  };
-
-  // ------------------- AI HANDLERS -------------------
-  const [aiPromptOpen, setAiPromptOpen] = useState(false);
-  const [aiPromptType, setAiPromptType] = useState<
-    "caption" | "schedule" | "image" | "video-edit" | null
-  >(null);
-  const [isAiLoading, setIsAiLoading] = useState(false);
-
-  const handleEditWithAI = (type: "schedule" | "video-edit") => {
-    setAiPromptType(type);
-    setAiPromptOpen(true);
-  };
-
-  const handleConfirmAiEdit = async (
-    requirement: string,
-    imageAction?: "create" | "edit",
-    duration?: number
-  ) => {
-    if (!aiPromptType) return;
-
-    setIsAiLoading(true);
-    try {
-      if (aiPromptType === "schedule") {
-        const payload = {
-          type: "schedule",
-          content: formData.postingTime, // Though reschedule might not use content, preserving structure
-          projectId: formData.projectId,
-          platform: formData.platform?.[0] || "Facebook Reels", // Assumes main platform
-          id: editVideo?.id, // Use 'id' as requested for edit-content-text
-        };
-
-        const res = await fetch("/api/webhook/edit-content-text", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
-
-        if (!res.ok) throw new Error("API request failed");
-
-        toast.success("AI đã xử lý xong!");
-        setAiPromptOpen(false);
-
-        // Load refresh data
-        if (editVideo?.id) {
-          const updatedItem = await getVideoItemById(editVideo.id);
-          if (updatedItem) {
-            setFormData((prev) => ({
-              ...prev,
-              postingTime: updatedItem.postingTime,
-              expectedPostDate:
-                updatedItem.postingTime && updatedItem.postingTime.includes(" ")
-                  ? updatedItem.postingTime
-                      .split(" ")[0]
-                      .split("/")
-                      .reverse()
-                      .join("-")
-                  : prev.expectedPostDate,
-            }));
-          }
-        }
-      } else if (aiPromptType === "video-edit") {
-        const payload = {
-          type: "video-edit",
-          projectId: formData.projectId,
-          platform: formData.platform?.[0], // Assuming single or first platform
-          id: editVideo?.id,
-          require: requirement,
-          topic: formData.topic,
-          targetAudience: formData.targetAudience,
-          researchNotes: formData.researchNotes,
-          videoDuration: duration || formData.videoDuration, // Prioritize user input duration
-        };
-
-        await fetch("/api/webhook/edit-media", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
-
-        toast.success("Đã gửi yêu cầu sửa video! Vui lòng đợi kết quả.");
-        setAiPromptOpen(false);
-      }
-    } catch (error) {
-      console.error("Lỗi gửi webhook AI:", error);
-      toast.error("Gửi yêu cầu thất bại, vui lòng thử lại.");
-    } finally {
-      setIsAiLoading(false);
-    }
-  };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
-
     const file = files[0];
     const url = await uploadImageFile(file);
     if (url) {
@@ -368,27 +320,11 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
   const handleVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
-
     const file = files[0];
     const url = await uploadVideoFile(file);
     if (url) {
-      setFormData((prev) => ({ ...prev, existingVideoLink: url }));
+      setFormData((prev) => ({ ...prev, videoLink: url }));
     }
-  };
-
-  const handleReplaceImageLink = () => {
-    if (newImageLink.trim()) {
-      setFormData((prev) => ({ ...prev, imageLink: newImageLink.trim() }));
-      setNewImageLink("");
-    }
-  };
-
-  const handleRemoveImage = () => {
-    setFormData((prev) => ({ ...prev, imageLink: undefined }));
-  };
-
-  const handleRemoveVideo = () => {
-    setFormData((prev) => ({ ...prev, existingVideoLink: "" }));
   };
 
   const updatePostingTime = (date: string, time: string) => {
@@ -400,567 +336,728 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
   };
 
   const handleSubmit = () => {
-    const dataToSave: Partial<VideoItem> = {
-      ...formData,
-    };
-    onSave(dataToSave);
+    onSave(formData);
   };
 
   const handleClose = () => {
     onClose?.() || onOpenChange?.(false);
   };
 
+  const formatDate = (dateStr?: string) => {
+    if (!dateStr) return "-";
+    try {
+      return format(new Date(dateStr), "dd/MM/yyyy HH:mm");
+    } catch {
+      return dateStr;
+    }
+  };
+
+  // Render Helpers
+  const renderEditableOrReadonly = (
+    canEdit: boolean,
+    editComponent: React.ReactNode,
+    readonlyValue: React.ReactNode,
+    placeholder: string = "Chưa có thông tin"
+  ) => {
+    if (canEdit) return editComponent;
+    return (
+      <div className="bg-slate-50 rounded-xl p-3 border border-slate-200 shadow-inner min-h-[44px] flex items-center">
+        <div className="text-slate-800 text-sm font-medium leading-relaxed w-full">
+          {readonlyValue || (
+            <span className="text-slate-400 italic">{placeholder}</span>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange || handleClose}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto bg-white/80 backdrop-blur-2xl border-white/60 shadow-2xl rounded-[32px] p-0">
-        {/* Vibrant Gradient Background Layer */}
-        <div className="absolute inset-0 -z-10 bg-gradient-to-br from-[#a8c0ff]/40 via-[#3f2b96]/10 to-[#ffafbd]/40 blur-3xl pointer-events-none" />
+      <DialogContent className="">
+        <BackgroundStyle />
 
-        <DialogHeader className="border-b border-white/40 pb-6 pt-6 px-6 bg-white/40 sticky top-0 z-10 backdrop-blur-md">
-          <div className="flex items-center gap-4">
-            {canEditIdeaFields && (
-              <div className="p-3 bg-white/60 rounded-2xl shadow-sm border border-white/60">
-                <Lightbulb className="w-6 h-6 text-amber-500" />
-              </div>
-            )}
-            {canEditContentApprovalFields && (
-              <div className="p-3 bg-white/60 rounded-2xl shadow-sm border border-white/60">
-                <CheckCircle2 className="w-6 h-6 text-green-500" />
-              </div>
-            )}
-            <div>
-              <DialogTitle className="text-2xl font-bold text-slate-900 tracking-wide">
-                {editVideo ? "Chỉnh sửa video" : "Tạo video mới"}
+        {/* Header */}
+        <div className="px-8 pt-6 pb-4 relative z-10">
+          <DialogHeader className="space-y-3">
+            <div className="flex items-center justify-between">
+              <DialogTitle className="text-2xl font-bold leading-tight pr-8 text-slate-900 tracking-wide">
+                {editVideo ? "Chỉnh sửa Video" : "Tạo Video Mới"}
               </DialogTitle>
-              <p className="text-sm text-slate-500 mt-1 font-medium">
-                {canEditIdeaFields && "Giai đoạn: Ý tưởng ban đầu"}
-                {canEditContentApprovalFields && "Giai đoạn: Duyệt nội dung"}
-              </p>
             </div>
-          </div>
-        </DialogHeader>
-
-        <div className="grid gap-6 py-6 px-6">
-          {canEditIdeaFields && (
-            <div className="space-y-6">
-              {/* Ý tưởng */}
-              <div className="space-y-3">
-                <Label
-                  htmlFor="idea"
-                  className="flex items-center gap-2 text-base font-semibold text-slate-700"
+            <div className="space-y-3">
+              <div className="flex flex-wrap items-center gap-3">
+                <Badge
+                  variant="outline"
+                  className="border-slate-200 bg-white text-slate-700 px-3 py-1"
                 >
-                  <Lightbulb className="w-4 h-4 text-amber-500" />Ý tưởng{" "}
-                  <span className="text-red-500">*</span>
-                </Label>
-                <Textarea
-                  id="idea"
-                  value={formData.idea || ""}
-                  onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, idea: e.target.value }))
-                  }
-                  placeholder="Mô tả ý tưởng video của bạn..."
-                  rows={3}
-                  required
-                  className="border-white/60 bg-white/50 focus:bg-white/80 focus:border-amber-400 focus:ring-amber-100 rounded-xl resize-none transition-all duration-200 shadow-sm"
-                />
-              </div>
-
-              {/* Dự án & Tiêu đề */}
-              <div className="grid grid-cols-2 gap-6">
-                <div className="space-y-3">
-                  <Label className="flex items-center gap-2 text-base font-semibold text-slate-700">
-                    <Folder className="w-4 h-4 text-blue-500" />
-                    Dự án <span className="text-red-500">*</span>
-                  </Label>
-                  <Select
-                    value={formData.projectId}
-                    onValueChange={handleProjectChange}
-                    required
+                  {canEditIdeaFields && "Giai đoạn: Ý tưởng"}
+                  {canEditContentApprovalFields && "Giai đoạn: Duyệt nội dung"}
+                  {!canEditIdeaFields &&
+                    !canEditContentApprovalFields &&
+                    "Chế độ xem"}
+                </Badge>
+                {editVideo?.status && (
+                  <Badge
+                    variant="outline"
+                    className={cn(
+                      "border-slate-200 bg-white text-slate-700 px-3 py-1",
+                      statusConfig[editVideo.status]?.className
+                    )}
                   >
-                    <SelectTrigger className="border-white/60 bg-white/50 focus:bg-white/80 focus:ring-blue-100 rounded-xl h-11 shadow-sm">
-                      <SelectValue placeholder="Chọn dự án" />
-                    </SelectTrigger>
-                    <SelectContent className="rounded-xl border-white/60 bg-white/90 backdrop-blur-xl shadow-lg">
-                      {projects.map((p) => (
-                        <SelectItem
-                          key={p.id}
-                          value={p.id}
-                          className="focus:bg-blue-50 cursor-pointer rounded-lg"
-                        >
-                          {p.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              {/* Nền tảng */}
-              <div className="space-y-3">
-                <Label className="flex items-center gap-2 text-base font-semibold text-gray-700">
-                  <Monitor className="w-4 h-4 text-blue-500" />
-                  Nền tảng <span className="text-red-500">*</span>
-                </Label>
-                <div className="flex flex-wrap gap-4 p-4 border border-white/60 bg-white/40 backdrop-blur-md rounded-2xl shadow-sm">
-                  {["Facebook Reels", "Youtube Shorts", "Tiktok Video"].map(
-                    (platform) => (
-                      <div key={platform} className="flex items-center gap-2">
-                        <Checkbox
-                          id={platform}
-                          checked={
-                            Array.isArray(formData.platform)
-                              ? formData.platform.includes(platform as any)
-                              : false
-                          }
-                          onCheckedChange={() => handlePlatformToggle(platform)}
-                          className="data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600 border-slate-300"
-                        />
-                        <label
-                          htmlFor={platform}
-                          className="text-sm font-medium cursor-pointer text-slate-700"
-                        >
-                          {platform}
-                        </label>
-                      </div>
-                    )
-                  )}
-                </div>
-              </div>
-
-              {/* Thời lượng */}
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <Label className="flex items-center gap-2 text-base font-semibold text-slate-700">
-                    <Clock className="w-4 h-4 text-amber-500" />
-                    Thời lượng (giây) <span className="text-red-500">*</span>
-                  </Label>
-                  {estimatedCost && (
-                    <div className="text-sm font-medium text-gray-700 px-3 flex items-center gap-1.5 bg-white/50 rounded-lg border border-white/60 py-1">
-                      {estimatedCost.isFree ? (
-                        <span className="text-emerald-600 font-semibold">
-                          Miễn phí (Video có sẵn)
-                        </span>
-                      ) : (
-                        <>
-                          <DollarSign className="w-3.5 h-3.5 text-emerald-600" />
-                          {estimatedCost.total.toFixed(2)}
-                          <span className="text-slate-500 text-xs font-normal">
-                            (~
-                            {(estimatedCost.total * 26000).toLocaleString(
-                              "vi-VN"
-                            )}
-                            đ)
-                          </span>
-                        </>
-                      )}
-                    </div>
-                  )}
-                </div>
-                <Input
-                  type="number"
-                  value={formData.videoDuration || ""}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      videoDuration: e.target.value
-                        ? parseInt(e.target.value)
-                        : undefined,
-                    }))
-                  }
-                  placeholder="0"
-                  className="border-white/60 bg-white/50 focus:bg-white/80 focus:border-amber-400 rounded-xl h-11 shadow-sm"
-                />
-              </div>
-
-              {/* Ảnh */}
-              <div className="space-y-4 bg-white/40 backdrop-blur-md border border-white/60 rounded-2xl shadow-sm p-6 hover:bg-white/60 transition-all duration-300">
-                <Label className="flex items-center gap-2 text-base font-semibold text-slate-700">
-                  <ImageIcon className="w-4 h-4 text-emerald-500" />
-                  Ảnh để tạo video (tùy chọn)
-                </Label>
-
-                <div className="flex gap-3">
-                  <Input
-                    placeholder="Dán link ảnh..."
-                    value={newImageLink}
-                    onChange={(e) => {
-                      const value = e.target.value.trim();
-                      setNewImageLink(value);
-                      if (value) {
-                        setFormData((prev) => ({
-                          ...prev,
-                          imageLink: value,
-                        }));
-                      }
-                    }}
-                    className="flex-1 border-white/60 bg-white/50 focus:bg-white/80 focus:border-emerald-500 rounded-xl shadow-sm"
-                  />
-                  <label>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="bg-white/50 border-emerald-200 text-emerald-600 hover:bg-white/80 hover:border-emerald-300 rounded-xl shadow-sm"
-                      onClick={() =>
-                        document
-                          .getElementById("file-upload-idea-image")
-                          ?.click()
-                      }
-                    >
-                      <Upload className="w-4 h-4" />
-                    </Button>
-                    <input
-                      id="file-upload-idea-image"
-                      type="file"
-                      accept="image/*"
-                      onChange={handleImageUpload}
-                      className="hidden"
-                    />
-                  </label>
-                </div>
-
-                {formData.imageLink && (
-                  <div className="relative group inline-block rounded-xl overflow-hidden shadow-md border border-white/60">
-                    <img
-                      src={formData.imageLink}
-                      alt="Preview"
-                      className="max-h-64 object-cover"
-                    />
-                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
-                      <button
-                        onClick={handleRemoveImage}
-                        className="p-3 bg-white/20 backdrop-blur-md border border-white/50 text-red-500 rounded-full hover:bg-white/40 transition-colors"
-                        title="Xóa"
-                      >
-                        <X className="w-5 h-5" />
-                      </button>
-                    </div>
-                  </div>
+                    {statusConfig[editVideo.status]?.label}
+                  </Badge>
                 )}
               </div>
+            </div>
+          </DialogHeader>
+        </div>
 
-              {/* Video Upload Section for Idea Phase */}
-              <div className="space-y-4 bg-white/40 backdrop-blur-md border border-white/60 rounded-2xl shadow-sm p-6 hover:bg-white/60 transition-all duration-300">
-                <Label className="flex items-center gap-2 text-base font-semibold text-slate-700">
-                  <Play className="w-4 h-4 text-red-500" />
-                  Video có sẵn (tùy chọn)
-                </Label>
+        <div className="px-8 relative z-10">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            {/* Left Column */}
+            <div className="lg:col-span-5 space-y-6">
+              {/* General Info */}
+              <FeatureCard
+                title="Thông tin chung"
+                icon={Target}
+                colorTheme="blue"
+              >
+                <div className="space-y-4">
+                  {/* Project */}
+                  <div className="mb-4">
+                    <SectionLabel className="mb-2">
+                      Dự án <span className="text-red-500">*</span>
+                    </SectionLabel>
+                    {renderEditableOrReadonly(
+                      canEditIdeaFields,
+                      <Select
+                        value={formData.projectId}
+                        onValueChange={handleProjectChange}
+                      >
+                        <SelectTrigger className="bg-white border-slate-200">
+                          <SelectValue placeholder="Chọn dự án" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {projects.map((p) => (
+                            <SelectItem key={p.id} value={p.id}>
+                              {p.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>,
+                      formData.projectName ? (
+                        <div>
+                          {formData.projectName}
+                        </div>
+                      ) : null,
+                      "Chưa chọn dự án"
+                    )}
+                  </div>
 
-                <div className="flex gap-3">
-                  <Input
-                    placeholder="Dán link video..."
-                    value={formData.videoLink || ""}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        videoLink: e.target.value.trim(),
-                      }))
-                    }
-                    className="flex-1 border-white/60 bg-white/50 focus:bg-white/80 focus:border-red-400 rounded-xl shadow-sm"
-                  />
-                  <label>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="bg-white/50 border-red-200 text-red-600 hover:bg-white/80 hover:border-red-300 rounded-xl shadow-sm"
-                      onClick={() =>
-                        document
-                          .getElementById("file-upload-idea-video")
-                          ?.click()
-                      }
-                    >
-                      <Upload className="w-4 h-4" />
-                    </Button>
-                    <input
-                      id="file-upload-idea-video"
-                      type="file"
-                      accept="video/*"
-                      onChange={handleVideoUpload}
-                      className="hidden"
-                    />
-                  </label>
-                </div>
+                  {/* Platform */}
+                  <div className="mb-4">
+                    <SectionLabel className="mb-2">Nền tảng</SectionLabel>
+                    {renderEditableOrReadonly(
+                      canEditIdeaFields,
+                      <div className="flex flex-wrap gap-3">
+                        {[
+                          "Facebook Reels",
+                          "Youtube Shorts",
+                          "Tiktok Video",
+                        ].map((p) => (
+                          <div
+                            key={p}
+                            className="flex items-center gap-2 p-2 bg-white rounded-lg border border-slate-200 shadow-sm cursor-pointer hover:bg-slate-50 transition-colors"
+                          >
+                            <Checkbox
+                              id={`p-${p}`}
+                              checked={formData.platform?.includes(p)}
+                              onCheckedChange={() => handlePlatformToggle(p)}
+                              className="data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600"
+                            />
+                            <Label
+                              htmlFor={`p-${p}`}
+                              className="text-sm cursor-pointer font-medium text-slate-700"
+                            >
+                              {p}
+                            </Label>
+                          </div>
+                        ))}
+                      </div>,
+                      <div className="flex flex-wrap gap-2">
+                        {formData.platform?.map((p) => (
+                          <span
+                            key={p}
+                          >
+                            {p}
+                          </span>
+                        ))}
+                      </div>,
+                      "Chưa chọn nền tảng"
+                    )}
+                  </div>
 
-                {formData.videoLink && (
-                  <div className="relative group inline-block rounded-xl overflow-hidden shadow-md border border-white/60 w-full">
-                    <video
-                      src={formData.videoLink}
-                      controls
-                      className="w-full max-h-48 object-cover rounded-xl"
-                    />
-                    <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button
-                        onClick={() =>
+                  {/* Idea */}
+                  <div>
+                    <SectionLabel>Ý tưởng</SectionLabel>
+                    {renderEditableOrReadonly(
+                      canEditIdeaFields,
+                      <Textarea
+                        value={formData.idea || ""}
+                        onChange={(e) =>
                           setFormData((prev) => ({
                             ...prev,
-                            videoLink: "",
+                            idea: e.target.value,
                           }))
                         }
-                        className="p-2 bg-black/50 hover:bg-black/70 text-white rounded-full transition-colors"
-                        title="Xóa video"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {canEditContentApprovalFields && (
-            <div className="space-y-6">
-              {/* Thời gian đăng */}
-              <div className="bg-white/40 backdrop-blur-md border border-white/60 rounded-2xl shadow-sm p-6 hover:bg-white/60 transition-all duration-300">
-                <Label className="flex items-center justify-between text-base font-semibold text-slate-700 mb-4">
-                  <div className="flex items-center gap-2">
-                    <Clock className="w-4 h-4 text-blue-500" />
-                    Thời gian đăng <span className="text-red-500">*</span>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleEditWithAI("schedule")}
-                    className="h-8 text-xs bg-amber-50 text-amber-600 hover:text-amber-800 hover:bg-amber-100 border border-amber-200 rounded-lg shadow-sm"
-                  >
-                    <Sparkles className="w-3.5 h-3.5 mr-1.5" />
-                    AI xếp lịch
-                  </Button>
-                </Label>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
-                      Ngày đăng
-                    </label>
-                    <div className="relative">
-                      <Input
-                        type="date"
-                        value={formData.expectedPostDate || ""}
-                        onChange={(e) => {
-                          setFormData((prev) => ({
-                            ...prev,
-                            expectedPostDate: e.target.value,
-                          }));
-                          updatePostingTime(
-                            e.target.value,
-                            formData.postingTime?.split(" ")[1] || ""
-                          );
-                        }}
-                        className="border-white/60 bg-white/50 focus:bg-white/80 focus:border-blue-400 rounded-xl h-11 shadow-sm"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
-                      Giờ đăng
-                    </label>
-                    <Input
-                      type="time"
-                      value={formData.postingTime?.split(" ")[1] || ""}
-                      onChange={(e) =>
-                        updatePostingTime(
-                          formData.expectedPostDate || "",
-                          e.target.value
-                        )
-                      }
-                      className="border-white/60 bg-white/50 focus:bg-white/80 focus:border-blue-400 rounded-xl h-11 shadow-sm"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-white/40 backdrop-blur-md border border-white/60 rounded-2xl shadow-sm p-6 hover:bg-white/60 transition-all duration-300">
-                <Label className="flex items-center gap-2 text-base font-semibold text-slate-700 mb-4">
-                  <SquareUser className="w-4 h-4 text-green-600" />
-                  Tài khoản sẽ đăng
-                </Label>
-
-                <div className="mb-4">
-                  <AccountSelector
-                    accounts={filteredAccounts}
-                    selectedIds={formData.accountIds || []}
-                    onChange={(ids) =>
-                      setFormData((prev) => ({ ...prev, accountIds: ids }))
-                    }
-                    currentProjectId={formData.projectId}
-                    placeholder={
-                      filteredAccounts.length === 0
-                        ? "Không có tài khoản phù hợp (Hãy chọn Nền tảng)"
-                        : "Chọn tài khoản đăng..."
-                    }
-                  />
-                  {(formData.accountIds || []).length === 0 &&
-                    filteredAccounts.length > 0 && (
-                      <p className="text-sm text-red-500 italic mt-1 ml-1">
-                        * Vui lòng chọn ít nhất 1 tài khoản
-                      </p>
+                        placeholder="Nhập ý tưởng video..."
+                        className="min-h-[100px] bg-white"
+                      />,
+                      formData.idea
                     )}
-                </div>
-              </div>
+                  </div>
 
-              {/* Tiêu đề */}
-              {formData.platform?.includes("Youtube Shorts") && (
-                <div className="space-y-3">
-                  <Label className="flex items-center gap-2 text-base font-semibold text-slate-700">
-                    <Film className="w-4 h-4 text-indigo-500" />
-                    Tiêu đề <span className="text-red-500">*</span>
-                  </Label>
-                  <Input
-                    value={formData.title || ""}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        title: e.target.value,
-                      }))
-                    }
-                    placeholder="Nhập tiêu đề video..."
-                    className="border-white/60 bg-white/50 focus:bg-white/80 focus:border-indigo-400 rounded-xl h-11 shadow-sm"
-                  />
+                  {/* Posting Time */}
+                  <div className="flex items-center gap-4">
+                    <div className="p-2 rounded-full bg-blue-50 shadow-sm text-blue-600">
+                      <Clock className="h-5 w-5" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between mb-2">
+                        <SectionLabel>Thời gian đăng</SectionLabel>
+                        {canEditContentApprovalFields && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() =>
+                              handleEditWithAI("schedule", formData.postingTime)
+                            }
+                            className="h-6 text-[14px] px-2 text-blue-600 hover:bg-blue-50 cursor-pointer"
+                          >
+                            <Sparkles className="w-3 h-3 mr-1" /> AI xếp lịch
+                          </Button>
+                        )}
+                      </div>
+                      {renderEditableOrReadonly(
+                        canEditContentApprovalFields,
+                        <div className="flex gap-2">
+                          <Input
+                            type="date"
+                            value={formData.expectedPostDate || ""}
+                            onChange={(e) => {
+                              setFormData((prev) => ({
+                                ...prev,
+                                expectedPostDate: e.target.value,
+                              }));
+                              updatePostingTime(
+                                e.target.value,
+                                formData.postingTime?.split(" ")[1] || ""
+                              );
+                            }}
+                            className="h-9 bg-white"
+                          />
+                          <Input
+                            type="time"
+                            value={formData.postingTime?.split(" ")[1] || ""}
+                            onChange={(e) =>
+                              updatePostingTime(
+                                formData.expectedPostDate || "",
+                                e.target.value
+                              )
+                            }
+                            className="h-9 bg-white"
+                          />
+                        </div>,
+                        formData.postingTime,
+                        "Chưa đặt lịch"
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Duration */}
+                  <div className="flex items-center gap-4">
+                    <div className="p-2 rounded-full bg-amber-50 shadow-sm text-amber-600">
+                      <Clock className="h-5 w-5" />
+                    </div>
+                    <div className="flex-1">
+                      <SectionLabel>Thời lượng (giây)</SectionLabel>
+                      {renderEditableOrReadonly(
+                        canEditIdeaFields,
+                        <Input
+                          type="number"
+                          value={formData.videoDuration || ""}
+                          onChange={(e) =>
+                            setFormData((prev) => ({
+                              ...prev,
+                              videoDuration: e.target.value
+                                ? parseInt(e.target.value)
+                                : undefined,
+                            }))
+                          }
+                          placeholder="VD: 60"
+                          className="h-9 bg-white"
+                        />,
+                        formData.videoDuration
+                          ? `${formData.videoDuration}s`
+                          : null,
+                        "Chưa có thời lượng"
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Accounts */}
+                  <div className="flex items-start gap-4">
+                    <div className="p-2 rounded-full bg-green-50 shadow-sm text-green-600 mt-1">
+                      <SquareUser className="h-5 w-5" />
+                    </div>
+                    <div className="flex-1">
+                      <SectionLabel>Tài khoản</SectionLabel>
+                      {renderEditableOrReadonly(
+                        canEditContentApprovalFields,
+                        <AccountSelector
+                          accounts={filteredAccounts}
+                          selectedIds={formData.accountIds || []}
+                          onChange={(ids) =>
+                            setFormData((prev) => ({
+                              ...prev,
+                              accountIds: ids,
+                            }))
+                          }
+                          currentProjectId={formData.projectId}
+                          placeholder="Chọn tài khoản..."
+                        />,
+                        <div className="flex flex-wrap gap-2">
+                          {filteredAccounts
+                            .filter((acc) =>
+                              formData.accountIds?.includes(acc.id)
+                            )
+                            .map((acc) => (
+                              <span
+                                key={acc.id}
+                                className="px-2 py-1 bg-green-50 text-emerald-700 text-xs rounded border border-emerald-200"
+                              >
+                                {acc.channelName} ({acc.platform})
+                              </span>
+                            ))}
+                          {(!formData.accountIds ||
+                            formData.accountIds.length === 0) && (
+                            <span className="text-slate-400 italic text-sm">
+                              Chưa chọn tài khoản
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Cost Display */}
+                  {canEditIdeaFields && estimatedCost && (
+                    <div className="flex items-center gap-4 p-3 bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                      <div className="p-2 rounded-full bg-emerald-50 shadow-sm text-emerald-600">
+                        <DollarSign className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <SectionLabel>Chi phí ước tính</SectionLabel>
+                        {estimatedCost.isFree ? (
+                          <span className="text-emerald-600 font-medium text-sm">
+                            Miễn phí (Video có sẵn)
+                          </span>
+                        ) : (
+                          <div className="flex items-baseline gap-2">
+                            <span className="font-bold text-slate-900">
+                              ${estimatedCost.total.toFixed(3)}
+                            </span>
+                            <span className="text-slate-500 text-xs">
+                              (~
+                              {(estimatedCost.total * 26000).toLocaleString(
+                                "vi-VN"
+                              )}
+                              đ)
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
+              </FeatureCard>
+
+              <FeatureCard
+                title="Phân tích AI"
+                icon={Sparkles}
+                colorTheme="purple"
+              >
+                <div className="space-y-4">
+                  {/* Topic */}
+                  <div className="flex items-start gap-3">
+                    <div className="p-1.5 rounded-full bg-purple-50 shadow-sm mt-1 text-slate-600">
+                      <FileText className="h-4 w-4" />
+                    </div>
+                    <div className="flex-1">
+                      <SectionLabel className="mb-1">Chủ đề</SectionLabel>
+                      {renderEditableOrReadonly(
+                        false,
+                        null,
+                        formData.topic,
+                        "Chưa xác định"
+                      )}
+                    </div>
+                  </div>
+                  <div className="w-full h-px bg-slate-200/50" />
+                  {/* Target Audience */}
+                  <div className="flex items-start gap-3">
+                    <div className="p-1.5 rounded-full bg-blue-50 shadow-sm mt-1 text-slate-600">
+                      <Target className="h-4 w-4" />
+                    </div>
+                    <div className="flex-1">
+                      <SectionLabel className="mb-1">
+                        Đối tượng mục tiêu
+                      </SectionLabel>
+                      {renderEditableOrReadonly(
+                        false,
+                        null,
+                        formData.targetAudience,
+                        "Chưa xác định"
+                      )}
+                    </div>
+                  </div>
+                  <div className="w-full h-px bg-slate-200/50" />
+                  {/* Research Notes */}
+                  <div className="flex items-start gap-3">
+                    <div className="p-1.5 rounded-full bg-blue-50 shadow-sm mt-1 text-slate-600">
+                      <Target className="h-4 w-4" />
+                    </div>
+                    <div className="flex-1">
+                      <SectionLabel className="mb-1">
+                        Lưu ý nghiên cứu
+                      </SectionLabel>
+                      {renderEditableOrReadonly(
+                        false,
+                        null,
+                        formData.researchNotes,
+                        "Chưa có ghi chú"
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </FeatureCard>
+
+              {/* System Info (Static) */}
+              {editVideo && (
+                <div className="grid grid-cols-2 gap-4">
+                  <InfoCard className="p-4 flex items-center gap-3">
+                    <div className="p-2 rounded-full bg-slate-100 shadow-sm text-slate-600">
+                      <Calendar className="h-4 w-4" />
+                    </div>
+                    <div className="overflow-hidden">
+                      <SectionLabel className="text-[10px]">
+                        Ngày tạo
+                      </SectionLabel>
+                      <div className="font-medium text-slate-900 truncate text-sm">
+                        {formatDate(editVideo.createdAt)}
+                      </div>
+                    </div>
+                  </InfoCard>
+                  <InfoCard className="p-4 flex items-center gap-3">
+                    <div className="p-2 rounded-full bg-slate-100 shadow-sm text-slate-600">
+                      <RefreshCw className="h-4 w-4" />
+                    </div>
+                    <div className="overflow-hidden">
+                      <SectionLabel className="text-[10px]">
+                        Cập nhật
+                      </SectionLabel>
+                      <div className="font-medium text-slate-900 truncate text-sm">
+                        {formatDate(editVideo.updatedAt)}
+                      </div>
+                    </div>
+                  </InfoCard>
+                </div>
+              )}
+            </div>
+
+            {/* Right Column */}
+            <div className="lg:col-span-7 space-y-6">
+              {/* Title (Specific to Youtube) */}
+              {formData.platform?.includes("Youtube Shorts") && (
+                <FeatureCard
+                  title="Tiêu đề Video"
+                  icon={FileText}
+                  colorTheme="rose"
+                >
+                  {renderEditableOrReadonly(
+                    canEditContentApprovalFields,
+                    <Input
+                      value={formData.title || ""}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          title: e.target.value,
+                        }))
+                      }
+                      placeholder="Nhập tiêu đề video..."
+                      className="bg-white"
+                    />,
+                    formData.title,
+                    "Chưa có tiêu đề"
+                  )}
+                </FeatureCard>
               )}
 
               {/* Caption */}
-              <div className="space-y-3">
-                <Label className="flex items-center gap-2 text-base font-semibold text-slate-700">
-                  <MessageSquare className="w-4 h-4 text-purple-500" />
-                  Caption <span className="text-red-500">*</span>
-                </Label>
-                <Textarea
-                  value={formData.caption || ""}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      caption: e.target.value,
-                    }))
-                  }
-                  placeholder="Nhập caption cho video..."
-                  rows={4}
-                  required
-                  className="border-white/60 bg-white/50 focus:bg-white/80 focus:border-purple-400 rounded-xl resize-none shadow-sm custom-scrollbar"
-                />
-              </div>
-
-              {/* Video sẽ đăng */}
-              <div className="space-y-3">
-                <Label className="flex items-center justify-between text-base font-semibold text-slate-700">
-                  <div className="flex items-center gap-2">
-                    <Play className="w-4 h-4 text-red-500" />
-                    Video sẽ đăng
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleEditWithAI("video-edit")}
-                    className="h-8 text-xs bg-indigo-50 text-indigo-600 hover:text-indigo-800 hover:bg-indigo-100 border border-indigo-200 rounded-lg shadow-sm"
-                  >
-                    <Sparkles className="w-3.5 h-3.5 mr-1.5" />
-                    Sửa video
-                  </Button>
-                </Label>
-                <Input
-                  value={formData.videoLink || ""}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      videoLink: e.target.value,
-                    }))
-                  }
-                  placeholder="https://..."
-                  className="border-white/60 bg-white/50 focus:bg-white/80 focus:border-red-400 rounded-xl h-11 shadow-sm"
-                />
-                {formData.videoLink && (
-                  <div className="relative group inline-block rounded-xl overflow-hidden shadow-md border border-white/60 w-full mt-3">
-                    <video
-                      src={formData.videoLink}
-                      controls
-                      className="w-full max-h-[300px] rounded-xl bg-black"
+              <FeatureCard
+                title="Caption"
+                icon={Captions}
+                colorTheme="amber"
+                className="flex flex-col"
+                action={
+                  canEditContentApprovalFields && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() =>
+                        handleEditWithAI("caption", formData.caption)
+                      }
+                      className="text-indigo-600 hover:bg-indigo-50 cursor-pointer"
                     >
-                      Trình duyệt không hỗ trợ thẻ video.
-                    </video>
-                  </div>
+                      <Sparkles className="w-3.5 h-3.5 mr-1.5" /> AI Viết lại
+                    </Button>
+                  )
+                }
+              >
+                {renderEditableOrReadonly(
+                  canEditContentApprovalFields,
+                  <Textarea
+                    value={formData.caption || ""}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        caption: e.target.value,
+                      }))
+                    }
+                    placeholder="Nhập caption..."
+                    className="bg-white min-h-[200px]"
+                  />,
+                  <p className="whitespace-pre-wrap">{formData.caption}</p>,
+                  "Chưa có caption"
                 )}
-              </div>
-            </div>
-          )}
+              </FeatureCard>
 
-          {!canEditIdeaFields && !canEditContentApprovalFields && (
-            <div className="flex flex-col items-center justify-center gap-3 py-10 text-slate-400">
-              <div className="p-4 bg-slate-50 rounded-full">
-                <CheckCircle2 className="w-8 h-8" />
-              </div>
-              <p className="font-medium">
-                Không thể chỉnh sửa ở trạng thái hiện tại
-              </p>
+              {/* Video Media */}
+              <FeatureCard
+                title="Video"
+                icon={Play}
+                colorTheme="rose"
+                className="flex flex-col"
+              >
+                <div className="space-y-4">
+                  {canEditIdeaFields && (
+                    <div className="flex gap-3">
+                      <Input
+                        placeholder="Dán link video..."
+                        value={formData.videoLink || ""}
+                        onChange={(e) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            videoLink: e.target.value,
+                          }))
+                        }
+                        className="flex-1 bg-white"
+                      />
+                      <label>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="bg-white"
+                          onClick={() =>
+                            document.getElementById("video-upload")?.click()
+                          }
+                        >
+                          <Upload className="w-4 h-4" />
+                        </Button>
+                        <input
+                          id="video-upload"
+                          type="file"
+                          accept="video/*"
+                          className="hidden"
+                          onChange={handleVideoUpload}
+                        />
+                      </label>
+                    </div>
+                  )}
+
+                  {formData.videoLink ? (
+                    <div className="relative group rounded-xl overflow-hidden shadow-lg border border-slate-200 aspect-video bg-black">
+                      <video
+                        src={formData.videoLink}
+                        controls
+                        className="w-full h-full"
+                      />
+                      {canEditIdeaFields && (
+                        <button
+                          onClick={() =>
+                            setFormData((prev) => ({ ...prev, videoLink: "" }))
+                          }
+                          className="absolute top-2 right-2 p-2 bg-black/50 hover:bg-black/70 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-slate-500 italic bg-slate-50/50 rounded-xl border border-dashed border-slate-200">
+                      Chưa có video
+                    </div>
+                  )}
+                </div>
+              </FeatureCard>
+
+              {/* Thumbnail Image */}
+              <FeatureCard
+                title="Thumbnail"
+                icon={ImageIcon}
+                colorTheme="purple"
+                className="flex flex-col"
+              >
+                <div className="space-y-4">
+                  {canEditIdeaFields && (
+                    <div className="flex gap-3">
+                      <Input
+                        placeholder="Dán link ảnh..."
+                        value={newImageLink}
+                        onChange={(e) => {
+                          setNewImageLink(e.target.value);
+                          if (e.target.value)
+                            setFormData((prev) => ({
+                              ...prev,
+                              imageLink: e.target.value,
+                            }));
+                        }}
+                        className="flex-1 bg-white"
+                      />
+                      <label>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="bg-white"
+                          onClick={() =>
+                            document.getElementById("image-upload")?.click()
+                          }
+                        >
+                          <Upload className="w-4 h-4" />
+                        </Button>
+                        <input
+                          id="image-upload"
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={handleImageUpload}
+                        />
+                      </label>
+                    </div>
+                  )}
+
+                  {formData.imageLink ? (
+                    <div className="relative group rounded-xl overflow-hidden shadow-lg border border-slate-200 aspect-video bg-slate-100">
+                      <img
+                        src={formData.imageLink}
+                        alt="Thumbnail w-full h-full object-cover"
+                      />
+                      {canEditIdeaFields && (
+                        <button
+                          onClick={() => {
+                            setFormData((prev) => ({
+                              ...prev,
+                              imageLink: undefined,
+                            }));
+                            setNewImageLink("");
+                          }}
+                          className="absolute top-2 right-2 p-2 bg-black/50 hover:bg-black/70 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-slate-500 italic bg-slate-50/50 rounded-xl border border-dashed border-slate-200">
+                      Chưa có thumbnail
+                    </div>
+                  )}
+                </div>
+              </FeatureCard>
             </div>
-          )}
+          </div>
         </div>
 
-        <DialogFooter className="border-t border-white/40 p-6 bg-white/40 backdrop-blur-sm sticky bottom-0 z-10">
-          <Button
-            variant="outline"
-            onClick={handleClose}
-            disabled={isLoading || isSaving}
-            className="cursor-pointer bg-white/50 hover:bg-white/80 border-slate-200 text-slate-700 hover:text-slate-900 rounded-xl px-6 backdrop-blur-sm"
-          >
-            Hủy
-          </Button>
-          {/* Duyệt ý tưởng */}
-          {canEditIdeaFields && editVideo && (
+        <DialogFooter className="">
+          {editVideo && onViewDetail ? (
             <Button
-              onClick={() => onApproveIdea?.(editVideo)}
-              disabled={isLoading || isSaving || !isIdeaValid}
-              className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg shadow-blue-200/50 rounded-xl px-8"
+              variant="ghost"
+              onClick={() => onViewDetail(editVideo)}
+              className="mr-auto text-slate-600 hover:text-blue-600 hover:bg-blue-50"
             >
-              {isSaving || isLoading ? (
-                <span className="flex items-center gap-2">
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                  Đang duyệt...
-                </span>
-              ) : (
-                "Duyệt ý tưởng"
-              )}
+              <Eye className="w-4 h-4 mr-2" />
+              Xem chi tiết
             </Button>
+          ) : (
+            <div className="mr-auto"></div>
           )}
-          {/* Duyệt nội dung */}
-          {formData.status === "awaiting_content_approval" && (
-            <Button
-              onClick={() => onApprove?.(formData as VideoItem)}
-              disabled={isLoading}
-              className="bg-green-600 hover:bg-green-700 text-white shadow-lg cursor-pointer"
-            >
-              <CheckCircle className="h-4 w-4" />
-              {isLoading ? "Đang duyệt..." : "Duyệt"}
+
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={handleClose}>
+              Hủy
             </Button>
-          )}
-          <Button
-            onClick={handleSubmit}
-            disabled={
-              isLoading ||
-              isSaving ||
-              !isFormValid ||
-              (!canEditIdeaFields && !canEditContentApprovalFields)
-            }
-            className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg cursor-pointer"
-          >
-            {isSaving || isLoading ? (
-              <span className="flex items-center gap-2">
-                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                Đang lưu...
-              </span>
-            ) : editVideo ? (
-              "Cập nhật"
-            ) : (
-              "Tạo mới"
+
+            {canEditIdeaFields && (
+              <Button
+                onClick={handleSubmit}
+                disabled={isSaving || !formData.idea || !formData.projectId}
+                className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg shadow-blue-500/25"
+              >
+                {isSaving ? "Đang cập nhật..." : "Cập nhật"}
+              </Button>
             )}
-          </Button>
+
+            {onApproveIdea && canEditIdeaFields && (
+              <Button
+                onClick={() => editVideo && onApproveIdea(editVideo)}
+                variant="default"
+                className="bg-gradient-to-r from-emerald-500 to-teal-500 text-white"
+              >
+                Duyệt ý tưởng
+              </Button>
+            )}
+
+            {canEditContentApprovalFields && (
+              <Button
+                onClick={handleSubmit}
+                disabled={isSaving}
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                {isSaving ? "Đang cập nhật..." : "Cập nhật"}
+              </Button>
+            )}
+
+            {onApprove && canEditContentApprovalFields && (
+              <Button
+                onClick={() => editVideo && onApprove(editVideo)}
+                disabled={isLoading}
+                className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-lg shadow-emerald-500/25"
+              >
+                {isLoading ? "Đang xử lý..." : "Duyệt Video"}
+              </Button>
+            )}
+          </div>
         </DialogFooter>
       </DialogContent>
+
       <AiRequirementDialog
         isOpen={aiPromptOpen}
         onClose={() => setAiPromptOpen(false)}
         type={aiPromptType}
+        initialRequirement=""
+        hasImage={false}
         onConfirm={handleConfirmAiEdit}
         isLoading={isAiLoading}
-        hasImage={!!formData.imageLink}
       />
     </Dialog>
   );

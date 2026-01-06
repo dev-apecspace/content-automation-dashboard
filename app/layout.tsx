@@ -1,13 +1,16 @@
 import type React from "react";
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Be_Vietnam_Pro } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { Providers } from "@/components/providers/providers";
 import { ActivityTracker } from "@/components/layout/activity-tracker";
 import "./globals.css";
 
-const _geist = Geist({ subsets: ["latin"] });
-const _geistMono = Geist_Mono({ subsets: ["latin"] });
+const beVietnamPro = Be_Vietnam_Pro({
+  weight: ["100", "200", "300", "400", "500", "600", "700", "800", "900"],
+  subsets: ["vietnamese"],
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   // <CHANGE> Updated metadata for Vietnamese Content Automation Dashboard
@@ -41,7 +44,7 @@ export default function RootLayout({
   return (
     // <CHANGE> Updated lang to 'vi' for Vietnamese
     <html lang="vi" suppressHydrationWarning>
-      <body className={`font-sans antialiased`}>
+      <body className={`${beVietnamPro.className} antialiased`}>
         <Providers>
           {children}
           <ActivityTracker />

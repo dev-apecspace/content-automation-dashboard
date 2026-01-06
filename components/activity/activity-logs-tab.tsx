@@ -16,7 +16,7 @@ import { Input } from "@/components/ui/input";
 import { GlassContainer } from "@/components/dashboard/dashboard-atoms";
 import {
   Loader2,
-  Calendar,
+  Calendar as CalendarIcon,
   User,
   FileText,
   RotateCw,
@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 import { getAllUsers } from "@/lib/api";
 import { useActivityLogs } from "@/hooks/use-activity-logs";
+import { useRealtimeSubscription } from "@/hooks/use-realtime-subscription";
 import { type User as SystemUser } from "@/lib/api/users";
 import { toast } from "sonner";
 import {
@@ -36,22 +37,50 @@ import {
   activityTypeConfig,
   entityTypeConfig,
 } from "@/lib/types";
+import { PaginationControl } from "@/components/ui/pagination-control";
+import { format } from "date-fns";
+import { DateRange } from "react-day-picker";
+import { cn } from "@/lib/utils";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 export function ActivityLogsTab() {
   const [filterType, setFilterType] = useState<ActivityType | "all">("all");
   const [filterEntity, setFilterEntity] = useState<EntityType | "all">("all");
+  const [filterUser, setFilterUser] = useState<string | "all">("all");
+  const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [searchTerm, setSearchTerm] = useState("");
   const [userMap, setUserMap] = useState<Record<string, string>>({});
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(15);
 
   const {
-    data: logs = [],
+    data: { data: logs = [], total = 0 } = {},
     isLoading,
     refetch,
     isRefetching,
   } = useActivityLogs({
     activityType: filterType,
     entityType: filterEntity,
-    limit: 100,
+    userId: filterUser,
+    startDate: dateRange?.from,
+    endDate: dateRange?.to,
+    page,
+    pageSize,
+  });
+
+  // Reset page when filter changes
+  useEffect(() => {
+    setPage(1);
+  }, [filterType, filterEntity, filterUser, dateRange]);
+
+  // Realtime subscription
+  useRealtimeSubscription("activity_logs", () => {
+    refetch();
   });
 
   useEffect(() => {
@@ -83,6 +112,16 @@ export function ActivityLogsTab() {
     );
   });
 
+  const handleResetFilters = () => {
+    setFilterType("all");
+    setFilterEntity("all");
+    setFilterUser("all");
+    setDateRange(undefined);
+    setSearchTerm("");
+    setPage(1);
+    refetch();
+  };
+
   return (
     <div className="space-y-6">
       <GlassContainer className="p-5" intensity="low">
@@ -96,13 +135,10 @@ export function ActivityLogsTab() {
             </h3>
           </div>
           <div className="flex items-center gap-2 self-end md:self-auto">
-            <span className="text-xs font-medium text-slate-500 bg-slate-100 px-2 py-1 rounded-full hidden sm:inline-block">
-              Tự động cập nhật 1 phút/lần
-            </span>
             <Button
               variant="outline"
               size="sm"
-              onClick={() => refetch()}
+              onClick={handleResetFilters}
               disabled={isRefetching}
               className="bg-white/50 border-white/60 hover:bg-white/80 transition-all hover:scale-105 active:scale-95 shadow-sm cursor-pointer"
             >
@@ -114,7 +150,7 @@ export function ActivityLogsTab() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <div className="space-y-2.5">
             <label className="text-sm font-semibold text-slate-700 flex items-center gap-2">
               <Layers className="h-4 w-4 text-indigo-500" />
@@ -163,18 +199,65 @@ export function ActivityLogsTab() {
 
           <div className="space-y-2.5">
             <label className="text-sm font-semibold text-slate-700 flex items-center gap-2">
-              <Search className="h-4 w-4 text-amber-500" />
-              Tìm kiếm
+              <User className="h-4 w-4 text-blue-500" />
+              Người dùng
             </label>
-            <div className="relative">
-              <Input
-                placeholder="ID, mô tả hoặc người dùng..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="bg-white/50 border-white/40 focus:ring-amber-500 focus:border-amber-500 shadow-sm pl-10 transition-all hover:bg-white/70"
-              />
-              <Search className="h-4 w-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-            </div>
+            <Select value={filterUser} onValueChange={(v) => setFilterUser(v)}>
+              <SelectTrigger className="bg-white/50 border-white/40 focus:ring-blue-500 focus:border-blue-500 shadow-sm transition-all hover:bg-white/70">
+                <SelectValue placeholder="Tất cả người dùng" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tất cả người dùng</SelectItem>
+                {Object.entries(userMap).map(([id, name]) => (
+                  <SelectItem key={id} value={id}>
+                    {name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2.5">
+            <label className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+              <CalendarIcon className="h-4 w-4 text-rose-500" />
+              Thời gian
+            </label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  id="date"
+                  variant={"outline"}
+                  className={cn(
+                    "w-full justify-start text-left font-normal bg-white/50 border-white/40 shadow-sm hover:bg-white/70",
+                    !dateRange && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {dateRange?.from ? (
+                    dateRange.to ? (
+                      <>
+                        {format(dateRange.from, "dd/MM/yyyy")} -{" "}
+                        {format(dateRange.to, "dd/MM/yyyy")}
+                      </>
+                    ) : (
+                      format(dateRange.from, "dd/MM/yyyy")
+                    )
+                  ) : (
+                    <span>Chọn khoảng thời gian</span>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  initialFocus
+                  mode="range"
+                  defaultMonth={dateRange?.from}
+                  selected={dateRange}
+                  onSelect={setDateRange}
+                  numberOfMonths={2}
+                />
+              </PopoverContent>
+            </Popover>
           </div>
         </div>
       </GlassContainer>
@@ -271,13 +354,21 @@ export function ActivityLogsTab() {
                       </div>
                     )}
                     <div className="flex items-center gap-1">
-                      <Calendar className="h-3 w-3" />
                       <span>{formatVietnamDateFull(log.created_at)}</span>
                     </div>
                   </div>
                 </div>
               </div>
             ))}
+          </div>
+          <div className="border-t border-gray-200">
+            <PaginationControl
+              currentPage={page}
+              pageSize={pageSize}
+              totalCount={total}
+              onPageChange={setPage}
+              onPageSizeChange={setPageSize}
+            />
           </div>
         </Card>
       )}

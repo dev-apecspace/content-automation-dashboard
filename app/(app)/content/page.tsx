@@ -19,6 +19,7 @@ import { toast } from "sonner";
 import type { ContentItem } from "@/lib/types";
 import type { Status } from "@/lib/types";
 import { usePermissions } from "@/hooks/use-permissions";
+import { useRealtimeSubscription } from "@/hooks/use-realtime-subscription";
 
 export default function ContentPage() {
   const [contentItems, setContentItems] = useState<ContentItem[]>([]);
@@ -32,20 +33,31 @@ export default function ContentPage() {
   );
   const [filterStatus, setFilterStatus] = useState<Status | "all">("all");
   const [filterProject, setFilterProject] = useState<string>("all");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(15);
+  const [totalCount, setTotalCount] = useState(0);
   const { hasPermission } = usePermissions();
 
   useEffect(() => {
     loadContentItems();
-  }, [filterStatus, filterProject]);
+  }, [filterStatus, filterProject, page, pageSize]);
+
+  // Subscribe to realtime changes
+  useRealtimeSubscription("content_items", () => {
+    loadContentItems();
+  });
 
   const loadContentItems = async () => {
     try {
       setIsLoading(true);
-      const data = await getContentItems({
+      const { data, total } = await getContentItems({
         status: filterStatus !== "all" ? filterStatus : undefined,
         projectId: filterProject !== "all" ? filterProject : undefined,
+        page,
+        pageSize,
       });
       setContentItems(data);
+      setTotalCount(total);
     } catch (error) {
       toast.error("Không tải được danh sách bài viết");
       console.error(error);
@@ -256,6 +268,11 @@ export default function ContentPage() {
         onViewPost={handleViewPost}
         onAdd={handleCreateClick}
         onReload={loadContentItems}
+        page={page}
+        pageSize={pageSize}
+        totalCount={totalCount}
+        onPageChange={setPage}
+        onPageSizeChange={setPageSize}
       />
 
       <ContentFormModal
@@ -264,6 +281,7 @@ export default function ContentPage() {
         onSave={handleSaveContent}
         editContent={editContent}
         isSaving={isSaving}
+        onViewDetail={handleViewClick}
       />
 
       <ContentDetailModal
@@ -271,6 +289,7 @@ export default function ContentPage() {
         onOpenChange={setIsDetailModalOpen}
         content={selectedContent}
         onEdit={handleEditClick}
+        onApproveIdea={handleApproveIdea}
       />
     </div>
   );

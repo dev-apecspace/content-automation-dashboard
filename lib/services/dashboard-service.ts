@@ -173,7 +173,8 @@ export const DashboardService = {
     const { getActivityLogs } = await import("@/lib/api/activity-logs");
 
     try {
-      return await getActivityLogs({ limit: 10 });
+      const { data } = await getActivityLogs({ pageSize: 10 });
+      return data;
     } catch (error) {
       console.error("Failed to fetch activity logs", error);
       return [];

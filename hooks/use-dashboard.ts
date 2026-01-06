@@ -67,6 +67,13 @@ export function useDashboardRealtime() {
           queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
         }
       )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "activity_logs" } as any,
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["dashboard-activity"] });
+        }
+      )
       .subscribe();
 
     return () => {

@@ -97,7 +97,7 @@ export async function updateProject(
       userId: user.userId,
       oldValues: oldData,
       newValues: updates,
-      description: `Cập nhật dự án ${id}`,
+      description: `Cập nhật dự án ${oldData.name}`,
     });
   }
 
@@ -106,6 +106,14 @@ export async function updateProject(
 
 export async function deleteProject(id: string): Promise<void> {
   await requirePermission("projects.delete");
+
+  // Fetch old data for logging
+  const { data: oldData } = await supabase
+    .from("projects")
+    .select("*")
+    .eq("id", id)
+    .single();
+
   const { error } = await supabase.from("projects").delete().eq("id", id);
 
   if (error) {
@@ -115,10 +123,11 @@ export async function deleteProject(id: string): Promise<void> {
 
   // Log activity
   const user = await getCurrentUser();
-  if (user) {
+  if (user && oldData) {
     await createActivityLog("delete", "project", id, {
       userId: user.userId,
-      description: `Xóa dự án ${id}`,
+      oldValues: oldData,
+      description: `Xóa dự án ${oldData.name}`,
     });
   }
 }

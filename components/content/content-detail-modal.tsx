@@ -9,8 +9,6 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   CheckCircle,
   Edit,
@@ -33,8 +31,13 @@ import {
   DollarSign,
   Maximize2,
   SquareUser,
+  Image,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { FeatureCard } from "@/components/ui/feature-card";
+import { InfoCard } from "@/components/ui/info-card";
+import { SectionLabel } from "@/components/ui/section-label";
+import { BackgroundStyle } from "@/components/ui/background-style";
 import {
   contentTypes,
   statusConfig,
@@ -75,6 +78,7 @@ interface ContentDetailModalProps {
   item?: ContentItem | null;
   content?: ContentItem | null;
   onApprove?: (item: ContentItem) => void;
+  onApproveIdea?: (item: ContentItem) => void;
   onEdit?: (item: ContentItem) => void;
 }
 
@@ -85,6 +89,7 @@ export function ContentDetailModal({
   item,
   content,
   onApprove,
+  onApproveIdea,
   onEdit,
 }: ContentDetailModalProps) {
   const [isLoading, setIsLoading] = useState(false);
@@ -281,22 +286,10 @@ export function ContentDetailModal({
 
   const estimatedCost = calculateEstimatedCost();
 
-  // Glassmorphism helper classes (Light Mode)
-  const glassCardClass =
-    "bg-white/40 backdrop-blur-md border border-white/60 rounded-2xl shadow-sm hover:bg-white/60 transition-all duration-300";
-  const glassTextClass = "text-slate-900";
-  const glassTextMutedClass = "text-slate-600";
-  const glassLabelClass =
-    "text-slate-500 text-xs uppercase tracking-wider font-semibold";
-
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange || onClose}>
-      <DialogContent
-        className="max-w-5xl max-h-[90vh] overflow-y-auto bg-white/80 backdrop-blur-2xl border-white/60 shadow-2xl rounded-[32px] p-0 sm:max-w-5xl [&>button]:text-slate-600 [&>button]:hover:text-slate-900"
-        showCloseButton={true}
-      >
-        {/* Vibrant Gradient Background Layer (Lighter/Pastel for Light Mode) */}
-        <div className="absolute inset-0 -z-10 bg-gradient-to-br from-[#a8c0ff]/40 via-[#3f2b96]/10 to-[#ffafbd]/40 blur-3xl pointer-events-none" />
+      <DialogContent className="" showCloseButton={true}>
+        <BackgroundStyle />
 
         <div className="p-8 relative z-10">
           <DialogHeader className="space-y-6">
@@ -309,7 +302,7 @@ export function ContentDetailModal({
                 <Badge
                   variant="outline"
                   className={cn(
-                    "border-slate-200/60 bg-white/50 text-slate-700 backdrop-blur-sm px-3 py-1",
+                    "border-slate-200 bg-white text-slate-700 px-3 py-1",
                     statusConfig[currentItem.status].className
                   )}
                 >
@@ -363,53 +356,33 @@ export function ContentDetailModal({
             </div>
           </DialogHeader>
 
-          <Tabs defaultValue="info" className="w-full mt-8">
-            <TabsList className="bg-slate-100/50 border border-white/50 p-1 rounded-xl w-full max-w-md mx-auto grid grid-cols-3 mb-3 shadow-inner">
-              <TabsTrigger
-                value="info"
-                className="data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm text-slate-500 rounded-lg transition-all"
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mt-8">
+            {/* Left Column (Metadata, AI, Stats, Posts) */}
+            <div className="lg:col-span-5 space-y-6">
+              {/* General Info */}
+              <FeatureCard
+                title="Thông tin chung"
+                icon={Target}
+                colorTheme="blue"
               >
-                Thông tin
-              </TabsTrigger>
-              <TabsTrigger
-                value="interaction"
-                className="data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm text-slate-500 rounded-lg transition-all"
-              >
-                Tương tác
-              </TabsTrigger>
-              <TabsTrigger
-                value="ai"
-                className="data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm text-slate-500 rounded-lg transition-all"
-              >
-                AI Phân tích
-              </TabsTrigger>
-            </TabsList>
-
-            {/* Tab 1: Thông tin */}
-            <TabsContent
-              value="info"
-              className="space-y-6 focus-visible:outline-none"
-            >
-              <div className={cn(glassCardClass, "p-6")}>
-                <div className="flex items-center gap-4 mb-6">
-                  <div className="p-2 rounded-full bg-white/60 shadow-sm text-blue-600">
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="p-2 rounded-full bg-blue-50 shadow-sm text-blue-600">
                     <Clock className="h-5 w-5" />
                   </div>
                   <div>
-                    <p className={glassLabelClass}>Thời gian đăng</p>
-                    <p className="text-lg font-medium text-slate-900">
+                    <SectionLabel>Thời gian đăng</SectionLabel>
+                    <p className="text-md font-medium text-slate-900">
                       {currentItem.postingTime || "-"}
                     </p>
                   </div>
                 </div>
 
-                {/* --- Accounts Display --- */}
-                <div className="flex items-start gap-4 mb-6">
-                  <div className="p-2 rounded-full bg-white/60 shadow-sm text-green-600 mt-1">
+                <div className="flex items-start gap-4 mb-4">
+                  <div className="p-2 rounded-full bg-green-50 shadow-sm text-green-600 mt-1">
                     <SquareUser className="h-5 w-5" />
                   </div>
                   <div>
-                    <h4 className={glassLabelClass}>Tài khoản sẽ đăng</h4>
+                    <SectionLabel>Tài khoản sẽ đăng</SectionLabel>
                     {currentItem.accountIds &&
                     currentItem.accountIds.length > 0 ? (
                       <div className="flex flex-wrap gap-2 mt-1">
@@ -419,14 +392,14 @@ export function ContentDetailModal({
                             variant="outline"
                             size="sm"
                             className={`
-                              h-auto py-1.5 px-3 text-sm font-medium rounded-lg border shadow-sm transition-all
-                              ${
-                                acc.channelLink
-                                  ? "cursor-pointer hover:-translate-y-0.5"
-                                  : "cursor-default"
-                              }
-                              bg-green-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 hover:border-emerald-300
-                            `}
+                                                h-auto py-1.5 px-3 text-sm font-medium rounded-lg border shadow-sm transition-all
+                                                ${
+                                                  acc.channelLink
+                                                    ? "cursor-pointer hover:-translate-y-0.5"
+                                                    : "cursor-default"
+                                                }
+                                                bg-green-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 hover:border-emerald-300
+                                            `}
                             onClick={() => {
                               if (acc.channelLink) {
                                 window.open(acc.channelLink, "_blank");
@@ -451,28 +424,14 @@ export function ContentDetailModal({
                   </div>
                 </div>
 
-                <div className="mb-6">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="p-2 rounded-full bg-white/60 shadow-sm text-blue-600">
-                      <Captions className="h-5 w-5" />
-                    </div>
-                    <h4 className="font-semibold text-slate-900">Caption</h4>
-                  </div>
-                  <div className="bg-white/50 rounded-xl p-4 border border-white/60 shadow-inner">
-                    <p className="text-slate-700 whitespace-pre-wrap leading-relaxed">
-                      {currentItem.caption || "Chưa có caption"}
-                    </p>
-                  </div>
-                </div>
-
                 {/* Cost Display */}
                 {estimatedCost && !estimatedCost.isAvailable ? (
-                  <div className="flex items-center gap-4 mb-6">
-                    <div className="p-2 rounded-full bg-white/60 shadow-sm text-emerald-600">
+                  <div className="flex items-center gap-4">
+                    <div className="p-2 rounded-full bg-emerald-50 shadow-sm text-emerald-600">
                       <DollarSign className="h-5 w-5" />
                     </div>
                     <div>
-                      <div className={glassLabelClass}>Chi phí</div>
+                      <SectionLabel>Chi phí</SectionLabel>
                       <div className="inline-flex items-center gap-2">
                         <span className="font-medium text-slate-900 text-lg">
                           ${estimatedCost.total.toFixed(3)}
@@ -522,385 +481,400 @@ export function ContentDetailModal({
                     </div>
                   </div>
                 ) : estimatedCost?.isAvailable ? (
-                  <div className="flex items-center gap-4 mb-6">
+                  <div className="flex items-center gap-4">
                     <div className="p-2 rounded-full bg-white/60 shadow-sm text-blue-600">
                       <DollarSign className="h-5 w-5" />
                     </div>
                     <div>
-                      <div className={glassLabelClass}>Chi phí</div>
+                      <SectionLabel>Chi phí</SectionLabel>
                       <div className="font-medium text-blue-700 text-lg">
                         Ảnh có sẵn
                       </div>
                     </div>
                   </div>
                 ) : null}
+              </FeatureCard>
 
-                {currentItem.imageLinks &&
-                  currentItem.imageLinks.length > 0 && (
-                    <div className="flex items-start gap-4 mb-6">
-                      <div className="p-2 rounded-full bg-white/60 shadow-sm mt-1 text-blue-600">
-                        <Link className="h-4 w-4" />
-                      </div>
-                      <div className="flex-1">
-                        <div className={cn(glassLabelClass, "mb-2")}>
-                          Ảnh đính kèm
-                        </div>
-                        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                          {currentItem.imageLinks.map((link, index) => (
-                            <div
-                              key={index}
-                              className="relative group rounded-xl overflow-hidden shadow-md border border-white/60 aspect-video bg-slate-100"
+              {/* Posts List */}
+              <FeatureCard
+                title="Danh sách bài đăng"
+                icon={Globe}
+                colorTheme="indigo"
+              >
+                <div className="space-y-3">
+                  {currentItem.posts && currentItem.posts.length > 0 ? (
+                    <div className="space-y-3">
+                      {currentItem.posts.map((post) => (
+                        <div
+                          key={post.id}
+                          className="flex flex-col gap-2 p-3 rounded-xl bg-blue-50/50 border border-blue-100 transition-all hover:bg-blue-50"
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            {(() => {
+                              const account = allAccounts.find(
+                                (a) => a.id === post.accountId
+                              );
+                              return (
+                                <span className="font-semibold text-sm text-slate-900 flex-1 truncate">
+                                  {account ? (
+                                    post.postUrl ? (
+                                      <div className="flex items-center gap-2">
+                                        <a
+                                          href={post.postUrl}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className={`hover:underline flex items-center gap-1.5 ${
+                                            post.status === "removed"
+                                              ? "text-gray-400 line-through"
+                                              : "hover:text-blue-600"
+                                          }`}
+                                        >
+                                          {account.channelName}
+                                          <Link className="h-3.5 w-3.5 opacity-60" />
+                                        </a>
+                                        {post.status &&
+                                          post.status !== "published" && (
+                                            <span
+                                              className={`text-[10px] px-1.5 py-0.5 rounded border capitalize ${
+                                                post.status === "removed"
+                                                  ? "bg-gray-100 text-gray-500 border-gray-200"
+                                                  : "bg-blue-50 text-blue-600 border-blue-200"
+                                              }`}
+                                            >
+                                              {post.status}
+                                            </span>
+                                          )}
+                                      </div>
+                                    ) : (
+                                      account.channelName
+                                    )
+                                  ) : (
+                                    post.platform
+                                  )}
+                                </span>
+                              );
+                            })()}
+
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 w-7 p-0 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-full cursor-pointer"
+                              onClick={() => handleRemovePost(post)}
+                              title="Xóa bài đăng này"
                             >
-                              <img
-                                src={link}
-                                alt={`Attachment ${index + 1}`}
-                                className="w-full h-full object-cover"
-                              />
-                              <a
-                                href={link}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white"
-                              >
-                                <Maximize2 className="w-6 h-6" />
-                              </a>
-                            </div>
-                          ))}
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                          <div className="flex gap-3 text-xs text-slate-500 font-medium">
+                            <span>View: {post.views || 0}</span>
+                            <span className="w-1 h-1 rounded-full bg-slate-300 transform translate-y-2"></span>
+                            <span>Like: {post.reactions || 0}</span>
+                            <span className="w-1 h-1 rounded-full bg-slate-300 transform translate-y-2"></span>
+                            <span>Cmt: {post.comments || 0}</span>
+                          </div>
                         </div>
-                      </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-4 text-slate-500 italic bg-slate-50/50 rounded-xl border border-dashed border-slate-200">
+                      Chưa có bài đăng nào
                     </div>
                   )}
+                </div>
+              </FeatureCard>
 
-                {/* Post URL List */}
-                <div className="flex items-start gap-4">
-                  <div className="p-2 rounded-full bg-white/60 shadow-sm text-blue-600 mt-1">
-                    <Globe className="h-5 w-5" />
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between">
-                      <div className={glassLabelClass}>Bài đăng</div>
-                      {currentItem.posts && currentItem.posts.length > 0 && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={handleRefreshEngagement}
-                          className="h-6 w-6 p-0 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full cursor-pointer"
-                          title="Cập nhật tương tác"
-                        >
-                          <RefreshCw
-                            className={`h-3.5 w-3.5 ${
-                              isSpinning ? "animate-spin" : ""
-                            }`}
-                          />
-                        </Button>
-                      )}
-                    </div>
-                    {currentItem.posts && currentItem.posts.length > 0 ? (
-                      <div className="flex flex-col gap-2 mt-1">
-                        {currentItem.posts.map((post) => (
-                          <div
-                            key={post.id}
-                            className="flex flex-col gap-1 p-2 rounded-lg bg-blue-50/50 border border-blue-100"
-                          >
-                            <div className="flex items-center justify-between gap-2">
-                              {(() => {
-                                const account = allAccounts.find(
-                                  (a) => a.id === post.accountId
-                                );
-                                return (
-                                  <span className="font-semibold text-xs text-slate-800 flex-1 truncate">
-                                    {account ? (
-                                      post.postUrl ? (
-                                        <div className="flex items-center gap-2">
-                                          <a
-                                            href={post.postUrl}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className={`hover:underline flex items-center gap-1 ${
-                                              post.status === "removed"
-                                                ? "text-gray-400 line-through"
-                                                : "hover:text-blue-600"
-                                            }`}
-                                          >
-                                            {account.channelName}
-                                            <Link className="h-3 w-3 opacity-50" />
-                                          </a>
-                                          {post.status &&
-                                            post.status !== "published" && (
-                                              <span
-                                                className={`text-[10px] px-1.5 py-0.5 rounded border capitalize ${
-                                                  post.status === "removed"
-                                                    ? "bg-gray-100 text-gray-500 border-gray-200"
-                                                    : "bg-blue-50 text-blue-600 border-blue-200"
-                                                }`}
-                                              >
-                                                {post.status}
-                                              </span>
-                                            )}
-                                        </div>
-                                      ) : (
-                                        account.channelName
-                                      )
-                                    ) : (
-                                      post.platform
-                                    )}
-                                  </span>
-                                );
-                              })()}
-
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-6 w-6 p-0 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-full cursor-pointer"
-                                onClick={() => handleRemovePost(post)}
-                                title="Xóa bài đăng này"
-                              >
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </Button>
-                            </div>
-                            <div className="flex gap-2 text-[10px] text-gray-500">
-                              <span>Views: {post.views || 0}</span>
-                              <span>Likes: {post.reactions || 0}</span>
-                              <span>Cmt: {post.comments || 0}</span>
-                              <span>Share: {post.shares || 0}</span>
-                            </div>
-                          </div>
-                        ))}
+              {/* Interaction & Stats */}
+              <FeatureCard
+                title="Hiệu quả"
+                icon={BarChart3}
+                colorTheme="teal"
+                action={
+                  currentItem.posts &&
+                  currentItem.posts.length > 0 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleRefreshEngagement}
+                      className="text-slate-600 hover:text-slate-900 hover:bg-slate-100 cursor-pointer h-8 px-2"
+                    >
+                      <RefreshCw
+                        className={`h-3.5 w-3.5 mr-1.5 ${
+                          isSpinning ? "animate-spin" : ""
+                        }`}
+                      />
+                      Cập nhật
+                    </Button>
+                  )
+                }
+              >
+                <div className="grid grid-cols-3 gap-3 text-center mb-4">
+                  {/* Stat Items */}
+                  {[
+                    {
+                      icon: ThumbsUp,
+                      color: "text-blue-600",
+                      bg: "bg-blue-100",
+                      label: "Likes",
+                      value: (items: any[]) =>
+                        items.reduce((acc, p) => acc + (p.reactions || 0), 0),
+                    },
+                    {
+                      icon: MessageCircle,
+                      color: "text-green-600",
+                      bg: "bg-green-100",
+                      label: "Cmts",
+                      value: (items: any[]) =>
+                        items.reduce((acc, p) => acc + (p.comments || 0), 0),
+                    },
+                    {
+                      icon: Share2,
+                      color: "text-purple-600",
+                      bg: "bg-purple-100",
+                      label: "Shares",
+                      value: (items: any[]) =>
+                        items.reduce((acc, p) => acc + (p.shares || 0), 0),
+                    },
+                  ].map((stat, idx) => (
+                    <div
+                      key={idx}
+                      className="p-3 rounded-xl bg-slate-50 border border-slate-100 flex flex-col items-center justify-center"
+                    >
+                      <div
+                        className={`w-8 h-8 rounded-full ${stat.bg} flex items-center justify-center mb-1 ${stat.color}`}
+                      >
+                        <stat.icon className="h-4 w-4" />
                       </div>
-                    ) : (
-                      <p className="text-slate-500 italic mt-1">
-                        Chưa có bài đăng
-                      </p>
-                    )}
+                      <div className="text-lg font-bold text-slate-900">
+                        {stat.value(currentItem.posts || [])}
+                      </div>
+                      <div className="text-xs text-slate-500">{stat.label}</div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="text-center">
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100/80 text-xs text-slate-500">
+                    <Calendar className="h-3 w-3" />
+                    <span>
+                      Cập nhật:{" "}
+                      {currentItem.posts?.[0]?.statsAt
+                        ? formatDate(currentItem.posts[0].statsAt)
+                        : "Chưa có dữ liệu"}
+                    </span>
                   </div>
                 </div>
-              </div>
+              </FeatureCard>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div
-                  className={cn(glassCardClass, "p-4 flex items-center gap-4")}
-                >
-                  <div className="p-2 rounded-full bg-white/60 shadow-sm text-slate-600">
+              {/* AI Analysis */}
+              <FeatureCard
+                title="Phân tích AI"
+                icon={BarChart3}
+                colorTheme="purple"
+              >
+                <div className="space-y-4">
+                  <div className="flex items-start gap-3">
+                    <div className="p-1.5 rounded-full bg-purple-50 shadow-sm mt-1 text-slate-600">
+                      <FileText className="h-4 w-4" />
+                    </div>
+                    <div className="flex-1">
+                      <SectionLabel className="mb-1">Chủ đề</SectionLabel>
+                      <p className="text-slate-800 text-sm leading-relaxed">
+                        {currentItem.topic || (
+                          <span className="text-slate-400 italic">
+                            Chưa xác định
+                          </span>
+                        )}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="w-full h-px bg-slate-200/50" />
+                  <div className="flex items-start gap-3">
+                    <div className="p-1.5 rounded-full bg-blue-50 shadow-sm mt-1 text-slate-600">
+                      <Target className="h-4 w-4" />
+                    </div>
+                    <div className="flex-1">
+                      <SectionLabel className="mb-1">Đối tượng</SectionLabel>
+                      <p className="text-slate-800 text-sm leading-relaxed">
+                        {currentItem.targetAudience || (
+                          <span className="text-slate-400 italic">
+                            Chưa xác định
+                          </span>
+                        )}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="w-full h-px bg-slate-200/50" />
+                  <div className="flex items-start gap-3">
+                    <div className="p-1.5 rounded-full bg-green-50 shadow-sm mt-1 text-slate-600">
+                      <Notebook className="h-4 w-4" />
+                    </div>
+                    <div className="flex-1">
+                      <SectionLabel className="mb-1">Lưu ý</SectionLabel>
+                      <p className="text-slate-800 text-sm leading-relaxed">
+                        {currentItem.researchNotes || (
+                          <span className="text-slate-400 italic">
+                            Chưa xác định
+                          </span>
+                        )}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </FeatureCard>
+
+              {/* System Info */}
+              <div className="grid grid-cols-2 gap-4">
+                <InfoCard className="p-4 flex items-center gap-3">
+                  <div className="p-2 rounded-full bg-slate-100 shadow-sm text-slate-600">
                     <User className="h-4 w-4" />
                   </div>
-                  <div>
-                    <div className={glassLabelClass}>Người duyệt</div>
-                    <div className="font-medium text-slate-900">
+                  <div className="overflow-hidden">
+                    <SectionLabel className="text-[10px]">
+                      Người duyệt
+                    </SectionLabel>
+                    <div className="font-medium text-slate-900 truncate text-sm">
                       {userList.find((u) => u.id === currentItem.approvedBy)
                         ?.name ||
                         currentItem.approvedBy ||
                         "-"}
                     </div>
                   </div>
-                </div>
-                <div
-                  className={cn(glassCardClass, "p-4 flex items-center gap-4")}
-                >
-                  <div className="p-2 rounded-full bg-white/60 shadow-sm text-slate-600">
-                    <CheckCircle className="h-4 w-4" />
+                </InfoCard>
+                <InfoCard className="p-4 flex items-center gap-3">
+                  <div className="p-2 rounded-full bg-slate-100 shadow-sm text-slate-600">
+                    <Clock className="h-4 w-4" />
                   </div>
-                  <div>
-                    <div className={glassLabelClass}>Thời gian duyệt</div>
-                    <div className="font-medium text-slate-900">
+                  <div className="overflow-hidden">
+                    <SectionLabel className="text-[10px]">
+                      Thời gian duyệt
+                    </SectionLabel>
+                    <div className="font-medium text-slate-900 truncate text-sm">
                       {formatDate(currentItem.approvedAt)}
                     </div>
                   </div>
-                </div>
-                <div
-                  className={cn(glassCardClass, "p-4 flex items-center gap-4")}
-                >
-                  <div className="p-2 rounded-full bg-white/60 shadow-sm text-slate-600">
-                    <Clock className="h-4 w-4" />
+                </InfoCard>
+                <InfoCard className="p-4 flex items-center gap-3">
+                  <div className="p-2 rounded-full bg-slate-100 shadow-sm text-slate-600">
+                    <Calendar className="h-4 w-4" />
                   </div>
-                  <div>
-                    <div className={glassLabelClass}>Thời gian tạo</div>
-                    <div className="font-medium text-slate-900">
+                  <div className="overflow-hidden">
+                    <SectionLabel className="text-[10px]">
+                      Ngày tạo
+                    </SectionLabel>
+                    <div className="font-medium text-slate-900 truncate text-sm">
                       {formatDate(currentItem.createdAt)}
                     </div>
                   </div>
-                </div>
-                <div
-                  className={cn(glassCardClass, "p-4 flex items-center gap-4")}
-                >
-                  <div className="p-2 rounded-full bg-white/60 shadow-sm text-slate-600">
+                </InfoCard>
+                <InfoCard className="p-4 flex items-center gap-3">
+                  <div className="p-2 rounded-full bg-slate-100 shadow-sm text-slate-600">
                     <RefreshCw className="h-4 w-4" />
                   </div>
-                  <div>
-                    <div className={glassLabelClass}>Cập nhật cuối</div>
-                    <div className="font-medium text-slate-900">
+                  <div className="overflow-hidden">
+                    <SectionLabel className="text-[10px]">
+                      Cập nhật
+                    </SectionLabel>
+                    <div className="font-medium text-slate-900 truncate text-sm">
                       {formatDate(currentItem.updatedAt)}
                     </div>
                   </div>
-                </div>
+                </InfoCard>
               </div>
-            </TabsContent>
+            </div>
 
-            {/* Tab 2: Lượt tương tác */}
-            <TabsContent
-              value="interaction"
-              className="focus-visible:outline-none"
-            >
-              <div className={cn(glassCardClass, "p-6")}>
-                <div className="flex items-center justify-between mb-2 border-b border-slate-200/50 pb-4">
-                  <div className="flex items-center gap-3">
-                    <BarChart3 className="h-6 w-6 text-slate-800" />
-                    <span className="text-xl font-bold text-slate-900">
-                      Thống kê hiệu quả
-                    </span>
-                  </div>
-                  {currentItem.posts && currentItem.posts.length > 0 && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={handleRefreshEngagement}
-                      className="text-slate-600 hover:text-slate-900 hover:bg-white/50 cursor-pointer"
-                    >
-                      <RefreshCw
-                        className={`h-4 w-4 mr-2 ${
-                          isSpinning ? "animate-spin" : ""
-                        }`}
-                      />
-                      Cập nhật
-                    </Button>
-                  )}
+            {/* Right Column (Caption & Images) */}
+            <div className="lg:col-span-7 space-y-6">
+              {/* Caption */}
+
+              <FeatureCard
+                title="Caption"
+                icon={Captions}
+                colorTheme="amber"
+                className="flex flex-col"
+              >
+                <div className="bg-slate-50 rounded-xl p-4 border border-slate-200 shadow-inner min-h-[150px]">
+                  <p className="text-slate-800 whitespace-pre-wrap leading-relaxed text-base font-normal">
+                    {currentItem.caption || "Chưa có caption"}
+                  </p>
                 </div>
+              </FeatureCard>
 
-                <div className="grid grid-cols-3 gap-6 text-center">
-                  <div className="p-6 rounded-2xl bg-white/60 border border-white/60 shadow-sm hover:shadow-md transition-all">
-                    <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center mx-auto mb-3 text-blue-600">
-                      <ThumbsUp className="h-6 w-6" />
-                    </div>
-                    <div className="text-3xl font-bold text-slate-900 mb-1">
-                      {(currentItem.posts || []).reduce(
-                        (acc, p) => acc + (p.reactions || 0),
-                        0
-                      )}
-                    </div>
-                    <div className="text-sm text-slate-500">Reactions</div>
+              {/* Attachments */}
+              <FeatureCard
+                title={`Ảnh đính kèm (${
+                  currentItem.imageLinks?.length || 0
+                })`}
+                icon={Image}
+                colorTheme="rose"
+                className="flex flex-col"
+              >
+                {currentItem.imageLinks && currentItem.imageLinks.length > 0 ? (
+                  <div className="grid grid-cols-3 gap-4">
+                    {currentItem.imageLinks.map((link, index) => (
+                      <div
+                        key={index}
+                        className="relative group rounded-xl overflow-hidden shadow-sm border border-white/60 aspect-video bg-slate-100 hover:shadow-md transition-all"
+                      >
+                        <img
+                          src={link}
+                          alt={`Attachment ${index + 1}`}
+                          className="w-full h-full object-cover"
+                        />
+                        <a
+                          href={link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white backdrop-blur-[2px]"
+                        >
+                          <div className="bg-white/20 p-2 rounded-full backdrop-blur-md">
+                            <Maximize2 className="w-6 h-6" />
+                          </div>
+                        </a>
+                      </div>
+                    ))}
                   </div>
-                  <div className="p-6 rounded-2xl bg-white/60 border border-white/60 shadow-sm hover:shadow-md transition-all">
-                    <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-3 text-green-600">
-                      <MessageCircle className="h-6 w-6" />
-                    </div>
-                    <div className="text-3xl font-bold text-slate-900 mb-1">
-                      {(currentItem.posts || []).reduce(
-                        (acc, p) => acc + (p.comments || 0),
-                        0
-                      )}
-                    </div>
-                    <div className="text-sm text-slate-500">Comments</div>
+                ) : (
+                  <div className="text-center py-8 text-slate-500 italic bg-slate-50/50 rounded-xl border border-dashed border-slate-200">
+                    Không có ảnh đính kèm
                   </div>
-                  <div className="p-6 rounded-2xl bg-white/60 border border-white/60 shadow-sm hover:shadow-md transition-all">
-                    <div className="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center mx-auto mb-3 text-purple-600">
-                      <Share2 className="h-6 w-6" />
-                    </div>
-                    <div className="text-3xl font-bold text-slate-900 mb-1">
-                      {(currentItem.posts || []).reduce(
-                        (acc, p) => acc + (p.shares || 0),
-                        0
-                      )}
-                    </div>
-                    <div className="text-sm text-slate-500">Shares</div>
-                  </div>
-                </div>
+                )}
+              </FeatureCard>
+            </div>
+          </div>
 
-                <div className="flex items-center justify-center gap-2 mt-8 text-slate-400 text-sm">
-                  <Calendar className="h-4 w-4" />
-                  <span>
-                    Dữ liệu cập nhật lúc:{" "}
-                    {currentItem.posts?.[0]?.statsAt
-                      ? formatDate(currentItem.posts[0].statsAt)
-                      : "Chưa có dữ liệu"}
-                  </span>
-                </div>
-              </div>
-            </TabsContent>
-
-            {/* Tab 3: AI phân tích */}
-            <TabsContent
-              value="ai"
-              className="space-y-6 focus-visible:outline-none"
-            >
-              <div className={cn(glassCardClass, "p-6 space-y-6")}>
-                <div className="flex items-start gap-4">
-                  <div className="p-2 rounded-full bg-white/60 shadow-sm mt-1 text-slate-600">
-                    <FileText className="h-5 w-5" />
-                  </div>
-                  <div className="flex-1">
-                    <h4 className={cn(glassLabelClass, "mb-1")}>Chủ đề</h4>
-                    <p className="text-slate-800 text-base leading-relaxed">
-                      {currentItem.topic || (
-                        <span className="text-slate-400 italic">
-                          Chưa xác định
-                        </span>
-                      )}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="w-full h-px bg-slate-200/50" />
-
-                <div className="flex items-start gap-4">
-                  <div className="p-2 rounded-full bg-white/60 shadow-sm mt-1 text-slate-600">
-                    <Target className="h-5 w-5" />
-                  </div>
-                  <div className="flex-1">
-                    <h4 className={cn(glassLabelClass, "mb-1")}>
-                      Đối tượng tiếp cận
-                    </h4>
-                    <p className="text-slate-800 text-base leading-relaxed">
-                      {currentItem.targetAudience || (
-                        <span className="text-slate-400 italic">
-                          Chưa xác định
-                        </span>
-                      )}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="w-full h-px bg-slate-200/50" />
-
-                <div className="flex items-start gap-4">
-                  <div className="p-2 rounded-full bg-white/60 shadow-sm mt-1 text-slate-600">
-                    <Notebook className="h-5 w-5" />
-                  </div>
-                  <div className="flex-1">
-                    <h4 className={cn(glassLabelClass, "mb-1")}>
-                      Lưu ý nghiên cứu
-                    </h4>
-                    <p className="text-slate-800 text-base leading-relaxed">
-                      {currentItem.researchNotes || (
-                        <span className="text-slate-400 italic">
-                          Chưa có ghi chú
-                        </span>
-                      )}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </TabsContent>
-          </Tabs>
-
-          <DialogFooter className="flex flex-col sm:flex-row gap-3 mt-6 border-t border-slate-200/50 pt-6">
+          <DialogFooter className="">
             <Button
               variant="outline"
               onClick={() => onEdit?.(currentItem)}
-              className="bg-white/50 hover:bg-white/80 border-slate-200 text-slate-700 hover:text-slate-900 backdrop-blur-sm"
+              className="mr-auto bg-white hover:bg-slate-50 border-slate-200 text-slate-700 hover:text-slate-900 shadow-sm"
             >
               <Edit2 className="h-4 w-4 mr-2" />
               Chỉnh sửa
             </Button>
 
-            {currentItem.status === "awaiting_content_approval" && (
-              <Button
-                onClick={() => onApprove?.(currentItem)}
-                disabled={isLoading}
-                className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white border-none shadow-lg shadow-emerald-500/20"
-              >
-                <CheckCircle className="h-4 w-4 mr-2" />
-                {isLoading ? "Đang duyệt..." : "Duyệt bài"}
-              </Button>
-            )}
+            <div className="flex gap-2">
+              {currentItem.status === "idea" && (
+                <Button
+                  onClick={() => onApproveIdea?.(currentItem)}
+                  disabled={isLoading}
+                  className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-white border-none shadow-lg shadow-cyan-500/20"
+                >
+                  <CheckCircle className="h-4 w-4 mr-2" />
+                  {isLoading ? "Đang duyệt..." : "Duyệt ý tưởng"}
+                </Button>
+              )}
+
+              {currentItem.status === "awaiting_content_approval" && (
+                <Button
+                  onClick={() => onApprove?.(currentItem)}
+                  disabled={isLoading}
+                  className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white border-none shadow-lg shadow-emerald-500/20"
+                >
+                  <CheckCircle className="h-4 w-4 mr-2" />
+                  {isLoading ? "Đang duyệt..." : "Duyệt nội dung"}
+                </Button>
+              )}
+            </div>
           </DialogFooter>
         </div>
       </DialogContent>

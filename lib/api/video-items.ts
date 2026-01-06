@@ -10,9 +10,11 @@ export async function getVideoItems(filters?: {
   status?: Status | "all";
   projectId?: string;
   platform?: Platform;
-}): Promise<VideoItem[]> {
+  page?: number;
+  pageSize?: number;
+}): Promise<{ data: VideoItem[]; total: number }> {
   await requirePermission("videos.view");
-  let query = supabase.from("video_items").select("*");
+  let query = supabase.from("video_items").select("*", { count: "exact" });
 
   if (filters?.status && filters.status !== "all") {
     query = query.eq("status", filters.status);
@@ -26,9 +28,15 @@ export async function getVideoItems(filters?: {
     query = query.contains("platform", [filters.platform]);
   }
 
-  const { data, error } = await query
+  const page = filters?.page || 1;
+  const pageSize = filters?.pageSize || 15;
+  const from = (page - 1) * pageSize;
+  const to = from + pageSize - 1;
+
+  const { data, error, count } = await query
     .order("created_at", { ascending: false })
-    .order("idea", { ascending: true });
+    .order("idea", { ascending: true })
+    .range(from, to);
 
   if (error) {
     console.error("Error fetching video items:", error);
@@ -55,7 +63,7 @@ export async function getVideoItems(filters?: {
     });
   }
 
-  return items;
+  return { data: items, total: count || 0 };
 }
 
 export async function getVideoItemById(id: string): Promise<VideoItem | null> {
@@ -132,7 +140,7 @@ export async function createVideoItem(
     await createActivityLog("create", "video", item.id, {
       userId: user.userId,
       newValues: item,
-      description: `Tạo video mới ${item.id}`,
+      description: `Tạo video: ${item.idea}`,
     });
   }
 
@@ -197,7 +205,7 @@ export async function updateVideoItem(
       userId: user.userId,
       oldValues: oldData,
       newValues: dbData,
-      description: `Cập nhật video ${id}`,
+      description: `Cập nhật video ${oldData.idea}`,
     });
   }
 
@@ -206,6 +214,14 @@ export async function updateVideoItem(
 
 export async function deleteVideoItem(id: string): Promise<void> {
   await requirePermission("videos.delete");
+
+  // Fetch old data for logging
+  const { data: oldData } = await supabase
+    .from("video_items")
+    .select("*")
+    .eq("id", id)
+    .single();
+
   const { error } = await supabase.from("video_items").delete().eq("id", id);
   if (error) {
     console.error("Error deleting video item:", error);
@@ -214,10 +230,10 @@ export async function deleteVideoItem(id: string): Promise<void> {
 
   // Log activity
   const user = await getCurrentUser();
-  if (user) {
+  if (user && oldData) {
     await createActivityLog("delete", "video", id, {
       userId: user.userId,
-      description: `Xóa video ${id}`,
+      description: `Xóa video ${oldData.idea}`,
     });
   }
 }
@@ -310,7 +326,7 @@ export async function approveVideoIdea(
         approvedBy,
         idea,
       },
-      description: `Phê duyệt ý tưởng video ${id}`,
+      description: `Phê duyệt ý tưởng video ${oldData.idea}`,
     });
   }
 
@@ -358,7 +374,7 @@ export async function approveVideoContent(
         status: "content_approved",
         approvedBy,
       },
-      description: `Phê duyệt nội dung video ${id}`,
+      description: `Phê duyệt nội dung video ${oldData.idea}`,
     });
   }
 

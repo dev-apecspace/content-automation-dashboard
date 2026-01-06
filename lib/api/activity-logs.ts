@@ -39,12 +39,14 @@ export async function getActivityLogs(filters?: {
   entityType?: EntityType;
   entityId?: string;
   activityType?: ActivityType;
-  limit?: number;
-  offset?: number;
-}): Promise<ActivityLog[]> {
-  let query = supabase.from("activity_logs").select("*");
+  startDate?: Date;
+  endDate?: Date;
+  page?: number;
+  pageSize?: number;
+}): Promise<{ data: ActivityLog[]; total: number }> {
+  let query = supabase.from("activity_logs").select("*", { count: "exact" });
 
-  if (filters?.userId) {
+  if (filters?.userId && filters.userId !== "all") {
     query = query.eq("user_id", filters.userId);
   }
 
@@ -60,27 +62,32 @@ export async function getActivityLogs(filters?: {
     query = query.eq("activity_type", filters.activityType);
   }
 
-  query = query.order("created_at", { ascending: false });
-
-  if (filters?.limit) {
-    query = query.limit(filters.limit);
+  if (filters?.startDate) {
+    query = query.gte("created_at", filters.startDate.toISOString());
   }
 
-  if (filters?.offset) {
-    query = query.range(
-      filters.offset,
-      filters.offset + (filters.limit || 20) - 1
-    );
+  if (filters?.endDate) {
+    // End of the day
+    const endOfDay = new Date(filters.endDate);
+    endOfDay.setHours(23, 59, 59, 999);
+    query = query.lte("created_at", endOfDay.toISOString());
   }
 
-  const { data, error } = await query;
+  const page = filters?.page || 1;
+  const pageSize = filters?.pageSize || 20;
+  const from = (page - 1) * pageSize;
+  const to = from + pageSize - 1;
+
+  const { data, error, count } = await query
+    .order("created_at", { ascending: false })
+    .range(from, to);
 
   if (error) {
     console.error("Error fetching activity logs:", error);
     throw error;
   }
 
-  return data || [];
+  return { data: data || [], total: count || 0 };
 }
 
 export async function getEntityHistory(

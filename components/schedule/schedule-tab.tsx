@@ -583,7 +583,7 @@ export function ScheduleTab({
                         <td className="p-4 text-sm text-slate-600">
                           {item.postingDays}
                         </td>
-                        <td className="p-4 text-sm font-semibold text-indigo-600 font-mono tracking-tight">
+                        <td className="p-4 text-sm font-semibold text-indigo-600 tracking-tight">
                           {item.postingTime}
                         </td>
                         <td className="p-4">
@@ -1012,6 +1012,10 @@ export function ScheduleTab({
         onSave={handleSaveContent}
         editContent={editContent}
         isSaving={isSaving}
+        onViewDetail={(item) => {
+          setIsContentFormOpen(false);
+          setSelectedContent(item);
+        }}
       />
 
       <VideoFormModal
@@ -1020,6 +1024,10 @@ export function ScheduleTab({
         onSave={handleSaveVideo}
         editVideo={editVideo}
         isSaving={isSaving}
+        onViewDetail={(item) => {
+          setIsVideoFormOpen(false);
+          setSelectedVideo(item);
+        }}
       />
     </div>
   );

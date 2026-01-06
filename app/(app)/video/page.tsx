@@ -17,6 +17,7 @@ import {
 } from "@/lib/api";
 import { toast } from "sonner";
 import type { Status, VideoItem } from "@/lib/types";
+import { useRealtimeSubscription } from "@/hooks/use-realtime-subscription";
 
 export default function VideoPage() {
   const [videoItems, setVideoItems] = useState<VideoItem[]>([]);
@@ -28,19 +29,30 @@ export default function VideoPage() {
   const [selectedVideo, setSelectedVideo] = useState<VideoItem | null>(null);
   const [filterStatus, setFilterStatus] = useState<Status | "all">("all");
   const [filterProject, setFilterProject] = useState<string>("all");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(15);
+  const [totalCount, setTotalCount] = useState(0);
 
   useEffect(() => {
     loadVideoItems();
-  }, [filterStatus, filterProject]);
+  }, [filterStatus, filterProject, page, pageSize]);
+
+  // Subscribe to realtime changes
+  useRealtimeSubscription("video_items", () => {
+    loadVideoItems();
+  });
 
   const loadVideoItems = async () => {
     try {
       setIsLoading(true);
-      const data = await getVideoItems({
+      const { data, total } = await getVideoItems({
         status: filterStatus !== "all" ? filterStatus : undefined,
         projectId: filterProject !== "all" ? filterProject : undefined,
+        page,
+        pageSize,
       });
       setVideoItems(data);
+      setTotalCount(total);
     } catch (error) {
       toast.error("Có lỗi khi tải lên danh sách video");
       console.error(error);
@@ -241,6 +253,11 @@ export default function VideoPage() {
         onAdd={handleCreateClick}
         onReload={loadVideoItems}
         isLoading={isLoading}
+        page={page}
+        pageSize={pageSize}
+        totalCount={totalCount}
+        onPageChange={setPage}
+        onPageSizeChange={setPageSize}
       />
 
       <VideoFormModal
@@ -251,6 +268,11 @@ export default function VideoPage() {
         onApprove={handleApproveContent}
         editVideo={editVideo}
         isSaving={isSaving}
+        onViewDetail={(item) => {
+          setIsFormModalOpen(false);
+          setSelectedVideo(item);
+          setIsDetailModalOpen(true);
+        }}
       />
 
       <VideoDetailModal

@@ -28,6 +28,7 @@ import { useEffect, useState } from "react";
 import { getProjects } from "@/lib/api";
 import { toast } from "sonner";
 import { usePermissions } from "@/hooks/use-permissions";
+import { PaginationControl } from "@/components/ui/pagination-control";
 
 interface ContentTableProps {
   data: ContentItem[];
@@ -45,6 +46,11 @@ interface ContentTableProps {
   filterProject: string;
   onProjectFilterChange: (projectId: string) => void;
   onReload?: () => void;
+  page: number;
+  pageSize: number;
+  totalCount: number;
+  onPageChange: (page: number) => void;
+  onPageSizeChange: (pageSize: number) => void;
 }
 
 export function ContentTable({
@@ -63,6 +69,11 @@ export function ContentTable({
   onProjectFilterChange,
   onReload,
   isLoading,
+  page,
+  pageSize,
+  totalCount,
+  onPageChange,
+  onPageSizeChange,
 }: ContentTableProps) {
   const allStatuses: Status[] = Object.keys(statusConfig) as Status[];
   const [projects, setProjects] = useState<Project[]>([]);
@@ -420,6 +431,15 @@ export function ContentTable({
               )}
             </tbody>
           </table>
+          <div className="border-t border-gray-200">
+            <PaginationControl
+              currentPage={page}
+              pageSize={pageSize}
+              totalCount={totalCount}
+              onPageChange={onPageChange}
+              onPageSizeChange={onPageSizeChange}
+            />
+          </div>
         </div>
       </Card>
     </div>

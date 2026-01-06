@@ -41,14 +41,14 @@ export default function ProjectsPage() {
         accountsData,
       ] = await Promise.all([
         getProjects(),
-        getContentItems(),
-        getVideoItems(),
+        getContentItems({ pageSize: 1000 }),
+        getVideoItems({ pageSize: 1000 }),
         getSchedules(),
         AccountService.getAccounts(),
       ]);
       setProjects(projectsData);
-      setContentItems(contentData);
-      setVideoItems(videoData);
+      setContentItems(contentData.data || []);
+      setVideoItems(videoData.data || []);
       setSchedules(schedulesData);
       setAccounts(accountsData);
     } catch (error) {

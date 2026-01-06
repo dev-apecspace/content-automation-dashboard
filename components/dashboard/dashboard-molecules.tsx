@@ -186,8 +186,8 @@ export function RecentActivityList({
   loading,
 }: RecentActivityListProps) {
   return (
-    <GlassContainer className="h-full flex flex-col" intensity="medium">
-      <div className="p-4 flex-1 overflow-y-auto max-h-[400px]">
+    <GlassContainer className="h-full max-h-[445px] flex flex-col" intensity="medium">
+      <div className="p-4 flex-1 overflow-y-auto">
         {loading ? (
           <div className="space-y-4">
             {[1, 2, 3].map((i) => (

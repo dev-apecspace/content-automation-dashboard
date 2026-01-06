@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -35,6 +36,14 @@ import {
   DollarSign,
   Users,
   SquareUser,
+  Target,
+  FileText,
+  Notebook,
+  User,
+  RefreshCw,
+  BarChart3,
+  Captions,
+  Eye,
 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { getProjects, getAIModels } from "@/lib/api";
@@ -55,6 +64,11 @@ import { AiRequirementDialog } from "@/components/shared/ai-requirement-dialog";
 import { getContentItemById } from "@/lib/api/content-items";
 import { toast } from "sonner";
 import { AccountSelector } from "@/components/shared/account-selector";
+import { FeatureCard } from "@/components/ui/feature-card";
+import { InfoCard } from "@/components/ui/info-card";
+import { SectionLabel } from "@/components/ui/section-label";
+import { BackgroundStyle } from "@/components/ui/background-style";
+import { cn } from "@/lib/utils";
 
 interface ContentFormModalProps {
   isOpen: boolean;
@@ -65,6 +79,7 @@ interface ContentFormModalProps {
   editItem?: ContentItem | null;
   isSaving?: boolean;
   isLoading?: boolean;
+  onViewDetail?: (item: ContentItem) => void;
 }
 
 // ==================== HELPER ====================
@@ -86,6 +101,7 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
   editContent,
   isSaving,
   isLoading,
+  onViewDetail,
 }) => {
   const [projects, setProjects] = useState<Project[]>([]);
   const [modelsList, setModelsList] = useState<AIModel[]>([]);
@@ -423,82 +439,69 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onOpenChange || handleClose}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto bg-white/80 backdrop-blur-2xl border-white/60 shadow-2xl rounded-[32px] p-0">
-          {/* Vibrant Gradient Background Layer (Matches Detail Modal) */}
-          <div className="absolute inset-0 -z-10 bg-gradient-to-br from-[#a8c0ff]/40 via-[#3f2b96]/10 to-[#ffafbd]/40 blur-3xl pointer-events-none" />
+        <DialogContent className="" showCloseButton={true}>
+          <BackgroundStyle />
 
-          <DialogHeader className="border-b border-white/40 pb-6 pt-6 px-6 bg-white/40 sticky top-0 z-10 backdrop-blur-md">
-            <div className="flex items-center gap-4">
-              {canEditIdeaFields && (
-                <div className="p-3 bg-white/60 rounded-2xl shadow-sm border border-white/60">
-                  <Lightbulb className="w-6 h-6 text-amber-500" />
-                </div>
-              )}
-              {canEditContentApprovalFields && (
-                <div className="p-3 bg-white/60 rounded-2xl shadow-sm border border-white/60">
-                  <CheckCircle2 className="w-6 h-6 text-emerald-500" />
-                </div>
-              )}
-              <div>
-                <DialogTitle className="text-2xl font-bold text-slate-900 tracking-wide">
+          <div className="p-8 relative z-10">
+            <DialogHeader className="space-y-6">
+              <div className="flex items-center justify-between">
+                <DialogTitle className="text-2xl font-bold leading-tight pr-8 text-slate-900 tracking-wide">
                   {editContent ? "Chỉnh sửa nội dung" : "Tạo nội dung mới"}
                 </DialogTitle>
-                <p className="text-sm text-slate-500 mt-1 font-medium">
-                  {canEditIdeaFields && "Giai đoạn: Ý tưởng ban đầu"}
-                  {canEditContentApprovalFields && "Giai đoạn: Duyệt nội dung"}
-                </p>
               </div>
-            </div>
-          </DialogHeader>
-
-          <div className="grid gap-6 py-6 px-6">
-            {/* ==================== GIAI ĐOẠN Ý TƯỞNG ==================== */}
-            {canEditIdeaFields && (
-              <div className="space-y-6">
-                {/* Ý tưởng */}
-                <div className="space-y-3">
-                  <Label
-                    htmlFor="idea"
-                    className="flex items-center gap-2 text-base font-semibold text-slate-700"
+              <div className="space-y-3">
+                <div className="flex flex-wrap items-center gap-3">
+                  <Badge
+                    variant="outline"
+                    className="border-slate-200 bg-white text-slate-700 px-3 py-1"
                   >
-                    <Lightbulb className="w-4 h-4 text-amber-500" />Ý tưởng{" "}
-                    <span className="text-red-500">*</span>
-                  </Label>
-                  <Textarea
-                    id="idea"
-                    value={formData.idea || ""}
-                    onChange={(e) =>
-                      setFormData((prev) => ({ ...prev, idea: e.target.value }))
-                    }
-                    placeholder="Mô tả ý tưởng nội dung của bạn..."
-                    rows={3}
-                    required
-                    className="border-white/60 bg-white/50 focus:bg-white/80 focus:border-amber-400 focus:ring-amber-100 rounded-xl resize-none transition-all duration-200 shadow-sm"
-                  />
+                    {canEditIdeaFields && "Giai đoạn: Ý tưởng"}
+                    {canEditContentApprovalFields &&
+                      "Giai đoạn: Duyệt nội dung"}
+                    {!canEditIdeaFields &&
+                      !canEditContentApprovalFields &&
+                      "Chế độ xem"}
+                  </Badge>
+                  {editContent?.status && (
+                    <Badge
+                      variant="outline"
+                      className={cn(
+                        "border-slate-200 bg-white text-slate-700 px-3 py-1",
+                        statusConfig[editContent.status].className
+                      )}
+                    >
+                      {statusConfig[editContent.status].label}
+                    </Badge>
+                  )}
                 </div>
+              </div>
+            </DialogHeader>
 
-                {/* Dự án & Nền tảng */}
-                <div className="grid grid-cols-2 gap-6">
-                  <div className="space-y-3">
-                    <Label className="flex items-center gap-2 text-base font-semibold text-slate-700">
-                      <Folder className="w-4 h-4 text-blue-500" />
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mt-8">
+              {/* ==================== LEFT COLUMN ==================== */}
+              <div className="lg:col-span-5 space-y-6">
+                {/* 1. THÔNG TIN CHUNG (INPUTS) */}
+                <FeatureCard
+                  title="Thông tin chung"
+                  icon={Target}
+                  colorTheme="blue"
+                >
+                  {/* Dự án */}
+                  <div className="mb-4">
+                    <SectionLabel className="mb-2">
                       Dự án <span className="text-red-500">*</span>
-                    </Label>
+                    </SectionLabel>
                     <Select
                       value={formData.projectId}
                       onValueChange={handleProjectChange}
-                      required
+                      disabled={!canEditIdeaFields}
                     >
-                      <SelectTrigger className="border-white/60 bg-white/50 focus:bg-white/80 focus:ring-blue-100 rounded-xl h-11 shadow-sm">
+                      <SelectTrigger className="bg-white border-slate-200">
                         <SelectValue placeholder="Chọn dự án" />
                       </SelectTrigger>
-                      <SelectContent className="rounded-xl border-white/60 bg-white/90 backdrop-blur-xl shadow-lg">
+                      <SelectContent>
                         {projects.map((p) => (
-                          <SelectItem
-                            key={p.id}
-                            value={p.id}
-                            className="focus:bg-blue-50 cursor-pointer rounded-lg"
-                          >
+                          <SelectItem key={p.id} value={p.id}>
                             {p.name}
                           </SelectItem>
                         ))}
@@ -506,12 +509,10 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
                     </Select>
                   </div>
 
-                  <div className="space-y-3">
-                    <Label className="flex items-center gap-2 text-base font-semibold text-slate-700">
-                      <Monitor className="w-4 h-4 text-blue-500" />
-                      Nền tảng
-                    </Label>
-                    <div className="relative">
+                  {/* Nền tảng & Loại Content */}
+                  <div className="grid grid-cols-2 gap-4 mb-4">
+                    <div>
+                      <SectionLabel className="mb-2">Nền tảng</SectionLabel>
                       <Select
                         value={formData.platform}
                         onValueChange={(v) =>
@@ -520,474 +521,488 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
                             platform: v as any,
                           }))
                         }
+                        disabled={!canEditIdeaFields}
                       >
-                        <SelectTrigger className="border-white/60 bg-white/50 focus:bg-white/80 focus:ring-blue-100 rounded-xl h-11 shadow-sm">
-                          <SelectValue placeholder="Chọn nền tảng" />
+                        <SelectTrigger className="bg-white border-slate-200">
+                          <SelectValue placeholder="Nền tảng" />
                         </SelectTrigger>
-                        <SelectContent className="rounded-xl border-white/60 bg-white/90 backdrop-blur-xl shadow-lg">
-                          <SelectItem
-                            value="Facebook Post"
-                            className="focus:bg-blue-50 cursor-pointer rounded-lg"
-                          >
+                        <SelectContent>
+                          <SelectItem value="Facebook Post">
                             Facebook Post
                           </SelectItem>
-                          <SelectItem
-                            value="Tiktok Carousel"
-                            className="focus:bg-blue-50 cursor-pointer rounded-lg"
-                          >
+                          <SelectItem value="Tiktok Carousel">
                             Tiktok Carousel
                           </SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
-                  </div>
-                </div>
-
-                {/* Loại content */}
-                <div className="space-y-3">
-                  <Label className="flex items-center gap-2 text-base font-semibold text-slate-700">
-                    <Sparkles className="w-4 h-4 text-purple-500" />
-                    Loại content <span className="text-red-500">*</span>
-                  </Label>
-                  <Select
-                    value={formData.contentType}
-                    onValueChange={(v) =>
-                      setFormData((prev) => ({ ...prev, contentType: v }))
-                    }
-                    required
-                  >
-                    <SelectTrigger className="border-white/60 bg-white/50 focus:bg-white/80 focus:ring-purple-100 rounded-xl h-11 shadow-sm">
-                      <SelectValue placeholder="Chọn loại content" />
-                    </SelectTrigger>
-                    <SelectContent className="rounded-xl border-white/60 bg-white/90 backdrop-blur-xl shadow-lg">
-                      {contentTypes.map((type) => (
-                        <SelectItem
-                          key={type.value}
-                          value={type.value}
-                          className="focus:bg-purple-50 cursor-pointer rounded-lg"
-                        >
-                          {type.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Ảnh (idea phase) */}
-                <div className="space-y-4 bg-white/40 backdrop-blur-md border border-white/60 rounded-2xl shadow-sm p-6 hover:bg-white/60 transition-all duration-300">
-                  <Label className="flex items-center gap-2 text-base font-semibold text-slate-700">
-                    <Image className="w-4 h-4 text-slate-500" />
-                    Ảnh (tùy chọn)
-                  </Label>
-
-                  {/* Input dán link */}
-                  <div className="flex gap-3">
-                    <Input
-                      placeholder="Dán link ảnh..."
-                      value={newImageLink}
-                      onChange={(e) => {
-                        setNewImageLink(e.target.value);
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          e.preventDefault();
-                          handleReplaceImageLink();
+                    <div>
+                      <SectionLabel className="mb-2">Loại Content</SectionLabel>
+                      <Select
+                        value={formData.contentType}
+                        onValueChange={(v) =>
+                          setFormData((prev) => ({ ...prev, contentType: v }))
                         }
-                      }}
-                      className="flex-1 border-white/60 bg-white/50 focus:bg-white/80 focus:border-indigo-400 rounded-xl shadow-sm"
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      onClick={handleReplaceImageLink}
-                      disabled={!newImageLink.trim()}
-                      className="text-indigo-600 hover:bg-indigo-50"
-                    >
-                      <Plus className="w-4 h-4" />
-                    </Button>
-                    <label>
+                        disabled={!canEditIdeaFields}
+                      >
+                        <SelectTrigger className="bg-white border-slate-200">
+                          <SelectValue placeholder="Loại" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {contentTypes.map((type) => (
+                            <SelectItem key={type.value} value={type.value}>
+                              {type.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  {/* Thời gian & Account (Only Show if Approval or View) */}
+                  {(canEditContentApprovalFields || !canEditIdeaFields) && (
+                    <>
+                      <div className="w-full h-px bg-slate-200/50 my-4" />
+
+                      {/* Thời gian đăng */}
+                      <div className="mb-4">
+                        <div className="flex items-center justify-between mb-2">
+                          <SectionLabel>
+                            Thời gian đăng{" "}
+                            <span className="text-red-500">*</span>
+                          </SectionLabel>
+                          {canEditContentApprovalFields && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() =>
+                                handleEditWithAI(
+                                  "schedule",
+                                  formData.postingTime
+                                )
+                              }
+                              className="h-6 text-[14px] px-2 text-blue-600 hover:bg-blue-50 cursor-pointer"
+                            >
+                              <Sparkles className="w-3 h-3 mr-1" /> AI xếp lịch
+                            </Button>
+                          )}
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <Input
+                            type="date"
+                            value={formData.expectedPostDate || ""}
+                            onChange={(e) => {
+                              setFormData((prev) => ({
+                                ...prev,
+                                expectedPostDate: e.target.value,
+                              }));
+                              updatePostingTime(
+                                e.target.value,
+                                formData.postingTime?.split(" ")[1] || ""
+                              );
+                            }}
+                            disabled={!canEditContentApprovalFields}
+                            className="bg-white border-slate-200"
+                          />
+                          <Input
+                            type="time"
+                            value={formData.postingTime?.split(" ")[1] || ""}
+                            onChange={(e) =>
+                              updatePostingTime(
+                                formData.expectedPostDate || "",
+                                e.target.value
+                              )
+                            }
+                            disabled={!canEditContentApprovalFields}
+                            className="bg-white border-slate-200"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Tài khoản */}
+                      <div>
+                        <SectionLabel className="mb-2">
+                          Tài khoản đăng
+                        </SectionLabel>
+                        {canEditContentApprovalFields ? (
+                          <AccountSelector
+                            accounts={filteredAccounts}
+                            selectedIds={formData.accountIds || []}
+                            onChange={(ids) =>
+                              setFormData((prev) => ({
+                                ...prev,
+                                accountIds: ids,
+                              }))
+                            }
+                            currentProjectId={formData.projectId}
+                            placeholder={
+                              filteredAccounts.length === 0
+                                ? "Không có tk phù hợp"
+                                : "Chọn tài khoản"
+                            }
+                          />
+                        ) : (
+                          <div className="flex flex-wrap gap-2">
+                            {(formData.accountIds || []).map((id) => {
+                              const acc = accounts.find((a) => a.id === id);
+                              return acc ? (
+                                <Badge
+                                  key={id}
+                                  variant="secondary"
+                                  className="bg-green-50 text-green-700 border-green-200"
+                                >
+                                  {acc.channelName}
+                                </Badge>
+                              ) : null;
+                            })}
+                            {(!formData.accountIds ||
+                              formData.accountIds.length === 0) && (
+                              <span className="text-sm text-slate-400 italic">
+                                Chưa chọn tài khoản
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </>
+                  )}
+                </FeatureCard>
+
+                {/* 2. PHÂN TÍCH AI (READ ONLY - Lấy từ editContent) */}
+                <FeatureCard
+                  title="Phân tích AI"
+                  icon={BarChart3}
+                  colorTheme="purple"
+                >
+                  <div className="space-y-4">
+                    <div className="flex items-start gap-3">
+                      <div className="p-1.5 rounded-full bg-purple-50 shadow-sm mt-1 text-slate-600">
+                        <FileText className="h-4 w-4" />
+                      </div>
+                      <div className="flex-1">
+                        <SectionLabel className="mb-1">Chủ đề</SectionLabel>
+                        <p className="text-slate-800 text-sm leading-relaxed">
+                          {editContent?.topic || (
+                            <span className="text-slate-400 italic">
+                              Chưa xác định
+                            </span>
+                          )}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="w-full h-px bg-slate-200/50" />
+                    <div className="flex items-start gap-3">
+                      <div className="p-1.5 rounded-full bg-blue-50 shadow-sm mt-1 text-slate-600">
+                        <Target className="h-4 w-4" />
+                      </div>
+                      <div className="flex-1">
+                        <SectionLabel className="mb-1">Đối tượng</SectionLabel>
+                        <p className="text-slate-800 text-sm leading-relaxed">
+                          {editContent?.targetAudience || (
+                            <span className="text-slate-400 italic">
+                              Chưa xác định
+                            </span>
+                          )}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="w-full h-px bg-slate-200/50" />
+                    <div className="flex items-start gap-3">
+                      <div className="p-1.5 rounded-full bg-green-50 shadow-sm mt-1 text-slate-600">
+                        <Notebook className="h-4 w-4" />
+                      </div>
+                      <div className="flex-1">
+                        <SectionLabel className="mb-1">Lưu ý</SectionLabel>
+                        <p className="text-slate-800 text-sm leading-relaxed">
+                          {editContent?.researchNotes || (
+                            <span className="text-slate-400 italic">
+                              Chưa xác định
+                            </span>
+                          )}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </FeatureCard>
+
+                {/* 3. SYSTEM INFO */}
+                {editContent && (
+                  <div className="grid grid-cols-2 gap-4">
+                    <InfoCard className="p-4 flex items-center gap-3">
+                      <div className="p-2 rounded-full bg-slate-100 shadow-sm text-slate-600">
+                        <Calendar className="h-4 w-4" />
+                      </div>
+                      <div className="overflow-hidden">
+                        <SectionLabel className="text-[10px]">
+                          Ngày tạo
+                        </SectionLabel>
+                        <div className="font-medium text-slate-900 truncate text-sm">
+                          {editContent.createdAt
+                            ? new Date(
+                                editContent.createdAt
+                              ).toLocaleDateString("vi-VN")
+                            : "-"}
+                        </div>
+                      </div>
+                    </InfoCard>
+                    <InfoCard className="p-4 flex items-center gap-3">
+                      <div className="p-2 rounded-full bg-slate-100 shadow-sm text-slate-600">
+                        <RefreshCw className="h-4 w-4" />
+                      </div>
+                      <div className="overflow-hidden">
+                        <SectionLabel className="text-[10px]">
+                          Cập nhật
+                        </SectionLabel>
+                        <div className="font-medium text-slate-900 truncate text-sm">
+                          {editContent.updatedAt
+                            ? new Date(
+                                editContent.updatedAt
+                              ).toLocaleDateString("vi-VN")
+                            : "-"}
+                        </div>
+                      </div>
+                    </InfoCard>
+                  </div>
+                )}
+              </div>
+
+              {/* ==================== RIGHT COLUMN ==================== */}
+              <div className="lg:col-span-7 space-y-6">
+                {/* 1. NỘI DUNG (IDEA / CAPTION) */}
+                <FeatureCard
+                  title={
+                    canEditIdeaFields ? "Ý tưởng" : "Caption"
+                  }
+                  icon={canEditIdeaFields ? Lightbulb : Captions}
+                  colorTheme="amber"
+                  action={
+                    canEditContentApprovalFields && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() =>
+                          handleEditWithAI("caption", formData.caption)
+                        }
+                        className="text-indigo-600 hover:bg-indigo-50 cursor-pointer"
+                      >
+                        <Sparkles className="w-3.5 h-3.5 mr-1.5" /> AI Viết lại
+                      </Button>
+                    )
+                  }
+                >
+                  {canEditIdeaFields ? (
+                    <div className="space-y-2">
+                      <Textarea
+                        id="idea"
+                        value={formData.idea || ""}
+                        onChange={(e) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            idea: e.target.value,
+                          }))
+                        }
+                        placeholder="Mô tả ý tưởng nội dung của bạn..."
+                        rows={6}
+                        className="bg-slate-50 border-slate-200 resize-none focus:bg-white"
+                      />
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <Textarea
+                        value={formData.caption || ""}
+                        onChange={(e) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            caption: e.target.value,
+                          }))
+                        }
+                        placeholder="Nhập nội dung caption cho bài đăng..."
+                        rows={12}
+                        disabled={!canEditContentApprovalFields}
+                        className="bg-slate-50 border-slate-200 resize-none focus:bg-white custom-scrollbar"
+                      />
+                    </div>
+                  )}
+                </FeatureCard>
+
+                {/* 2. MEDIA (IMAGES) */}
+                <FeatureCard
+                  title="Ảnh đính kèm"
+                  icon={Image}
+                  colorTheme="rose"
+                  action={
+                    estimatedCost &&
+                    estimatedCost.total > 0 && (
+                      <div className="text-xs font-medium text-slate-600 bg-slate-100 px-2 py-1 rounded border border-slate-200">
+                        Chi phí:{" "}
+                        <span className="text-slate-900">
+                          ${estimatedCost.total.toFixed(3)}
+                        </span>
+                      </div>
+                    )
+                  }
+                >
+                  {/* Input (Only if editable) */}
+                  {(canEditIdeaFields || canEditContentApprovalFields) && (
+                    <div className="flex gap-2 mb-4">
+                      <Input
+                        placeholder="Dán link ảnh..."
+                        value={newImageLink}
+                        onChange={(e) => setNewImageLink(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            handleReplaceImageLink();
+                          }
+                        }}
+                        className="flex-1 bg-white border-slate-200"
+                      />
                       <Button
                         type="button"
                         variant="outline"
-                        className="bg-white/50 border-indigo-200 text-indigo-600 hover:bg-white/80 hover:border-indigo-300 rounded-xl shadow-sm"
-                        onClick={() =>
-                          document.getElementById("file-upload-idea")?.click()
-                        }
+                        onClick={handleReplaceImageLink}
+                        disabled={!newImageLink.trim()}
                       >
-                        <Upload className="w-4 h-4" />
+                        <Plus className="w-4 h-4" />
                       </Button>
-                      <input
-                        id="file-upload-idea"
-                        type="file"
-                        accept="image/*"
-                        multiple
-                        onChange={handleImageUpload}
-                        className="hidden"
-                      />
-                    </label>
-                  </div>
-
-                  {/* Hiển thị danh sách ảnh */}
-                  {formData.imageLinks && formData.imageLinks.length > 0 && (
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-2">
-                      {formData.imageLinks.map((link, index) => (
-                        <div
-                          key={index}
-                          className="relative group rounded-xl overflow-hidden shadow-md border border-white/60 aspect-video bg-slate-100"
-                        >
-                          <img
-                            src={link}
-                            alt={`Preview ${index + 1}`}
-                            className="w-full h-full object-cover"
-                          />
-                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                            <a
-                              href={link}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="p-2 bg-white/20 backdrop-blur-md border border-white/50 text-white rounded-full hover:bg-white/40 transition-colors"
-                            >
-                              <Maximize2 className="w-4 h-4" />
-                            </a>
-                            <button
-                              type="button"
-                              onClick={() => handleRemoveImage(index)}
-                              className="p-2 bg-white/20 backdrop-blur-md border border-white/50 text-red-500 rounded-full hover:bg-white/40 transition-colors"
-                              title="Xóa"
-                            >
-                              <X className="w-4 h-4" />
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Input Yêu cầu sửa ảnh */}
-                  <div className="pt-2">
-                    <Label className="flex items-center gap-2 text-sm font-semibold text-slate-700 mb-2">
-                      <Sparkles className="w-3.5 h-3.5 text-purple-500" />
-                      Yêu cầu sửa ảnh (tùy chọn)
-                    </Label>
-                    <Textarea
-                      placeholder={
-                        formData.imageLinks && formData.imageLinks.length > 0
-                          ? "Nhập yêu cầu chỉnh sửa các ảnh này (VD: Xóa phông, đổi màu áo...)"
-                          : "Mô tả ảnh bạn muốn tạo..."
-                      }
-                      value={imageEditRequest}
-                      onChange={(e) => setImageEditRequest(e.target.value)}
-                      rows={2}
-                      className="border-white/60 bg-white/50 focus:bg-white/80 focus:border-purple-400 rounded-xl resize-none shadow-sm text-sm"
-                    />
-
-                    {/* Cost Display for Idea Phase */}
-                    {estimatedCost && (
-                      <div className="mt-2 text-right">
-                        {estimatedCost.isFree ? (
-                          <span className="text-sm font-medium text-emerald-600 bg-emerald-50 px-2 py-1 rounded-lg border border-emerald-100">
-                            Miễn phí (Ảnh có sẵn)
-                          </span>
-                        ) : (
-                          <span className="text-sm font-medium text-slate-600 bg-slate-50 px-2 py-1 rounded-lg border border-slate-200">
-                            Ước tính:{" "}
-                            <span className="text-slate-900 font-bold">
-                              ${estimatedCost.total.toFixed(3)}
-                            </span>{" "}
-                            <span className="text-xs text-slate-500 font-normal">
-                              (~
-                              {(estimatedCost.total * 26000).toLocaleString(
-                                "vi-VN"
-                              )}
-                              đ)
-                            </span>
-                          </span>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* ==================== GIAI ĐOẠN DUYỆT NỘI DUNG ==================== */}
-            {canEditContentApprovalFields && (
-              <div className="space-y-6">
-                {/* Thời gian đăng & Tài khoản */}
-                <div className="bg-white/40 backdrop-blur-md border border-white/60 rounded-2xl shadow-sm p-6 hover:bg-white/60 transition-all duration-300">
-                  <div className="flex items-center justify-between mb-4">
-                    <Label className="flex items-center gap-2 text-base font-semibold text-slate-700">
-                      <Calendar className="w-4 h-4 text-blue-600" />
-                      Thời gian đăng <span className="text-red-500">*</span>
-                    </Label>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() =>
-                        handleEditWithAI("schedule", formData.postingTime)
-                      }
-                      className="bg-white/50 border-blue-200 text-blue-700 hover:bg-white/90 shadow-sm rounded-lg text-xs"
-                    >
-                      <Sparkles className="w-3.5 h-3.5 mr-1.5 text-amber-500" />
-                      AI Xếp lịch
-                    </Button>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
-                        Ngày đăng
-                      </label>
                       <div className="relative">
-                        <Input
-                          type="date"
-                          value={formData.expectedPostDate || ""}
-                          onChange={(e) => {
-                            setFormData((prev) => ({
-                              ...prev,
-                              expectedPostDate: e.target.value,
-                            }));
-                            updatePostingTime(
-                              e.target.value,
-                              formData.postingTime?.split(" ")[1] || ""
-                            );
-                          }}
-                          className="border-white/60 bg-white/50 focus:bg-white/80 focus:border-blue-400 rounded-xl h-11 shadow-sm"
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="text-teal-600 border-teal-200 hover:bg-teal-50"
+                          onClick={() =>
+                            document
+                              .getElementById("file-upload-input")
+                              ?.click()
+                          }
+                        >
+                          <Upload className="w-4 h-4" />
+                        </Button>
+                        <input
+                          id="file-upload-input"
+                          type="file"
+                          accept="image/*"
+                          multiple
+                          onChange={handleImageUpload}
+                          className="hidden"
                         />
                       </div>
                     </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
-                        Giờ đăng
-                      </label>
-                      <Input
-                        type="time"
-                        value={formData.postingTime?.split(" ")[1] || ""}
-                        onChange={(e) =>
-                          updatePostingTime(
-                            formData.expectedPostDate || "",
-                            e.target.value
-                          )
-                        }
-                        className="border-white/60 bg-white/50 focus:bg-white/80 focus:border-blue-400 rounded-xl h-11 shadow-sm"
-                      />
-                    </div>
-                  </div>
-                  {/* Tài khoản sẽ đăng */}
-                  <div className="mt-6 border-b border-slate-200/50">
-                    <Label className="flex items-center gap-2 text-base font-semibold text-slate-700 mb-3">
-                      <SquareUser className="w-4 h-4 text-green-600" />
-                      Tài khoản sẽ đăng
-                    </Label>
+                  )}
 
-                    <div className="mb-4">
-                      <AccountSelector
-                        accounts={filteredAccounts}
-                        selectedIds={formData.accountIds || []}
-                        onChange={(ids) =>
-                          setFormData((prev) => ({ ...prev, accountIds: ids }))
-                        }
-                        currentProjectId={formData.projectId}
-                        placeholder={
-                          filteredAccounts.length === 0
-                            ? "Không có tài khoản phù hợp (Hãy kiểm tra Nền tảng)"
-                            : "Chọn tài khoản đăng..."
-                        }
-                      />
-                      {(formData.accountIds || []).length === 0 &&
-                        filteredAccounts.length > 0 && (
-                          <p className="text-sm text-red-500 italic mt-1 ml-1">
-                            * Vui lòng chọn ít nhất 1 tài khoản
-                          </p>
-                        )}
-                    </div>
-                  </div>
-                </div>
+                  {/* Image Grid */}
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    {(formData.imageLinks || []).map((link, index) => (
+                      <div
+                        key={index}
+                        className="relative group rounded-xl overflow-hidden border border-slate-200 aspect-video bg-slate-100"
+                      >
+                        <img
+                          src={link}
+                          alt=""
+                          className="w-full h-full object-cover"
+                        />
 
-                {/* Caption */}
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between mb-1">
-                    <Label className="flex items-center gap-2 text-base font-semibold text-slate-700">
-                      <MessageSquare className="w-4 h-4 text-indigo-600" />
-                      Caption <span className="text-red-500">*</span>
-                    </Label>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() =>
-                        handleEditWithAI("caption", formData.caption)
-                      }
-                      className="bg-indigo-50/50 border-indigo-200 text-indigo-700 hover:bg-indigo-100/50 shadow-sm rounded-lg text-xs"
-                    >
-                      <Sparkles className="w-3.5 h-3.5 mr-1.5 text-amber-500" />
-                      AI Viết lại
-                    </Button>
-                  </div>
-                  <Textarea
-                    value={formData.caption || ""}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        caption: e.target.value,
-                      }))
-                    }
-                    placeholder="Nhập nội dung caption cho bài đăng..."
-                    rows={6}
-                    required
-                    className="border-white/60 bg-white/50 focus:bg-white/80 focus:border-indigo-400 rounded-xl resize-none shadow-sm text-slate-700 custom-scrollbar"
-                  />
-                </div>
-
-                {/* Ảnh sẽ đăng */}
-                <div className="space-y-4 bg-white/40 backdrop-blur-md border border-white/60 rounded-2xl shadow-sm p-6 hover:bg-white/60 transition-all duration-300">
-                  <Label className="flex items-center justify-between text-base font-semibold text-slate-700">
-                    <div className="flex items-center gap-2">
-                      <Image className="w-4 h-4 text-emerald-600" />
-                      Ảnh bài đăng
-                    </div>
-                    {estimatedCost && estimatedCost.total > 0 && (
-                      <div className="text-sm font-medium text-gray-700 px-3 flex items-center gap-1.5 bg-white/50 rounded-lg border border-white/60 py-1">
-                        <DollarSign className="w-3.5 h-3.5 text-emerald-600" />$
-                        {estimatedCost.total.toFixed(3)}
-                        <span className="text-slate-500 text-xs font-normal">
-                          (~
-                          {(estimatedCost.total * 26000).toLocaleString(
-                            "vi-VN"
+                        {/* Actions Overlay */}
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                          <a
+                            href={link}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="p-1.5 bg-white/20 hover:bg-white/40 backdrop-blur rounded-full text-white cursor-pointer"
+                          >
+                            <Maximize2 className="w-4 h-4" />
+                          </a>
+                          {(canEditIdeaFields ||
+                            canEditContentApprovalFields) && (
+                            <>
+                              <button
+                                onClick={() => handleEditWithAI("image")} // Note: Currently generic
+                                className="p-1.5 bg-white/20 hover:bg-white/40 backdrop-blur rounded-full text-white"
+                                title="AI Sửa"
+                              >
+                                <Sparkles className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => handleRemoveImage(index)}
+                                className="p-1.5 bg-red-500/80 hover:bg-red-500 backdrop-blur rounded-full text-white"
+                              >
+                                <X className="w-4 h-4" />
+                              </button>
+                            </>
                           )}
-                          đ)
-                        </span>
+                        </div>
+                      </div>
+                    ))}
+
+                    {/* Empty State */}
+                    {(!formData.imageLinks ||
+                      formData.imageLinks.length === 0) && (
+                      <div className="col-span-full py-8 text-center text-slate-400 italic border border-dashed border-slate-200 rounded-xl bg-slate-50/50">
+                        Chưa có hình ảnh nào
                       </div>
                     )}
-                  </Label>
-
-                  <div className="flex gap-3">
-                    <Input
-                      placeholder="Dán link ảnh..."
-                      value={newImageLink}
-                      onChange={(e) => {
-                        setNewImageLink(e.target.value);
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          e.preventDefault();
-                          handleReplaceImageLink();
-                        }
-                      }}
-                      className="flex-1 border-white/60 bg-white/50 focus:bg-white/80 focus:border-emerald-500 rounded-xl shadow-sm"
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      onClick={handleReplaceImageLink}
-                      disabled={!newImageLink.trim()}
-                      className="text-indigo-600 hover:bg-indigo-50"
-                    >
-                      <Plus className="w-4 h-4" />
-                    </Button>
-                    <label>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className="bg-white/50 border-emerald-200 text-emerald-600 hover:bg-white/80 hover:border-emerald-300 rounded-xl shadow-sm"
-                        onClick={() =>
-                          document
-                            .getElementById("file-upload-approval")
-                            ?.click()
-                        }
-                      >
-                        <Upload className="w-4 h-4" />
-                      </Button>
-                      <input
-                        id="file-upload-approval"
-                        type="file"
-                        accept="image/*"
-                        multiple
-                        onChange={handleImageUpload}
-                        className="hidden"
-                      />
-                    </label>
                   </div>
 
-                  {/* Hiển thị ảnh ngay lập tức */}
-                  {formData.imageLinks && formData.imageLinks.length > 0 && (
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                      {formData.imageLinks.map((link, index) => (
-                        <div
-                          key={index}
-                          className="relative group rounded-xl overflow-hidden shadow-lg border border-white/60 aspect-video"
-                        >
-                          <img
-                            src={link}
-                            alt={`Ảnh đăng ${index + 1}`}
-                            className="w-full h-full object-cover"
-                          />
-                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
-                            <button
-                              onClick={() => handleEditWithAI("image")} // AI edit might need to know WHICH image. For now, opens generic dialog.
-                              className="p-2 bg-white/20 backdrop-blur-md border border-white/50 text-white rounded-full hover:bg-white/40 transition-colors"
-                              title="AI chỉnh sửa"
-                            >
-                              <Sparkles className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={() => handleRemoveImage(index)}
-                              className="p-2 bg-white/20 backdrop-blur-md border border-white/50 text-red-500 rounded-full hover:bg-white/40 transition-colors"
-                              title="Xóa"
-                            >
-                              <X className="w-4 h-4" />
-                            </button>
-                          </div>
-                        </div>
-                      ))}
+                  {/* Image Edit Request (Idea Phase) */}
+                  {canEditIdeaFields && (
+                    <div className="mt-4 pt-4 border-t border-slate-100">
+                      <SectionLabel className="mb-2">
+                        Yêu cầu sửa ảnh (Tùy chọn)
+                      </SectionLabel>
+                      <Textarea
+                        placeholder="Mô tả yêu cầu chỉnh sửa hoặc tạo ảnh..."
+                        value={imageEditRequest}
+                        onChange={(e) => setImageEditRequest(e.target.value)}
+                        rows={2}
+                        className="bg-white border-slate-200 text-sm"
+                      />
                     </div>
                   )}
-                </div>
+                </FeatureCard>
               </div>
-            )}
+            </div>
 
-            {/* Không có quyền chỉnh sửa */}
-            {!canEditIdeaFields && !canEditContentApprovalFields && (
-              <div className="flex flex-col items-center justify-center gap-3 py-10 text-slate-400">
-                <div className="p-4 bg-slate-50 rounded-full">
-                  <CheckCircle2 className="w-8 h-8" />
-                </div>
-                <p className="font-medium">
-                  Không thể chỉnh sửa ở trạng thái hiện tại
-                </p>
-              </div>
-            )}
-          </div>
-
-          <DialogFooter className="border-t border-white/40 p-6 bg-white/40 backdrop-blur-sm sticky bottom-0 z-10">
-            <Button
-              variant="outline"
-              onClick={handleClose}
-              disabled={isLoading || isSaving}
-              className="cursor-pointer bg-white/50 hover:bg-white/80 border-slate-200 text-slate-700 hover:text-slate-900 rounded-xl px-6 backdrop-blur-sm"
-            >
-              Hủy
-            </Button>
-            <Button
-              onClick={handleSubmit}
-              disabled={
-                isLoading ||
-                isSaving ||
-                !isFormValid ||
-                (!canEditIdeaFields && !canEditContentApprovalFields)
-              }
-              className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg shadow-blue-200/50 rounded-xl px-8"
-            >
-              {isSaving || isLoading ? (
-                <span className="flex items-center gap-2">
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                  Đang lưu...
-                </span>
-              ) : editContent ? (
-                "Cập nhật"
+            <DialogFooter className="-mx-6">
+              {editContent && onViewDetail ? (
+                <Button
+                  variant="ghost"
+                  onClick={() => onViewDetail(editContent as ContentItem)}
+                  className="mr-auto text-slate-600 hover:text-blue-600 hover:bg-blue-50"
+                >
+                  <Eye className="w-4 h-4 mr-2" />
+                  Xem chi tiết
+                </Button>
               ) : (
-                "Thêm mới"
+                <div></div>
               )}
-            </Button>
-          </DialogFooter>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={handleClose}
+                  disabled={isSaving || isLoading}
+                >
+                  Hủy bỏ
+                </Button>
+                <Button
+                  onClick={handleSubmit}
+                  disabled={
+                    isSaving ||
+                    isLoading ||
+                    !isFormValid ||
+                    (!canEditIdeaFields && !canEditContentApprovalFields)
+                  }
+                  className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-md"
+                >
+                  {isSaving
+                    ? "Đang lưu..."
+                    : editContent
+                    ? "Cập nhật"
+                    : "Tạo mới"}
+                </Button>
+              </div>
+            </DialogFooter>
+          </div>
         </DialogContent>
       </Dialog>
 
