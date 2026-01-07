@@ -822,14 +822,14 @@ export function ScheduleTab({
 
       {/* Add/Edit Modal */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="sm:max-w-md bg-white/80 backdrop-blur-xl border-white/60 shadow-2xl rounded-2xl">
-          <DialogHeader>
+        <DialogContent className="sm:max-w-md bg-white/80 backdrop-blur-xl border-white/60 shadow-2xl rounded-2xl p-0 gap-0 overflow-hidden flex flex-col max-h-[90vh]">
+          <DialogHeader className="p-6 pb-2 shrink-0">
             <DialogTitle className="text-xl font-bold text-slate-800">
               {editItem ? "Chỉnh sửa lịch đăng" : "Tạo lịch đăng mới"}
             </DialogTitle>
           </DialogHeader>
 
-          <div className="grid gap-4 py-4">
+          <div className="flex-1 overflow-y-auto p-6 pt-2 grid gap-4">
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="project" className="text-right text-slate-600">
                 Dự án

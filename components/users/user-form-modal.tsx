@@ -95,90 +95,91 @@ export function UserFormModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="bg-slate-900/90 backdrop-blur-xl border-white/10 text-slate-100 sm:max-w-[425px]">
-        <DialogHeader>
-          <DialogTitle className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-cyan-400">
-            {initialData ? "Chỉnh sửa người dùng" : "Thêm người dùng mới"}
-          </DialogTitle>
-        </DialogHeader>
+      <DialogContent className="bg-slate-900/90 backdrop-blur-xl border-white/10 text-slate-100 sm:max-w-[425px] p-0 gap-0 overflow-hidden flex flex-col">
+        <form
+          onSubmit={handleSubmit(onSubmit)}
+          className="flex flex-col flex-1 min-h-0"
+        >
+          <DialogHeader className="p-8 pb-0 shrink-0">
+            <DialogTitle className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-cyan-400">
+              {initialData ? "Chỉnh sửa người dùng" : "Thêm người dùng mới"}
+            </DialogTitle>
+          </DialogHeader>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 py-4">
-          <div className="space-y-2">
-            <Label htmlFor="name" className="text-slate-300">
-              Tên hiển thị
-            </Label>
-            <Input
-              id="name"
-              {...register("name")}
-              placeholder="Ví dụ: Nguyễn Văn A"
-              className="bg-black/20 border-white/10 text-white focus:border-indigo-500/50"
-            />
-            {errors.name && (
-              <p className="text-red-400 text-xs">{errors.name.message}</p>
-            )}
+          <div className="flex-1 overflow-y-auto p-8 space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="name" className="text-slate-300">
+                Tên hiển thị
+              </Label>
+              <Input
+                id="name"
+                {...register("name")}
+                placeholder="Ví dụ: Nguyễn Văn A"
+                className="bg-black/20 border-white/10 text-white focus:border-indigo-500/50"
+              />
+              {errors.name && (
+                <p className="text-red-400 text-xs">{errors.name.message}</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="email" className="text-slate-300">
+                Email
+              </Label>
+              <Input
+                id="email"
+                type="email"
+                {...register("email")}
+                disabled={!!initialData}
+                placeholder="email@example.com"
+                className="bg-black/20 border-white/10 text-white focus:border-indigo-500/50 disabled:opacity-50"
+              />
+              {errors.email && (
+                <p className="text-red-400 text-xs">{errors.email.message}</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="role" className="text-slate-300">
+                Vai trò
+              </Label>
+              <Select
+                onValueChange={(val) => setValue("role", val)}
+                defaultValue={initialData?.role || "viewer"}
+              >
+                <SelectTrigger className="bg-black/20 border-white/10 text-white">
+                  <SelectValue placeholder="Chọn vai trò" />
+                </SelectTrigger>
+                <SelectContent className="bg-slate-900 border-white/10 text-white">
+                  {roles.map((role) => (
+                    <SelectItem key={role.id} value={role.id}>
+                      {role.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {errors.role && (
+                <p className="text-red-400 text-xs">{errors.role.message}</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="password" className="text-slate-300">
+                {initialData
+                  ? "Mật khẩu mới (Để trống nếu không đổi)"
+                  : "Mật khẩu"}
+              </Label>
+              <Input
+                id="password"
+                type="password"
+                {...register("password")}
+                placeholder={initialData ? "••••••••" : "Nhập mật khẩu..."}
+                className="bg-black/20 border-white/10 text-white focus:border-indigo-500/50"
+              />
+            </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="email" className="text-slate-300">
-              Email
-            </Label>
-            <Input
-              id="email"
-              type="email"
-              {...register("email")}
-              disabled={!!initialData} // Email immutable usually? Can authorize change if needed.
-              placeholder="email@example.com"
-              className="bg-black/20 border-white/10 text-white focus:border-indigo-500/50 disabled:opacity-50"
-            />
-            {errors.email && (
-              <p className="text-red-400 text-xs">{errors.email.message}</p>
-            )}
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="role" className="text-slate-300">
-              Vai trò
-            </Label>
-            <Select
-              onValueChange={(val) => setValue("role", val)}
-              defaultValue={initialData?.role || "viewer"}
-            >
-              <SelectTrigger className="bg-black/20 border-white/10 text-white">
-                <SelectValue placeholder="Chọn vai trò" />
-              </SelectTrigger>
-              <SelectContent className="bg-slate-900 border-white/10 text-white">
-                {roles.map((role) => (
-                  <SelectItem key={role.id} value={role.id}>
-                    {role.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {errors.role && (
-              <p className="text-red-400 text-xs">{errors.role.message}</p>
-            )}
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="password" className="text-slate-300">
-              {initialData
-                ? "Mật khẩu mới (Để trống nếu không đổi)"
-                : "Mật khẩu"}
-            </Label>
-            <Input
-              id="password"
-              type="password"
-              {...register("password")}
-              placeholder={initialData ? "••••••••" : "Nhập mật khẩu..."}
-              className="bg-black/20 border-white/10 text-white focus:border-indigo-500/50"
-            />
-            {/* Simple validation that password is required on create */}
-            {!initialData &&
-              !register("password").name && // This check is weird, rely on zod or simpler check
-              null}
-          </div>
-
-          <DialogFooter className="pt-4">
+          <DialogFooter>
             <Button
               type="button"
               variant="ghost"

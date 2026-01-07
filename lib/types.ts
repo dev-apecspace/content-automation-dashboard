@@ -366,14 +366,14 @@ export const activityTypeConfig: Record<
 > = {
   create: {
     label: "Tạo mới",
-    className: "bg-yellow-700 text-yellow-100",
+    className: "bg-blue-700 text-blue-100",
   },
   update: {
     label: "Cập nhật",
-    className: "bg-blue-700 text-blue-100",
+    className: "bg-yellow-500 text-yellow-100",
   },
   delete: {
-    label: "Xóa ý tưởng",
+    label: "Xóa",
     className: "bg-orange-700 text-orange-100",
   },
   approve: {

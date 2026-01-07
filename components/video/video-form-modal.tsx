@@ -38,7 +38,7 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { getProjects, getAIModels } from "@/lib/api";
-import { VideoItem, Project, AIModel, statusConfig } from "@/lib/types";
+import { VideoItem, Project, AIModel, statusConfig, Platform } from "@/lib/types";
 import { uploadImageFile, uploadVideoFile } from "@/app/api/cloudinary";
 import { AiRequirementDialog } from "@/components/shared/ai-requirement-dialog";
 import { getVideoItemById } from "@/lib/api/video-items";
@@ -353,66 +353,47 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
   };
 
   // Render Helpers
-  const renderEditableOrReadonly = (
-    canEdit: boolean,
-    editComponent: React.ReactNode,
-    readonlyValue: React.ReactNode,
-    placeholder: string = "Chưa có thông tin"
-  ) => {
-    if (canEdit) return editComponent;
-    return (
-      <div className="bg-slate-50 rounded-xl p-3 border border-slate-200 shadow-inner min-h-[44px] flex items-center">
-        <div className="text-slate-800 text-sm font-medium leading-relaxed w-full">
-          {readonlyValue || (
-            <span className="text-slate-400 italic">{placeholder}</span>
-          )}
-        </div>
-      </div>
-    );
-  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange || handleClose}>
-      <DialogContent className="">
+      <DialogContent className="w-[1200px] max-w-[95vw] h-[90vh] p-0 gap-0 overflow-hidden flex flex-col">
         <BackgroundStyle />
 
         {/* Header */}
-        <div className="px-8 pt-6 pb-4 relative z-10">
-          <DialogHeader className="space-y-3">
-            <div className="flex items-center justify-between">
-              <DialogTitle className="text-2xl font-bold leading-tight pr-8 text-slate-900 tracking-wide">
-                {editVideo ? "Chỉnh sửa Video" : "Tạo Video Mới"}
-              </DialogTitle>
-            </div>
-            <div className="space-y-3">
-              <div className="flex flex-wrap items-center gap-3">
+        <DialogHeader className="px-8 pt-6 pb-4 shrink-0 relative z-10 space-y-3">
+          <div className="flex items-center justify-between">
+            <DialogTitle className="text-2xl font-bold leading-tight pr-8 text-slate-900 tracking-wide">
+              {editVideo ? "Chỉnh sửa Video" : "Tạo Video Mới"}
+            </DialogTitle>
+          </div>
+          <div className="space-y-3">
+            <div className="flex flex-wrap items-center gap-3">
+              <Badge
+                variant="outline"
+                className="border-slate-200 bg-white text-slate-700 px-3 py-1"
+              >
+                {canEditIdeaFields && "Giai đoạn: Ý tưởng"}
+                {canEditContentApprovalFields && "Giai đoạn: Duyệt nội dung"}
+                {!canEditIdeaFields &&
+                  !canEditContentApprovalFields &&
+                  "Chế độ xem"}
+              </Badge>
+              {editVideo?.status && (
                 <Badge
                   variant="outline"
-                  className="border-slate-200 bg-white text-slate-700 px-3 py-1"
+                  className={cn(
+                    "border-slate-200 bg-white text-slate-700 px-3 py-1",
+                    statusConfig[editVideo.status]?.className
+                  )}
                 >
-                  {canEditIdeaFields && "Giai đoạn: Ý tưởng"}
-                  {canEditContentApprovalFields && "Giai đoạn: Duyệt nội dung"}
-                  {!canEditIdeaFields &&
-                    !canEditContentApprovalFields &&
-                    "Chế độ xem"}
+                  {statusConfig[editVideo.status]?.label}
                 </Badge>
-                {editVideo?.status && (
-                  <Badge
-                    variant="outline"
-                    className={cn(
-                      "border-slate-200 bg-white text-slate-700 px-3 py-1",
-                      statusConfig[editVideo.status]?.className
-                    )}
-                  >
-                    {statusConfig[editVideo.status]?.label}
-                  </Badge>
-                )}
-              </div>
+              )}
             </div>
-          </DialogHeader>
-        </div>
+          </div>
+        </DialogHeader>
 
-        <div className="px-8 relative z-10">
+        <div className="px-8 relative z-10 flex-1 overflow-y-auto">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
             {/* Left Column */}
             <div className="lg:col-span-5 space-y-6">
@@ -428,93 +409,80 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
                     <SectionLabel className="mb-2">
                       Dự án <span className="text-red-500">*</span>
                     </SectionLabel>
-                    {renderEditableOrReadonly(
-                      canEditIdeaFields,
-                      <Select
-                        value={formData.projectId}
-                        onValueChange={handleProjectChange}
-                      >
-                        <SelectTrigger className="bg-white border-slate-200">
-                          <SelectValue placeholder="Chọn dự án" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {projects.map((p) => (
-                            <SelectItem key={p.id} value={p.id}>
-                              {p.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>,
-                      formData.projectName ? (
-                        <div>
-                          {formData.projectName}
-                        </div>
-                      ) : null,
-                      "Chưa chọn dự án"
-                    )}
+                    <Select
+                      value={formData.projectId}
+                      onValueChange={handleProjectChange}
+                      disabled={!canEditIdeaFields}
+                    >
+                      <SelectTrigger className="bg-white border-slate-200 disabled:bg-slate-100 disabled:text-slate-500">
+                        <SelectValue placeholder="Chọn dự án" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {projects.map((p) => (
+                          <SelectItem key={p.id} value={p.id}>
+                            {p.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
 
                   {/* Platform */}
                   <div className="mb-4">
                     <SectionLabel className="mb-2">Nền tảng</SectionLabel>
-                    {renderEditableOrReadonly(
-                      canEditIdeaFields,
-                      <div className="flex flex-wrap gap-3">
-                        {[
+                    <div className="flex flex-wrap gap-3">
+                      {(
+                        [
                           "Facebook Reels",
                           "Youtube Shorts",
                           "Tiktok Video",
-                        ].map((p) => (
-                          <div
-                            key={p}
-                            className="flex items-center gap-2 p-2 bg-white rounded-lg border border-slate-200 shadow-sm cursor-pointer hover:bg-slate-50 transition-colors"
-                          >
-                            <Checkbox
-                              id={`p-${p}`}
-                              checked={formData.platform?.includes(p)}
-                              onCheckedChange={() => handlePlatformToggle(p)}
-                              className="data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600"
-                            />
-                            <Label
-                              htmlFor={`p-${p}`}
-                              className="text-sm cursor-pointer font-medium text-slate-700"
-                            >
-                              {p}
-                            </Label>
-                          </div>
-                        ))}
-                      </div>,
-                      <div className="flex flex-wrap gap-2">
-                        {formData.platform?.map((p) => (
-                          <span
-                            key={p}
+                        ] as Platform[]
+                      ).map((p) => (
+                        <div
+                          key={p}
+                          className={`flex items-center gap-2 p-2 bg-white rounded-lg border border-slate-200 shadow-sm transition-colors ${
+                            !canEditIdeaFields
+                              ? "bg-slate-100 pointer-events-none"
+                              : "cursor-pointer hover:bg-slate-50"
+                          }`}
+                        >
+                          <Checkbox
+                            id={`p-${p}`}
+                            checked={formData.platform?.includes(p)}
+                            onCheckedChange={() => handlePlatformToggle(p)}
+                            disabled={!canEditIdeaFields}
+                            className="data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600 disabled:data-[state=checked]:bg-slate-500 disabled:border-slate-300"
+                          />
+                          <Label
+                            htmlFor={`p-${p}`}
+                            className={`text-sm font-medium text-slate-700 ${
+                              !canEditIdeaFields
+                                ? "cursor-not-allowed text-slate-500"
+                                : "cursor-pointer"
+                            }`}
                           >
                             {p}
-                          </span>
-                        ))}
-                      </div>,
-                      "Chưa chọn nền tảng"
-                    )}
+                          </Label>
+                        </div>
+                      ))}
+                    </div>
                   </div>
 
                   {/* Idea */}
                   <div>
                     <SectionLabel>Ý tưởng</SectionLabel>
-                    {renderEditableOrReadonly(
-                      canEditIdeaFields,
-                      <Textarea
-                        value={formData.idea || ""}
-                        onChange={(e) =>
-                          setFormData((prev) => ({
-                            ...prev,
-                            idea: e.target.value,
-                          }))
-                        }
-                        placeholder="Nhập ý tưởng video..."
-                        className="min-h-[100px] bg-white"
-                      />,
-                      formData.idea
-                    )}
+                    <Textarea
+                      value={formData.idea || ""}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          idea: e.target.value,
+                        }))
+                      }
+                      placeholder="Nhập ý tưởng video..."
+                      disabled={!canEditIdeaFields}
+                      className="min-h-[100px] bg-white disabled:bg-slate-100 disabled:text-slate-500"
+                    />
                   </div>
 
                   {/* Posting Time */}
@@ -538,39 +506,36 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
                           </Button>
                         )}
                       </div>
-                      {renderEditableOrReadonly(
-                        canEditContentApprovalFields,
-                        <div className="flex gap-2">
-                          <Input
-                            type="date"
-                            value={formData.expectedPostDate || ""}
-                            onChange={(e) => {
-                              setFormData((prev) => ({
-                                ...prev,
-                                expectedPostDate: e.target.value,
-                              }));
-                              updatePostingTime(
-                                e.target.value,
-                                formData.postingTime?.split(" ")[1] || ""
-                              );
-                            }}
-                            className="h-9 bg-white"
-                          />
-                          <Input
-                            type="time"
-                            value={formData.postingTime?.split(" ")[1] || ""}
-                            onChange={(e) =>
-                              updatePostingTime(
-                                formData.expectedPostDate || "",
-                                e.target.value
-                              )
-                            }
-                            className="h-9 bg-white"
-                          />
-                        </div>,
-                        formData.postingTime,
-                        "Chưa đặt lịch"
-                      )}
+                      <div className="flex gap-2">
+                        <Input
+                          type="date"
+                          value={formData.expectedPostDate || ""}
+                          onChange={(e) => {
+                            setFormData((prev) => ({
+                              ...prev,
+                              expectedPostDate: e.target.value,
+                            }));
+                            updatePostingTime(
+                              e.target.value,
+                              formData.postingTime?.split(" ")[1] || ""
+                            );
+                          }}
+                          disabled={!canEditContentApprovalFields}
+                          className="h-9 bg-white disabled:bg-slate-100 disabled:text-slate-500"
+                        />
+                        <Input
+                          type="time"
+                          value={formData.postingTime?.split(" ")[1] || ""}
+                          onChange={(e) =>
+                            updatePostingTime(
+                              formData.expectedPostDate || "",
+                              e.target.value
+                            )
+                          }
+                          disabled={!canEditContentApprovalFields}
+                          className="h-9 bg-white disabled:bg-slate-100 disabled:text-slate-500"
+                        />
+                      </div>
                     </div>
                   </div>
 
@@ -581,27 +546,21 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
                     </div>
                     <div className="flex-1">
                       <SectionLabel>Thời lượng (giây)</SectionLabel>
-                      {renderEditableOrReadonly(
-                        canEditIdeaFields,
-                        <Input
-                          type="number"
-                          value={formData.videoDuration || ""}
-                          onChange={(e) =>
-                            setFormData((prev) => ({
-                              ...prev,
-                              videoDuration: e.target.value
-                                ? parseInt(e.target.value)
-                                : undefined,
-                            }))
-                          }
-                          placeholder="VD: 60"
-                          className="h-9 bg-white"
-                        />,
-                        formData.videoDuration
-                          ? `${formData.videoDuration}s`
-                          : null,
-                        "Chưa có thời lượng"
-                      )}
+                      <Input
+                        type="number"
+                        value={formData.videoDuration || ""}
+                        onChange={(e) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            videoDuration: e.target.value
+                              ? parseInt(e.target.value)
+                              : undefined,
+                          }))
+                        }
+                        placeholder="VD: 60"
+                        disabled={!canEditIdeaFields}
+                        className="h-9 bg-white disabled:bg-slate-100 disabled:text-slate-500"
+                      />
                     </div>
                   </div>
 
@@ -612,8 +571,13 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
                     </div>
                     <div className="flex-1">
                       <SectionLabel>Tài khoản</SectionLabel>
-                      {renderEditableOrReadonly(
-                        canEditContentApprovalFields,
+                      <div
+                        className={
+                          !canEditContentApprovalFields
+                            ? "opacity-70 pointer-events-none"
+                            : ""
+                        }
+                      >
                         <AccountSelector
                           accounts={filteredAccounts}
                           selectedIds={formData.accountIds || []}
@@ -625,28 +589,9 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
                           }
                           currentProjectId={formData.projectId}
                           placeholder="Chọn tài khoản..."
-                        />,
-                        <div className="flex flex-wrap gap-2">
-                          {filteredAccounts
-                            .filter((acc) =>
-                              formData.accountIds?.includes(acc.id)
-                            )
-                            .map((acc) => (
-                              <span
-                                key={acc.id}
-                                className="px-2 py-1 bg-green-50 text-emerald-700 text-xs rounded border border-emerald-200"
-                              >
-                                {acc.channelName} ({acc.platform})
-                              </span>
-                            ))}
-                          {(!formData.accountIds ||
-                            formData.accountIds.length === 0) && (
-                            <span className="text-slate-400 italic text-sm">
-                              Chưa chọn tài khoản
-                            </span>
-                          )}
-                        </div>
-                      )}
+                          disabled={!canEditContentApprovalFields}
+                        />
+                      </div>
                     </div>
                   </div>
 
@@ -695,12 +640,11 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
                     </div>
                     <div className="flex-1">
                       <SectionLabel className="mb-1">Chủ đề</SectionLabel>
-                      {renderEditableOrReadonly(
-                        false,
-                        null,
-                        formData.topic,
-                        "Chưa xác định"
-                      )}
+                      <Textarea
+                        disabled
+                        value={formData.topic || "Chưa xác định"}
+                        className="min-h-[60px] bg-slate-100/50 border-slate-200 text-slate-600 resize-none disabled:cursor-not-allowed"
+                      />
                     </div>
                   </div>
                   <div className="w-full h-px bg-slate-200/50" />
@@ -713,12 +657,11 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
                       <SectionLabel className="mb-1">
                         Đối tượng mục tiêu
                       </SectionLabel>
-                      {renderEditableOrReadonly(
-                        false,
-                        null,
-                        formData.targetAudience,
-                        "Chưa xác định"
-                      )}
+                      <Textarea
+                        disabled
+                        value={formData.targetAudience || "Chưa xác định"}
+                        className="min-h-[60px] bg-slate-100/50 border-slate-200 text-slate-600 resize-none disabled:cursor-not-allowed"
+                      />
                     </div>
                   </div>
                   <div className="w-full h-px bg-slate-200/50" />
@@ -731,12 +674,11 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
                       <SectionLabel className="mb-1">
                         Lưu ý nghiên cứu
                       </SectionLabel>
-                      {renderEditableOrReadonly(
-                        false,
-                        null,
-                        formData.researchNotes,
-                        "Chưa có ghi chú"
-                      )}
+                      <Textarea
+                        disabled
+                        value={formData.researchNotes || "Chưa có ghi chú"}
+                        className="min-h-[60px] bg-slate-100/50 border-slate-200 text-slate-600 resize-none disabled:cursor-not-allowed"
+                      />
                     </div>
                   </div>
                 </div>
@@ -784,22 +726,18 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
                   icon={FileText}
                   colorTheme="rose"
                 >
-                  {renderEditableOrReadonly(
-                    canEditContentApprovalFields,
-                    <Input
-                      value={formData.title || ""}
-                      onChange={(e) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          title: e.target.value,
-                        }))
-                      }
-                      placeholder="Nhập tiêu đề video..."
-                      className="bg-white"
-                    />,
-                    formData.title,
-                    "Chưa có tiêu đề"
-                  )}
+                  <Input
+                    value={formData.title || ""}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        title: e.target.value,
+                      }))
+                    }
+                    placeholder="Nhập tiêu đề video..."
+                    disabled={!canEditContentApprovalFields}
+                    className="bg-white disabled:bg-slate-100 disabled:text-slate-500"
+                  />
                 </FeatureCard>
               )}
 
@@ -824,22 +762,18 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
                   )
                 }
               >
-                {renderEditableOrReadonly(
-                  canEditContentApprovalFields,
-                  <Textarea
-                    value={formData.caption || ""}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        caption: e.target.value,
-                      }))
-                    }
-                    placeholder="Nhập caption..."
-                    className="bg-white min-h-[200px]"
-                  />,
-                  <p className="whitespace-pre-wrap">{formData.caption}</p>,
-                  "Chưa có caption"
-                )}
+                <Textarea
+                  value={formData.caption || ""}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      caption: e.target.value,
+                    }))
+                  }
+                  placeholder="Nhập caption..."
+                  disabled={!canEditContentApprovalFields}
+                  className="bg-white min-h-[200px] disabled:bg-slate-100 disabled:text-slate-500"
+                />
               </FeatureCard>
 
               {/* Video Media */}
@@ -850,40 +784,47 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
                 className="flex flex-col"
               >
                 <div className="space-y-4">
-                  {canEditIdeaFields && (
-                    <div className="flex gap-3">
-                      <Input
-                        placeholder="Dán link video..."
-                        value={formData.videoLink || ""}
-                        onChange={(e) =>
-                          setFormData((prev) => ({
-                            ...prev,
-                            videoLink: e.target.value,
-                          }))
+                  <div className="flex gap-3">
+                    <Input
+                      placeholder="Dán link video..."
+                      value={formData.videoLink || ""}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          videoLink: e.target.value,
+                        }))
+                      }
+                      disabled={
+                        !(canEditIdeaFields || canEditContentApprovalFields)
+                      }
+                      className="flex-1 bg-white disabled:bg-slate-100 disabled:text-slate-500"
+                    />
+                    <label>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="bg-white disabled:bg-slate-100 disabled:text-slate-500"
+                        onClick={() =>
+                          document.getElementById("video-upload")?.click()
                         }
-                        className="flex-1 bg-white"
+                        disabled={
+                          !(canEditIdeaFields || canEditContentApprovalFields)
+                        }
+                      >
+                        <Upload className="w-4 h-4" />
+                      </Button>
+                      <input
+                        id="video-upload"
+                        type="file"
+                        accept="video/*"
+                        className="hidden"
+                        onChange={handleVideoUpload}
+                        disabled={
+                          !(canEditIdeaFields || canEditContentApprovalFields)
+                        }
                       />
-                      <label>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          className="bg-white"
-                          onClick={() =>
-                            document.getElementById("video-upload")?.click()
-                          }
-                        >
-                          <Upload className="w-4 h-4" />
-                        </Button>
-                        <input
-                          id="video-upload"
-                          type="file"
-                          accept="video/*"
-                          className="hidden"
-                          onChange={handleVideoUpload}
-                        />
-                      </label>
-                    </div>
-                  )}
+                    </label>
+                  </div>
 
                   {formData.videoLink ? (
                     <div className="relative group rounded-xl overflow-hidden shadow-lg border border-slate-200 aspect-video bg-black">
@@ -892,7 +833,7 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
                         controls
                         className="w-full h-full"
                       />
-                      {canEditIdeaFields && (
+                      {(canEditIdeaFields || canEditContentApprovalFields) && (
                         <button
                           onClick={() =>
                             setFormData((prev) => ({ ...prev, videoLink: "" }))
@@ -919,42 +860,49 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
                 className="flex flex-col"
               >
                 <div className="space-y-4">
-                  {canEditIdeaFields && (
-                    <div className="flex gap-3">
-                      <Input
-                        placeholder="Dán link ảnh..."
-                        value={newImageLink}
-                        onChange={(e) => {
-                          setNewImageLink(e.target.value);
-                          if (e.target.value)
-                            setFormData((prev) => ({
-                              ...prev,
-                              imageLink: e.target.value,
-                            }));
-                        }}
-                        className="flex-1 bg-white"
+                  <div className="flex gap-3">
+                    <Input
+                      placeholder="Dán link ảnh..."
+                      value={newImageLink}
+                      onChange={(e) => {
+                        setNewImageLink(e.target.value);
+                        if (e.target.value)
+                          setFormData((prev) => ({
+                            ...prev,
+                            imageLink: e.target.value,
+                          }));
+                      }}
+                      disabled={
+                        !(canEditIdeaFields || canEditContentApprovalFields)
+                      }
+                      className="flex-1 bg-white disabled:bg-slate-100 disabled:text-slate-500"
+                    />
+                    <label>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="bg-white disabled:bg-slate-100 disabled:text-slate-500"
+                        onClick={() =>
+                          document.getElementById("image-upload")?.click()
+                        }
+                        disabled={
+                          !(canEditIdeaFields || canEditContentApprovalFields)
+                        }
+                      >
+                        <Upload className="w-4 h-4" />
+                      </Button>
+                      <input
+                        id="image-upload"
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleImageUpload}
+                        disabled={
+                          !(canEditIdeaFields || canEditContentApprovalFields)
+                        }
                       />
-                      <label>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          className="bg-white"
-                          onClick={() =>
-                            document.getElementById("image-upload")?.click()
-                          }
-                        >
-                          <Upload className="w-4 h-4" />
-                        </Button>
-                        <input
-                          id="image-upload"
-                          type="file"
-                          accept="image/*"
-                          className="hidden"
-                          onChange={handleImageUpload}
-                        />
-                      </label>
-                    </div>
-                  )}
+                    </label>
+                  </div>
 
                   {formData.imageLink ? (
                     <div className="relative group rounded-xl overflow-hidden shadow-lg border border-slate-200 aspect-video bg-slate-100">
@@ -962,7 +910,7 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
                         src={formData.imageLink}
                         alt="Thumbnail w-full h-full object-cover"
                       />
-                      {canEditIdeaFields && (
+                      {(canEditIdeaFields || canEditContentApprovalFields) && (
                         <button
                           onClick={() => {
                             setFormData((prev) => ({
@@ -988,7 +936,7 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
           </div>
         </div>
 
-        <DialogFooter className="">
+        <DialogFooter>
           {editVideo && onViewDetail ? (
             <Button
               variant="ghost"

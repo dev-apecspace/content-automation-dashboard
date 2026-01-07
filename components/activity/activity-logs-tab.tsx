@@ -299,9 +299,6 @@ export function ActivityLogsTab() {
                       >
                         {entityTypeConfig[log.entity_type].label}
                       </Badge>
-                      <span className="text-xs font-mono text-slate-400">
-                        ID: {log.entity_id.substring(0, 8)}...
-                      </span>
                     </div>
 
                     {log.description && (

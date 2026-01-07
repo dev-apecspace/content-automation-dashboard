@@ -68,11 +68,11 @@ export const AiRequirementDialog: React.FC<AiRequirementDialogProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-[95vw] lg:max-w-xl bg-white/80 backdrop-blur-2xl border-white/60 shadow-2xl rounded-[32px] p-0 overflow-hidden">
+      <DialogContent className="max-w-[95vw] lg:max-w-xl bg-white/80 backdrop-blur-2xl border-white/60 shadow-2xl rounded-[32px] p-0 gap-0 overflow-hidden flex flex-col max-h-[90vh]">
         {/* Decorative Background Gradient */}
         <div className="absolute inset-0 -z-10 bg-gradient-to-br from-[#FFFBEB]/40 via-[#FEF3C7]/20 to-[#FAFAF9]/40 blur-3xl pointer-events-none" />
 
-        <DialogHeader className="border-b border-white/40 pb-6 pt-6 px-8 bg-white/40 sticky top-0 z-10 backdrop-blur-md">
+        <DialogHeader className="border-b border-white/40 pb-6 pt-6 px-8 bg-white/40 shrink-0 backdrop-blur-md">
           <div className="flex items-center gap-3">
             <div className="p-2.5 bg-gradient-to-br from-amber-300 to-yellow-400 rounded-xl shadow-lg shadow-amber-200/50">
               <Sparkles className="w-5 h-5 text-white" />
@@ -92,7 +92,7 @@ export const AiRequirementDialog: React.FC<AiRequirementDialogProps> = ({
           </div>
         </DialogHeader>
 
-        <div className="space-y-6 py-6 px-8">
+        <div className="flex-1 overflow-y-auto space-y-6 py-6 px-8">
           {type === "image" && (
             <div className="space-y-4">
               <Label className="text-base font-semibold text-slate-700">
@@ -222,7 +222,7 @@ export const AiRequirementDialog: React.FC<AiRequirementDialogProps> = ({
           )}
         </div>
 
-        <DialogFooter className="border-t border-white/40 p-6 bg-white/40 backdrop-blur-sm sticky bottom-0 z-10 flex gap-3">
+        <DialogFooter>
           <Button
             variant="outline"
             onClick={onClose}

@@ -800,13 +800,13 @@ export function SettingsTab() {
 
       {/* Dialog Add/Edit Model */}
       <Dialog open={isModelDialogOpen} onOpenChange={setIsModelDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
+        <DialogContent className="p-0 gap-0 overflow-hidden flex flex-col max-h-[90vh]">
+          <DialogHeader className="p-6 pb-2 shrink-0 text-left">
             <DialogTitle>
               {editingModel ? "Chỉnh sửa Model" : "Thêm Model Mới"}
             </DialogTitle>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
+          <div className="flex-1 overflow-y-auto p-6 pt-2 grid gap-4">
             <div className="space-y-2">
               <Label>Loại Model</Label>
               <Select

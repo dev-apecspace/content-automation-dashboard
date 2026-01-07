@@ -32,6 +32,7 @@ interface AccountSelectorProps {
   onChange: (ids: string[]) => void;
   currentProjectId?: string;
   placeholder?: string;
+  disabled?: boolean;
 }
 
 export function AccountSelector({
@@ -40,6 +41,7 @@ export function AccountSelector({
   onChange,
   currentProjectId,
   placeholder = "Chọn tài khoản...",
+  disabled = false,
 }: AccountSelectorProps) {
   const [open, setOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -116,6 +118,7 @@ export function AccountSelector({
           variant="outline"
           role="combobox"
           aria-expanded={open}
+          disabled={disabled}
           className="w-full justify-between bg-white/50 border-white/60 hover:bg-white/80 h-auto min-h-[2.75rem] py-2"
         >
           <div className="flex flex-wrap gap-1 text-left">

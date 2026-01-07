@@ -31,6 +31,7 @@ import {
   Folder,
   Link,
 } from "lucide-react"; // Icons
+import { BackgroundStyle } from "../ui/background-style";
 
 interface AccountFormModalProps {
   isOpen: boolean;
@@ -199,247 +200,246 @@ export const AccountFormModal: React.FC<AccountFormModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-md max-h-[90vh] bg-white/80 backdrop-blur-2xl border-white/60 shadow-2xl rounded-[24px] p-0 overflow-y-auto">
-        {/* Vibrant Gradient Background Layer */}
-        <div className="absolute inset-0 -z-10 bg-gradient-to-br from-[#a8c0ff]/40 via-[#3f2b96]/10 to-[#ffafbd]/40 blur-3xl pointer-events-none" />
-
-        <DialogHeader className="border-b border-white/40 pb-5 pt-6 px-6 bg-white/40 sticky top-0 z-10 backdrop-blur-md">
+      <DialogContent className="w-[600px] p-0 gap-0 overflow-hidden flex flex-col">
+        <DialogHeader className="border-b border-white/40 pb-5 pt-6 px-6 bg-gray-200/50 sticky top-0 z-10 backdrop-blur-md shrink-0">
           <DialogTitle className="text-xl font-bold flex items-center gap-2 text-slate-900 tracking-wide">
             {editAccount ? "Chỉnh sửa tài khoản" : "Thêm tài khoản liên kết"}
           </DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-5 p-6">
-          {/* Project */}
-          <div className="space-y-2">
-            <Label className="flex items-center gap-2 text-slate-700 font-medium">
-              <Folder className="w-4 h-4 text-blue-500" /> Dự án
-            </Label>
-            <Select
-              value={formData.projectId}
-              onValueChange={(val) => {
-                const project = projects.find((p) => p.id === val);
-                setFormData({
-                  ...formData,
-                  projectId: val,
-                  projectName: project?.name,
-                });
-              }}
-            >
-              <SelectTrigger className="bg-white/50 border-white/60 focus:bg-white/80 rounded-xl shadow-sm">
-                <SelectValue placeholder="Chọn dự án (Tùy chọn)" />
-              </SelectTrigger>
-              <SelectContent className="rounded-xl border-white/60 bg-white/90 backdrop-blur-xl">
-                {projects.map((p) => (
-                  <SelectItem key={p.id} value={p.id}>
-                    {p.name}
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
+          <div className="flex-1 overflow-y-auto p-6 space-y-5">
+            {/* Project */}
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2 text-slate-700 font-medium">
+                <Folder className="w-4 h-4 text-blue-500" /> Dự án
+              </Label>
+              <Select
+                value={formData.projectId}
+                onValueChange={(val) => {
+                  const project = projects.find((p) => p.id === val);
+                  setFormData({
+                    ...formData,
+                    projectId: val,
+                    projectName: project?.name,
+                  });
+                }}
+              >
+                <SelectTrigger className="bg-white/50 border-white/60 focus:bg-white/80 rounded-xl shadow-sm">
+                  <SelectValue placeholder="Chọn dự án (Tùy chọn)" />
+                </SelectTrigger>
+                <SelectContent className="rounded-xl border-white/60 bg-white/90 backdrop-blur-xl">
+                  {projects.map((p) => (
+                    <SelectItem key={p.id} value={p.id}>
+                      {p.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Platform */}
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2 text-slate-700 font-medium">
+                Nền tảng <span className="text-red-500">*</span>
+              </Label>
+              <Select
+                value={formData.platform}
+                onValueChange={(val: AccountPlatform) =>
+                  setFormData({ ...formData, platform: val })
+                }
+              >
+                <SelectTrigger className="bg-white/50 border-white/60 focus:bg-white/80 rounded-xl shadow-sm">
+                  <SelectValue placeholder="Chọn nền tảng" />
+                </SelectTrigger>
+                <SelectContent className="rounded-xl border-white/60 bg-white/90 backdrop-blur-xl">
+                  <SelectItem value="Facebook">
+                    <div className="flex items-center gap-2">
+                      <Facebook className="w-5 h-5 text-blue-600" /> Facebook
+                    </div>
                   </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+                  <SelectItem value="Youtube">
+                    <div className="flex items-center gap-2">
+                      <Youtube className="w-5 h-5 text-red-600" /> Youtube
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="Tiktok">
+                    <div className="flex items-center gap-2">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="24"
+                        height="24"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="w-4 h-4 text-black"
+                      >
+                        <path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5" />
+                      </svg>{" "}
+                      Tiktok
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
-          {/* Platform */}
-          <div className="space-y-2">
-            <Label className="flex items-center gap-2 text-slate-700 font-medium">
-              Nền tảng <span className="text-red-500">*</span>
-            </Label>
-            <Select
-              value={formData.platform}
-              onValueChange={(val: AccountPlatform) =>
-                setFormData({ ...formData, platform: val })
-              }
-            >
-              <SelectTrigger className="bg-white/50 border-white/60 focus:bg-white/80 rounded-xl shadow-sm">
-                <SelectValue placeholder="Chọn nền tảng" />
-              </SelectTrigger>
-              <SelectContent className="rounded-xl border-white/60 bg-white/90 backdrop-blur-xl">
-                <SelectItem value="Facebook">
-                  <div className="flex items-center gap-2">
-                    <Facebook className="w-4 h-4 text-blue-600" /> Facebook
-                  </div>
-                </SelectItem>
-                <SelectItem value="Youtube">
-                  <div className="flex items-center gap-2">
-                    <Youtube className="w-4 h-4 text-red-600" /> Youtube
-                  </div>
-                </SelectItem>
-                <SelectItem value="Tiktok">
-                  <div className="flex items-center gap-2">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="24"
-                      height="24"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      className="w-4 h-4 text-black"
-                    >
-                      <path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5" />
-                    </svg>{" "}
-                    Tiktok
-                  </div>
-                </SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Channel Name */}
-          <div className="space-y-2">
-            <Label className="flex items-center gap-2 text-slate-700 font-medium">
-              <User className="w-4 h-4 text-gray-500" /> Tên kênh / Page{" "}
-              <span className="text-red-500">*</span>
-            </Label>
-            <Input
-              value={formData.channelName}
-              onChange={(e) =>
-                setFormData({ ...formData, channelName: e.target.value })
-              }
-              placeholder="Ví dụ: Apec Group Official"
-              required
-              className="bg-white/50 border-white/60 focus:bg-white/80 rounded-xl shadow-sm"
-            />
-          </div>
-
-          {/* Channel ID */}
-          <div className="space-y-2">
-            <Label className="flex items-center gap-2 text-slate-700 font-medium">
-              <Hash className="w-4 h-4 text-gray-500" /> ID Kênh{" "}
-              <span className="text-red-500">*</span>
-            </Label>
-            <Input
-              value={formData.channelId}
-              onChange={(e) =>
-                setFormData({ ...formData, channelId: e.target.value })
-              }
-              placeholder="Nhập ID kênh..."
-              required
-              className="bg-white/50 border-white/60 focus:bg-white/80 rounded-xl shadow-sm font-mono text-sm"
-            />
-          </div>
-
-          {/* Channel Link */}
-          <div className="space-y-2">
-            <Label className="flex items-center gap-2 text-slate-700 font-medium">
-              <Link className="w-4 h-4 text-gray-500" /> Link Kênh{" "}
-              <span className="text-xs text-slate-400 font-normal">
-                (Tùy chọn)
-              </span>
-            </Label>
-            <Input
-              value={formData.channelLink || ""}
-              onChange={(e) =>
-                setFormData({ ...formData, channelLink: e.target.value })
-              }
-              placeholder="https://..."
-              className="bg-white/50 border-white/60 focus:bg-white/80 rounded-xl shadow-sm text-sm"
-            />
-          </div>
-
-          {/* OAuth Fields for Youtube */}
-          {formData.platform === "Youtube" && (
-            <>
-              <div className="space-y-2">
-                <Label className="flex items-center gap-2 text-slate-700 font-medium">
-                  Client ID{" "}
-                  <span className="text-xs text-slate-400 font-normal">
-                    (Youtube)
-                  </span>
-                </Label>
-                <Input
-                  value={formData.clientId || ""}
-                  onChange={(e) =>
-                    setFormData({ ...formData, clientId: e.target.value })
-                  }
-                  placeholder="Nhập Client ID..."
-                  className="bg-white/50 border-white/60 focus:bg-white/80 rounded-xl shadow-sm font-mono text-sm"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label className="flex items-center gap-2 text-slate-700 font-medium">
-                  Client Secret{" "}
-                  <span className="text-xs text-slate-400 font-normal">
-                    (Youtube)
-                  </span>
-                </Label>
-                <Input
-                  type="password"
-                  value={formData.clientSecret || ""}
-                  onChange={(e) =>
-                    setFormData({ ...formData, clientSecret: e.target.value })
-                  }
-                  placeholder="Nhập Client Secret..."
-                  className="bg-white/50 border-white/60 focus:bg-white/80 rounded-xl shadow-sm font-mono text-sm"
-                />
-              </div>
-            </>
-          )}
-
-          {/* Access Token */}
-          <div className="space-y-2">
-            <Label className="flex items-center justify-between text-slate-700 font-medium">
-              <div className="flex items-center gap-2">
-                <Key className="w-4 h-4 text-gray-500" />
-                {formData.platform === "Youtube"
-                  ? "Refresh Token"
-                  : "Access Token"}{" "}
+            {/* Channel Name */}
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2 text-slate-700 font-medium">
+                <User className="w-4 h-4 text-gray-500" /> Tên kênh / Page{" "}
                 <span className="text-red-500">*</span>
-              </div>
-              {formData.platform === "Youtube" && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={handleGetOAuthToken}
-                  className="h-7 text-xs bg-red-50 text-red-600 hover:bg-red-100 border-red-200"
-                >
-                  <Youtube className="w-3 h-3 mr-1" />
-                  Lấy Token
-                </Button>
-              )}
-            </Label>
-            <Input
-              type="password"
-              value={formData.token}
-              onChange={(e) =>
-                setFormData({ ...formData, token: e.target.value })
-              }
-              placeholder={
-                editAccount
-                  ? "Mã hoá (Nhập để thay đổi)"
-                  : formData.platform === "Youtube"
-                  ? "Refresh Token..."
-                  : "Access Token..."
-              }
-              required={!editAccount} // Required only on create
-              className="bg-white/50 border-white/60 focus:bg-white/80 rounded-xl shadow-sm font-mono text-sm"
-            />
-            <p className="text-xs text-slate-500 italic">
-              Token sẽ được mã hoá bảo mật trước khi lưu.
-            </p>
+              </Label>
+              <Input
+                value={formData.channelName}
+                onChange={(e) =>
+                  setFormData({ ...formData, channelName: e.target.value })
+                }
+                placeholder="Ví dụ: Apec Group Official"
+                required
+                className="bg-white/50 border-white/60 focus:bg-white/80 rounded-xl shadow-sm"
+              />
+            </div>
+
+            {/* Channel ID */}
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2 text-slate-700 font-medium">
+                <Hash className="w-4 h-4 text-gray-500" /> ID Kênh{" "}
+                <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                value={formData.channelId}
+                onChange={(e) =>
+                  setFormData({ ...formData, channelId: e.target.value })
+                }
+                placeholder="Nhập ID kênh..."
+                required
+                className="bg-white/50 border-white/60 focus:bg-white/80 rounded-xl shadow-sm font-mono text-sm"
+              />
+            </div>
+
+            {/* Channel Link */}
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2 text-slate-700 font-medium">
+                <Link className="w-4 h-4 text-gray-500" /> Link Kênh{" "}
+                <span className="text-xs text-slate-400 font-normal">
+                  (Tùy chọn)
+                </span>
+              </Label>
+              <Input
+                value={formData.channelLink || ""}
+                onChange={(e) =>
+                  setFormData({ ...formData, channelLink: e.target.value })
+                }
+                placeholder="https://..."
+                className="bg-white/50 border-white/60 focus:bg-white/80 rounded-xl shadow-sm text-sm"
+              />
+            </div>
+
+            {/* OAuth Fields for Youtube */}
+            {formData.platform === "Youtube" && (
+              <>
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2 text-slate-700 font-medium">
+                    Client ID{" "}
+                    <span className="text-xs text-slate-400 font-normal">
+                      (Youtube)
+                    </span>
+                  </Label>
+                  <Input
+                    value={formData.clientId || ""}
+                    onChange={(e) =>
+                      setFormData({ ...formData, clientId: e.target.value })
+                    }
+                    placeholder="Nhập Client ID..."
+                    className="bg-white/50 border-white/60 focus:bg-white/80 rounded-xl shadow-sm font-mono text-sm"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2 text-slate-700 font-medium">
+                    Client Secret{" "}
+                    <span className="text-xs text-slate-400 font-normal">
+                      (Youtube)
+                    </span>
+                  </Label>
+                  <Input
+                    type="password"
+                    value={formData.clientSecret || ""}
+                    onChange={(e) =>
+                      setFormData({ ...formData, clientSecret: e.target.value })
+                    }
+                    placeholder="Nhập Client Secret..."
+                    className="bg-white/50 border-white/60 focus:bg-white/80 rounded-xl shadow-sm font-mono text-sm"
+                  />
+                </div>
+              </>
+            )}
+
+            {/* Access Token */}
+            <div className="space-y-2">
+              <Label className="flex items-center justify-between text-slate-700 font-medium">
+                <div className="flex items-center gap-2">
+                  <Key className="w-4 h-4 text-gray-500" />
+                  {formData.platform === "Youtube"
+                    ? "Refresh Token"
+                    : "Access Token"}{" "}
+                  <span className="text-red-500">*</span>
+                </div>
+                {formData.platform === "Youtube" && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleGetOAuthToken}
+                    className="h-7 text-xs bg-red-50 text-red-600 hover:bg-red-100 border-red-200"
+                  >
+                    <Youtube className="w-3 h-3 mr-1" />
+                    Lấy Token
+                  </Button>
+                )}
+              </Label>
+              <Input
+                type="password"
+                value={formData.token}
+                onChange={(e) =>
+                  setFormData({ ...formData, token: e.target.value })
+                }
+                placeholder={
+                  editAccount
+                    ? "Mã hoá (Nhập để thay đổi)"
+                    : formData.platform === "Youtube"
+                    ? "Refresh Token..."
+                    : "Access Token..."
+                }
+                required={!editAccount} // Required only on create
+                className="bg-white/50 border-white/60 focus:bg-white/80 rounded-xl shadow-sm font-mono text-sm"
+              />
+              <p className="text-xs text-slate-500 italic">
+                Token sẽ được mã hoá bảo mật trước khi lưu.
+              </p>
+            </div>
+
+            {/* Active Switch */}
+            <div className="flex items-center justify-between p-4 bg-white/40 backdrop-blur-sm rounded-xl border border-white/50 shadow-sm">
+              <Label
+                className="flex items-center gap-2 text-slate-700 font-medium cursor-pointer"
+                htmlFor="active-mode"
+              >
+                <CheckCircle className="w-4 h-4 text-green-500" /> Hoạt động
+              </Label>
+              <Switch
+                id="active-mode"
+                checked={formData.isActive}
+                onCheckedChange={(checked) =>
+                  setFormData({ ...formData, isActive: checked })
+                }
+              />
+            </div>
           </div>
 
-          {/* Active Switch */}
-          <div className="flex items-center justify-between p-4 bg-white/40 backdrop-blur-sm rounded-xl border border-white/50 shadow-sm">
-            <Label
-              className="flex items-center gap-2 text-slate-700 font-medium cursor-pointer"
-              htmlFor="active-mode"
-            >
-              <CheckCircle className="w-4 h-4 text-green-500" /> Hoạt động
-            </Label>
-            <Switch
-              id="active-mode"
-              checked={formData.isActive}
-              onCheckedChange={(checked) =>
-                setFormData({ ...formData, isActive: checked })
-              }
-            />
-          </div>
-
-          <div className="flex justify-end gap-3 pt-4 border-t border-white/40">
+          <div className="flex justify-end gap-3 pt-6 p-6 border-t border-white/40 bg-white/50 backdrop-blur-md shrink-0">
             <Button
               type="button"
               variant="outline"

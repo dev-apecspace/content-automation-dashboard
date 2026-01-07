@@ -439,45 +439,47 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onOpenChange || handleClose}>
-        <DialogContent className="" showCloseButton={true}>
+        <DialogContent
+          className="w-[1200px] max-w-[95vw] h-[90vh] p-0 gap-0 overflow-hidden flex flex-col"
+          showCloseButton={true}
+        >
           <BackgroundStyle />
 
-          <div className="p-8 relative z-10">
-            <DialogHeader className="space-y-6">
-              <div className="flex items-center justify-between">
-                <DialogTitle className="text-2xl font-bold leading-tight pr-8 text-slate-900 tracking-wide">
-                  {editContent ? "Chỉnh sửa nội dung" : "Tạo nội dung mới"}
-                </DialogTitle>
-              </div>
-              <div className="space-y-3">
-                <div className="flex flex-wrap items-center gap-3">
+          <DialogHeader className="p-8 pb-0 shrink-0 relative z-10 space-y-6">
+            <div className="flex items-center justify-between">
+              <DialogTitle className="text-2xl font-bold leading-tight pr-8 text-slate-900 tracking-wide">
+                {editContent ? "Chỉnh sửa nội dung" : "Tạo nội dung mới"}
+              </DialogTitle>
+            </div>
+            <div className="space-y-3">
+              <div className="flex flex-wrap items-center gap-3">
+                <Badge
+                  variant="outline"
+                  className="border-slate-200 bg-white text-slate-700 px-3 py-1"
+                >
+                  {canEditIdeaFields && "Giai đoạn: Ý tưởng"}
+                  {canEditContentApprovalFields && "Giai đoạn: Duyệt nội dung"}
+                  {!canEditIdeaFields &&
+                    !canEditContentApprovalFields &&
+                    "Chế độ xem"}
+                </Badge>
+                {editContent?.status && (
                   <Badge
                     variant="outline"
-                    className="border-slate-200 bg-white text-slate-700 px-3 py-1"
+                    className={cn(
+                      "border-slate-200 bg-white text-slate-700 px-3 py-1",
+                      statusConfig[editContent.status].className
+                    )}
                   >
-                    {canEditIdeaFields && "Giai đoạn: Ý tưởng"}
-                    {canEditContentApprovalFields &&
-                      "Giai đoạn: Duyệt nội dung"}
-                    {!canEditIdeaFields &&
-                      !canEditContentApprovalFields &&
-                      "Chế độ xem"}
+                    {statusConfig[editContent.status].label}
                   </Badge>
-                  {editContent?.status && (
-                    <Badge
-                      variant="outline"
-                      className={cn(
-                        "border-slate-200 bg-white text-slate-700 px-3 py-1",
-                        statusConfig[editContent.status].className
-                      )}
-                    >
-                      {statusConfig[editContent.status].label}
-                    </Badge>
-                  )}
-                </div>
+                )}
               </div>
-            </DialogHeader>
+            </div>
+          </DialogHeader>
 
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mt-8">
+          <div className="p-8 relative z-10 flex-1 overflow-y-auto">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
               {/* ==================== LEFT COLUMN ==================== */}
               <div className="lg:col-span-5 space-y-6">
                 {/* 1. THÔNG TIN CHUNG (INPUTS) */}
@@ -496,7 +498,7 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
                       onValueChange={handleProjectChange}
                       disabled={!canEditIdeaFields}
                     >
-                      <SelectTrigger className="bg-white border-slate-200">
+                      <SelectTrigger className="bg-white border-slate-200 disabled:bg-slate-100 disabled:text-slate-500">
                         <SelectValue placeholder="Chọn dự án" />
                       </SelectTrigger>
                       <SelectContent>
@@ -523,7 +525,7 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
                         }
                         disabled={!canEditIdeaFields}
                       >
-                        <SelectTrigger className="bg-white border-slate-200">
+                        <SelectTrigger className="bg-white border-slate-200 disabled:bg-slate-100 disabled:text-slate-500">
                           <SelectValue placeholder="Nền tảng" />
                         </SelectTrigger>
                         <SelectContent>
@@ -545,7 +547,7 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
                         }
                         disabled={!canEditIdeaFields}
                       >
-                        <SelectTrigger className="bg-white border-slate-200">
+                        <SelectTrigger className="bg-white border-slate-200 disabled:bg-slate-100 disabled:text-slate-500">
                           <SelectValue placeholder="Loại" />
                         </SelectTrigger>
                         <SelectContent>
@@ -571,21 +573,17 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
                             Thời gian đăng{" "}
                             <span className="text-red-500">*</span>
                           </SectionLabel>
-                          {canEditContentApprovalFields && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() =>
-                                handleEditWithAI(
-                                  "schedule",
-                                  formData.postingTime
-                                )
-                              }
-                              className="h-6 text-[14px] px-2 text-blue-600 hover:bg-blue-50 cursor-pointer"
-                            >
-                              <Sparkles className="w-3 h-3 mr-1" /> AI xếp lịch
-                            </Button>
-                          )}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() =>
+                              handleEditWithAI("schedule", formData.postingTime)
+                            }
+                            disabled={!canEditContentApprovalFields}
+                            className="h-6 text-[14px] px-2 text-blue-600 hover:bg-blue-50 cursor-pointer disabled:text-slate-400 disabled:cursor-not-allowed"
+                          >
+                            <Sparkles className="w-3 h-3 mr-1" /> AI xếp lịch
+                          </Button>
                         </div>
                         <div className="grid grid-cols-2 gap-3">
                           <Input
@@ -602,7 +600,7 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
                               );
                             }}
                             disabled={!canEditContentApprovalFields}
-                            className="bg-white border-slate-200"
+                            className="bg-white border-slate-200 disabled:bg-slate-100 disabled:text-slate-500"
                           />
                           <Input
                             type="time"
@@ -614,7 +612,7 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
                               )
                             }
                             disabled={!canEditContentApprovalFields}
-                            className="bg-white border-slate-200"
+                            className="bg-white border-slate-200 disabled:bg-slate-100 disabled:text-slate-500"
                           />
                         </div>
                       </div>
@@ -624,7 +622,13 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
                         <SectionLabel className="mb-2">
                           Tài khoản đăng
                         </SectionLabel>
-                        {canEditContentApprovalFields ? (
+                        <div
+                          className={
+                            !canEditContentApprovalFields
+                              ? "opacity-70 pointer-events-none"
+                              : ""
+                          }
+                        >
                           <AccountSelector
                             accounts={filteredAccounts}
                             selectedIds={formData.accountIds || []}
@@ -640,29 +644,9 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
                                 ? "Không có tk phù hợp"
                                 : "Chọn tài khoản"
                             }
+                            disabled={!canEditContentApprovalFields}
                           />
-                        ) : (
-                          <div className="flex flex-wrap gap-2">
-                            {(formData.accountIds || []).map((id) => {
-                              const acc = accounts.find((a) => a.id === id);
-                              return acc ? (
-                                <Badge
-                                  key={id}
-                                  variant="secondary"
-                                  className="bg-green-50 text-green-700 border-green-200"
-                                >
-                                  {acc.channelName}
-                                </Badge>
-                              ) : null;
-                            })}
-                            {(!formData.accountIds ||
-                              formData.accountIds.length === 0) && (
-                              <span className="text-sm text-slate-400 italic">
-                                Chưa chọn tài khoản
-                              </span>
-                            )}
-                          </div>
-                        )}
+                        </div>
                       </div>
                     </>
                   )}
@@ -676,50 +660,44 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
                 >
                   <div className="space-y-4">
                     <div className="flex items-start gap-3">
-                      <div className="p-1.5 rounded-full bg-purple-50 shadow-sm mt-1 text-slate-600">
+                      <div className="p-1.5 rounded-full bg-slate-100 shadow-sm mt-1 text-slate-500">
                         <FileText className="h-4 w-4" />
                       </div>
-                      <div className="flex-1">
+                      <div className="flex-1 space-y-2">
                         <SectionLabel className="mb-1">Chủ đề</SectionLabel>
-                        <p className="text-slate-800 text-sm leading-relaxed">
-                          {editContent?.topic || (
-                            <span className="text-slate-400 italic">
-                              Chưa xác định
-                            </span>
-                          )}
-                        </p>
+                        <Textarea
+                          disabled
+                          value={editContent?.topic || "Chưa xác định"}
+                          className="min-h-[60px] bg-slate-100/50 border-slate-200 text-slate-600 resize-none disabled:cursor-not-allowed"
+                        />
                       </div>
                     </div>
-                    <div className="w-full h-px bg-slate-200/50" />
+
                     <div className="flex items-start gap-3">
-                      <div className="p-1.5 rounded-full bg-blue-50 shadow-sm mt-1 text-slate-600">
+                      <div className="p-1.5 rounded-full bg-slate-100 shadow-sm mt-1 text-slate-500">
                         <Target className="h-4 w-4" />
                       </div>
-                      <div className="flex-1">
+                      <div className="flex-1 space-y-2">
                         <SectionLabel className="mb-1">Đối tượng</SectionLabel>
-                        <p className="text-slate-800 text-sm leading-relaxed">
-                          {editContent?.targetAudience || (
-                            <span className="text-slate-400 italic">
-                              Chưa xác định
-                            </span>
-                          )}
-                        </p>
+                        <Textarea
+                          disabled
+                          value={editContent?.targetAudience || "Chưa xác định"}
+                          className="min-h-[60px] bg-slate-100/50 border-slate-200 text-slate-600 resize-none disabled:cursor-not-allowed"
+                        />
                       </div>
                     </div>
-                    <div className="w-full h-px bg-slate-200/50" />
+
                     <div className="flex items-start gap-3">
-                      <div className="p-1.5 rounded-full bg-green-50 shadow-sm mt-1 text-slate-600">
+                      <div className="p-1.5 rounded-full bg-slate-100 shadow-sm mt-1 text-slate-500">
                         <Notebook className="h-4 w-4" />
                       </div>
-                      <div className="flex-1">
+                      <div className="flex-1 space-y-2">
                         <SectionLabel className="mb-1">Lưu ý</SectionLabel>
-                        <p className="text-slate-800 text-sm leading-relaxed">
-                          {editContent?.researchNotes || (
-                            <span className="text-slate-400 italic">
-                              Chưa xác định
-                            </span>
-                          )}
-                        </p>
+                        <Textarea
+                          disabled
+                          value={editContent?.researchNotes || "Chưa xác định"}
+                          className="min-h-[80px] bg-slate-100/50 border-slate-200 text-slate-600 resize-none disabled:cursor-not-allowed"
+                        />
                       </div>
                     </div>
                   </div>
@@ -770,24 +748,21 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
               <div className="lg:col-span-7 space-y-6">
                 {/* 1. NỘI DUNG (IDEA / CAPTION) */}
                 <FeatureCard
-                  title={
-                    canEditIdeaFields ? "Ý tưởng" : "Caption"
-                  }
+                  title={canEditIdeaFields ? "Ý tưởng" : "Caption"}
                   icon={canEditIdeaFields ? Lightbulb : Captions}
                   colorTheme="amber"
                   action={
-                    canEditContentApprovalFields && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() =>
-                          handleEditWithAI("caption", formData.caption)
-                        }
-                        className="text-indigo-600 hover:bg-indigo-50 cursor-pointer"
-                      >
-                        <Sparkles className="w-3.5 h-3.5 mr-1.5" /> AI Viết lại
-                      </Button>
-                    )
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() =>
+                        handleEditWithAI("caption", formData.caption)
+                      }
+                      disabled={!canEditContentApprovalFields}
+                      className="text-indigo-600 hover:bg-indigo-50 cursor-pointer disabled:text-slate-400 disabled:cursor-not-allowed"
+                    >
+                      <Sparkles className="w-3.5 h-3.5 mr-1.5" /> AI Viết lại
+                    </Button>
                   }
                 >
                   {canEditIdeaFields ? (
@@ -842,53 +817,61 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
                     )
                   }
                 >
-                  {/* Input (Only if editable) */}
-                  {(canEditIdeaFields || canEditContentApprovalFields) && (
-                    <div className="flex gap-2 mb-4">
-                      <Input
-                        placeholder="Dán link ảnh..."
-                        value={newImageLink}
-                        onChange={(e) => setNewImageLink(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") {
-                            e.preventDefault();
-                            handleReplaceImageLink();
-                          }
-                        }}
-                        className="flex-1 bg-white border-slate-200"
-                      />
+                  {/* Input (Always Show, Disabled if not editable) */}
+                  <div className="flex gap-2 mb-4">
+                    <Input
+                      placeholder="Dán link ảnh..."
+                      value={newImageLink}
+                      onChange={(e) => setNewImageLink(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          handleReplaceImageLink();
+                        }
+                      }}
+                      disabled={
+                        !(canEditIdeaFields || canEditContentApprovalFields)
+                      }
+                      className="flex-1 bg-white border-slate-200 disabled:bg-slate-100 disabled:text-slate-500"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={handleReplaceImageLink}
+                      disabled={
+                        !newImageLink.trim() ||
+                        !(canEditIdeaFields || canEditContentApprovalFields)
+                      }
+                    >
+                      <Plus className="w-4 h-4" />
+                    </Button>
+                    <div className="relative">
                       <Button
                         type="button"
                         variant="outline"
-                        onClick={handleReplaceImageLink}
-                        disabled={!newImageLink.trim()}
+                        className="text-teal-600 border-teal-200 hover:bg-teal-50 disabled:bg-slate-100 disabled:text-slate-400 disabled:border-slate-200"
+                        onClick={() =>
+                          document.getElementById("file-upload-input")?.click()
+                        }
+                        disabled={
+                          !(canEditIdeaFields || canEditContentApprovalFields)
+                        }
                       >
-                        <Plus className="w-4 h-4" />
+                        <Upload className="w-4 h-4" />
                       </Button>
-                      <div className="relative">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          className="text-teal-600 border-teal-200 hover:bg-teal-50"
-                          onClick={() =>
-                            document
-                              .getElementById("file-upload-input")
-                              ?.click()
-                          }
-                        >
-                          <Upload className="w-4 h-4" />
-                        </Button>
-                        <input
-                          id="file-upload-input"
-                          type="file"
-                          accept="image/*"
-                          multiple
-                          onChange={handleImageUpload}
-                          className="hidden"
-                        />
-                      </div>
+                      <input
+                        id="file-upload-input"
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        onChange={handleImageUpload}
+                        className="hidden"
+                        disabled={
+                          !(canEditIdeaFields || canEditContentApprovalFields)
+                        }
+                      />
                     </div>
-                  )}
+                  </div>
 
                   {/* Image Grid */}
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
@@ -945,64 +928,63 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
                   </div>
 
                   {/* Image Edit Request (Idea Phase) */}
-                  {canEditIdeaFields && (
-                    <div className="mt-4 pt-4 border-t border-slate-100">
-                      <SectionLabel className="mb-2">
-                        Yêu cầu sửa ảnh (Tùy chọn)
-                      </SectionLabel>
-                      <Textarea
-                        placeholder="Mô tả yêu cầu chỉnh sửa hoặc tạo ảnh..."
-                        value={imageEditRequest}
-                        onChange={(e) => setImageEditRequest(e.target.value)}
-                        rows={2}
-                        className="bg-white border-slate-200 text-sm"
-                      />
-                    </div>
-                  )}
+                  <div className="mt-4 pt-4 border-t border-slate-100">
+                    <SectionLabel className="mb-2">
+                      Yêu cầu sửa ảnh (Tùy chọn)
+                    </SectionLabel>
+                    <Textarea
+                      placeholder="Mô tả yêu cầu chỉnh sửa hoặc tạo ảnh..."
+                      value={imageEditRequest}
+                      onChange={(e) => setImageEditRequest(e.target.value)}
+                      rows={2}
+                      disabled={!canEditIdeaFields}
+                      className="bg-white border-slate-200 text-sm disabled:bg-slate-100 disabled:text-slate-500"
+                    />
+                  </div>
                 </FeatureCard>
               </div>
             </div>
-
-            <DialogFooter className="-mx-6">
-              {editContent && onViewDetail ? (
-                <Button
-                  variant="ghost"
-                  onClick={() => onViewDetail(editContent as ContentItem)}
-                  className="mr-auto text-slate-600 hover:text-blue-600 hover:bg-blue-50"
-                >
-                  <Eye className="w-4 h-4 mr-2" />
-                  Xem chi tiết
-                </Button>
-              ) : (
-                <div></div>
-              )}
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  onClick={handleClose}
-                  disabled={isSaving || isLoading}
-                >
-                  Hủy bỏ
-                </Button>
-                <Button
-                  onClick={handleSubmit}
-                  disabled={
-                    isSaving ||
-                    isLoading ||
-                    !isFormValid ||
-                    (!canEditIdeaFields && !canEditContentApprovalFields)
-                  }
-                  className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-md"
-                >
-                  {isSaving
-                    ? "Đang lưu..."
-                    : editContent
-                    ? "Cập nhật"
-                    : "Tạo mới"}
-                </Button>
-              </div>
-            </DialogFooter>
           </div>
+
+          <DialogFooter>
+            {editContent && onViewDetail ? (
+              <Button
+                variant="ghost"
+                onClick={() => onViewDetail(editContent as ContentItem)}
+                className="mr-auto text-slate-600 hover:text-blue-600 hover:bg-blue-50"
+              >
+                <Eye className="w-4 h-4 mr-2" />
+                Xem chi tiết
+              </Button>
+            ) : (
+              <div></div>
+            )}
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={handleClose}
+                disabled={isSaving || isLoading}
+              >
+                Hủy bỏ
+              </Button>
+              <Button
+                onClick={handleSubmit}
+                disabled={
+                  isSaving ||
+                  isLoading ||
+                  !isFormValid ||
+                  (!canEditIdeaFields && !canEditContentApprovalFields)
+                }
+                className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-md"
+              >
+                {isSaving
+                  ? "Đang lưu..."
+                  : editContent
+                  ? "Cập nhật"
+                  : "Tạo mới"}
+              </Button>
+            </div>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
