@@ -19,3 +19,7 @@ export function formatVietnamDate(
 export function formatVietnamDateFull(date: string | Date | number): string {
   return formatVietnamDate(date, "HH:mm:ss dd/MM/yyyy");
 }
+
+export function formatManualPostTimestamp(date: Date = new Date()): string {
+  return format(date, "ddMMyyHHmm");
+}

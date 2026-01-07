@@ -153,7 +153,7 @@ export async function updateAccount(
       userId: user.userId,
       oldValues: oldData ? maskAccount(oldData) : undefined,
       newValues: updatedAccount,
-      description: `Cập nhật tài khoản ${id}`,
+      description: `Cập nhật tài khoản ${updatedAccount.channelName} trên ${updatedAccount.platform}`,
     });
   }
 
@@ -162,7 +162,12 @@ export async function updateAccount(
 
 export async function deleteAccount(id: string): Promise<void> {
   await requirePermission("accounts.delete");
-  const { error } = await supabase.from("accounts").delete().eq("id", id);
+  const { data, error } = await supabase
+    .from("accounts")
+    .delete()
+    .eq("id", id)
+    .select()
+    .single();
 
   if (error) {
     throw new Error(error.message);
@@ -173,7 +178,7 @@ export async function deleteAccount(id: string): Promise<void> {
   if (user) {
     await createActivityLog("delete", "settings", id, {
       userId: user.userId,
-      description: `Xóa tài khoản ${id}`,
+      description: `Xóa tài khoản ${data.channel_name} trên ${data.platform}`,
     });
   }
 }

@@ -272,62 +272,65 @@ export function VideoDetailModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange || onClose}>
-      <DialogContent className="" showCloseButton={true}>
+      <DialogContent
+        className="w-[1200px] max-w-[95vw] h-[90vh] p-0 gap-0 overflow-hidden flex flex-col"
+        showCloseButton={true}
+      >
         <BackgroundStyle />
 
-        <div className="p-8 relative z-10">
-          <DialogHeader className="space-y-6">
-            <DialogTitle className="text-2xl font-bold leading-tight pr-8 text-slate-900 tracking-wide">
-              {currentItem.idea}
-            </DialogTitle>
-            <div className="space-y-3">
-              {/* Badges */}
-              <div className="flex flex-wrap items-center gap-3">
-                <Badge
-                  variant="outline"
-                  className={cn(
-                    "border-slate-200 bg-white text-slate-700 px-3 py-1",
-                    statusConfig[currentItem.status].className
-                  )}
-                >
-                  {statusConfig[currentItem.status].label}
-                </Badge>
-                <Badge
-                  variant="outline"
-                  style={{
-                    backgroundColor: project?.color
-                      ? `${project.color}15`
-                      : undefined,
-                    color: project?.color,
-                    borderColor: project?.color
-                      ? `${project.color}40`
-                      : undefined,
-                  }}
-                  className="backdrop-blur-sm px-3 py-1"
-                >
-                  {currentItem.projectName}
-                </Badge>
-                {Array.isArray(currentItem.platform) && (
-                  <>
-                    {currentItem.platform.map((p) => (
-                      <Badge
-                        key={p}
-                        variant="outline"
-                        className={cn(
-                          "backdrop-blur-sm px-3 py-1 flex items-center gap-1",
-                          platformColors[p] ||
-                            "bg-slate-50 text-slate-700 border-slate-200"
-                        )}
-                      >
-                        {p}
-                      </Badge>
-                    ))}
-                  </>
+        <DialogHeader className="p-8 pb-0 shrink-0 relative z-10 space-y-6">
+          <DialogTitle className="text-2xl font-bold leading-tight pr-8 text-slate-900 tracking-wide">
+            {currentItem.idea}
+          </DialogTitle>
+          <div className="space-y-3">
+            {/* Badges */}
+            <div className="flex flex-wrap items-center gap-3">
+              <Badge
+                variant="outline"
+                className={cn(
+                  "border-slate-200 bg-white text-slate-700 px-3 py-1",
+                  statusConfig[currentItem.status].className
                 )}
-              </div>
+              >
+                {statusConfig[currentItem.status].label}
+              </Badge>
+              <Badge
+                variant="outline"
+                style={{
+                  backgroundColor: project?.color
+                    ? `${project.color}15`
+                    : undefined,
+                  color: project?.color,
+                  borderColor: project?.color
+                    ? `${project.color}40`
+                    : undefined,
+                }}
+                className="backdrop-blur-sm px-3 py-1"
+              >
+                {currentItem.projectName}
+              </Badge>
+              {Array.isArray(currentItem.platform) && (
+                <>
+                  {currentItem.platform.map((p) => (
+                    <Badge
+                      key={p}
+                      variant="outline"
+                      className={cn(
+                        "backdrop-blur-sm px-3 py-1 flex items-center gap-1",
+                        platformColors[p] ||
+                          "bg-slate-50 text-slate-700 border-slate-200"
+                      )}
+                    >
+                      {p}
+                    </Badge>
+                  ))}
+                </>
+              )}
             </div>
-          </DialogHeader>
+          </div>
+        </DialogHeader>
 
+        <div className="p-8 relative z-10 flex-1 overflow-y-auto">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mt-8">
             {/* Left Column (Metadata, AI, Stats, Posts) */}
             <div className="lg:col-span-5 space-y-6">
@@ -900,42 +903,42 @@ export function VideoDetailModal({
               </FeatureCard>
             </div>
           </div>
-
-          <DialogFooter className="mt-8">
-            <Button
-              variant="outline"
-              onClick={() => onEdit?.(currentItem)}
-              className="mr-auto bg-white hover:bg-slate-50 border-slate-200 text-slate-700 hover:text-slate-900 shadow-sm"
-            >
-              <Edit2 className="h-4 w-4 mr-2" />
-              Chỉnh sửa
-            </Button>
-
-            <div className="flex gap-2">
-              {currentItem.status === "idea" && (
-                <Button
-                  onClick={() => onApprove?.(currentItem)}
-                  disabled={isLoading}
-                  className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-white border-none shadow-lg shadow-cyan-500/20"
-                >
-                  <CheckCircle className="h-4 w-4 mr-2" />
-                  {isLoading ? "Đang duyệt..." : "Duyệt ý tưởng"}
-                </Button>
-              )}
-
-              {currentItem.status === "awaiting_content_approval" && (
-                <Button
-                  onClick={() => onApprove?.(currentItem)}
-                  disabled={isLoading}
-                  className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white border-none shadow-lg shadow-emerald-500/20"
-                >
-                  <CheckCircle className="h-4 w-4 mr-2" />
-                  {isLoading ? "Đang duyệt..." : "Duyệt video"}
-                </Button>
-              )}
-            </div>
-          </DialogFooter>
         </div>
+
+        <DialogFooter>
+          <Button
+            variant="outline"
+            onClick={() => onEdit?.(currentItem)}
+            className="mr-auto bg-white hover:bg-slate-50 border-slate-200 text-slate-700 hover:text-slate-900 shadow-sm"
+          >
+            <Edit2 className="h-4 w-4 mr-2" />
+            Chỉnh sửa
+          </Button>
+
+          <div className="flex gap-2">
+            {currentItem.status === "idea" && (
+              <Button
+                onClick={() => onApprove?.(currentItem)}
+                disabled={isLoading}
+                className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-white border-none shadow-lg shadow-cyan-500/20"
+              >
+                <CheckCircle className="h-4 w-4 mr-2" />
+                {isLoading ? "Đang duyệt..." : "Duyệt ý tưởng"}
+              </Button>
+            )}
+
+            {currentItem.status === "awaiting_content_approval" && (
+              <Button
+                onClick={() => onApprove?.(currentItem)}
+                disabled={isLoading}
+                className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white border-none shadow-lg shadow-emerald-500/20"
+              >
+                <CheckCircle className="h-4 w-4 mr-2" />
+                {isLoading ? "Đang duyệt..." : "Duyệt video"}
+              </Button>
+            )}
+          </div>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

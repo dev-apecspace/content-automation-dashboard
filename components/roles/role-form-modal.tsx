@@ -144,152 +144,159 @@ export function RoleFormModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="bg-slate-900/90 backdrop-blur-xl border-white/10 text-slate-100 sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-pink-400">
-            {initialData ? "Chỉnh sửa vai trò" : "Thêm vai trò mới"}
-          </DialogTitle>
-        </DialogHeader>
+      <DialogContent className="bg-slate-900/90 backdrop-blur-xl border-white/10 text-slate-100 sm:max-w-[700px] h-[90vh] p-0 gap-0 overflow-hidden flex flex-col">
+        <form
+          onSubmit={handleSubmit(onSubmit)}
+          className="flex flex-col flex-1 min-h-0"
+        >
+          <DialogHeader className="p-6 pb-2 shrink-0">
+            <DialogTitle className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-pink-400">
+              {initialData ? "Chỉnh sửa vai trò" : "Thêm vai trò mới"}
+            </DialogTitle>
+          </DialogHeader>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 py-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="id" className="text-slate-300">
-                Mã vai trò (ID)
-              </Label>
-              <Input
-                id="id"
-                {...register("id")}
-                placeholder="vd: content_manager"
-                disabled={!!initialData} // ID immutable after creation
-                className="bg-black/20 border-white/10 text-white focus:border-purple-500/50 disabled:opacity-50"
-              />
-              {errors.id && (
-                <p className="text-red-400 text-xs">{errors.id.message}</p>
-              )}
-              <p className="text-xs text-slate-500">
-                Mã duy nhất dùng trong hệ thống (slug).
-              </p>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="name" className="text-slate-300">
-                Tên hiển thị
-              </Label>
-              <Input
-                id="name"
-                {...register("name")}
-                placeholder="vd: Quản lý Nội dung"
-                className="bg-black/20 border-white/10 text-white focus:border-purple-500/50"
-              />
-              {errors.name && (
-                <p className="text-red-400 text-xs">{errors.name.message}</p>
-              )}
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="description" className="text-slate-300">
-              Mô tả
-            </Label>
-            <Textarea
-              id="description"
-              {...register("description")}
-              placeholder="Mô tả chức năng của vai trò này..."
-              className="bg-black/20 border-white/10 text-white focus:border-purple-500/50 min-h-[80px]"
-            />
-          </div>
-
-          <div className="space-y-4">
-            <Label className="text-lg font-semibold text-slate-200">
-              Phân quyền
-            </Label>
-            {loadingPermissions ? (
-              <div className="flex justify-center p-8">
-                <Loader2 className="h-6 w-6 animate-spin text-purple-500" />
+          <div className="flex-1 overflow-y-auto p-6 pt-2 space-y-6">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="id" className="text-slate-300">
+                  Mã vai trò (ID)
+                </Label>
+                <Input
+                  id="id"
+                  {...register("id")}
+                  placeholder="vd: content_manager"
+                  disabled={!!initialData} // ID immutable after creation
+                  className="bg-black/20 border-white/10 text-white focus:border-purple-500/50 disabled:opacity-50"
+                />
+                {errors.id && (
+                  <p className="text-red-400 text-xs">{errors.id.message}</p>
+                )}
+                <p className="text-xs text-slate-500">
+                  Mã duy nhất dùng trong hệ thống (slug).
+                </p>
               </div>
-            ) : availablePermissions.length === 0 ? (
-              <p className="text-slate-400 italic text-center p-8">
-                Không tìm thấy danh sách quyền hạn. Vui lòng kiểm tra Database.
-              </p>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {Object.entries(groupedPermissions).map(([group, perms]) => {
-                  const groupPermissionIds = perms.map((p) => p.id);
-                  const isAllSelected = groupPermissionIds.every((id) =>
-                    selectedPermissions.includes(id)
-                  );
-                  const isIndeterminate =
-                    groupPermissionIds.some((id) =>
+
+              <div className="space-y-2">
+                <Label htmlFor="name" className="text-slate-300">
+                  Tên hiển thị
+                </Label>
+                <Input
+                  id="name"
+                  {...register("name")}
+                  placeholder="vd: Quản lý Nội dung"
+                  className="bg-black/20 border-white/10 text-white focus:border-purple-500/50"
+                />
+                {errors.name && (
+                  <p className="text-red-400 text-xs">{errors.name.message}</p>
+                )}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="description" className="text-slate-300">
+                Mô tả
+              </Label>
+              <Textarea
+                id="description"
+                {...register("description")}
+                placeholder="Mô tả chức năng của vai trò này..."
+                className="bg-black/20 border-white/10 text-white focus:border-purple-500/50 min-h-[80px]"
+              />
+            </div>
+
+            <div className="space-y-4">
+              <Label className="text-lg font-semibold text-slate-200">
+                Phân quyền
+              </Label>
+              {loadingPermissions ? (
+                <div className="flex justify-center p-8">
+                  <Loader2 className="h-6 w-6 animate-spin text-purple-500" />
+                </div>
+              ) : availablePermissions.length === 0 ? (
+                <p className="text-slate-400 italic text-center p-8">
+                  Không tìm thấy danh sách quyền hạn. Vui lòng kiểm tra
+                  Database.
+                </p>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {Object.entries(groupedPermissions).map(([group, perms]) => {
+                    const groupPermissionIds = perms.map((p) => p.id);
+                    const isAllSelected = groupPermissionIds.every((id) =>
                       selectedPermissions.includes(id)
-                    ) && !isAllSelected;
+                    );
+                    const isIndeterminate =
+                      groupPermissionIds.some((id) =>
+                        selectedPermissions.includes(id)
+                      ) && !isAllSelected;
 
-                  return (
-                    <div
-                      key={group}
-                      className="space-y-3 p-4 rounded-lg bg-white/5 border border-white/5"
-                    >
-                      <div className="flex items-center space-x-2 border-b border-white/10 pb-2 mb-2">
-                        <Checkbox
-                          id={`group-${group}`}
-                          checked={
-                            isAllSelected ||
-                            (isIndeterminate ? "indeterminate" : false)
-                          }
-                          onCheckedChange={(checked) =>
-                            handleSelectAllGroup(group, checked === true)
-                          }
-                          onClick={() =>
-                            handleSelectAllGroup(group, !isAllSelected)
-                          }
-                        />
-                        <Label
-                          htmlFor={`group-${group}`}
-                          className="text-base font-medium text-purple-300 cursor-pointer"
-                        >
-                          {group}
-                        </Label>
-                      </div>
-                      <div className="space-y-2">
-                        {perms.map((perm) => (
-                          <div
-                            key={perm.id}
-                            className="flex items-center space-x-2"
+                    return (
+                      <div
+                        key={group}
+                        className="space-y-3 p-4 rounded-lg bg-white/5 border border-white/5"
+                      >
+                        <div className="flex items-center space-x-2 border-b border-white/10 pb-2 mb-2">
+                          <Checkbox
+                            id={`group-${group}`}
+                            checked={
+                              isAllSelected ||
+                              (isIndeterminate ? "indeterminate" : false)
+                            }
+                            onCheckedChange={(checked) =>
+                              handleSelectAllGroup(group, checked === true)
+                            }
+                            onClick={() =>
+                              handleSelectAllGroup(group, !isAllSelected)
+                            }
+                          />
+                          <Label
+                            htmlFor={`group-${group}`}
+                            className="text-base font-medium text-purple-300 cursor-pointer"
                           >
-                            <Checkbox
-                              id={perm.id}
-                              checked={selectedPermissions.includes(perm.id)}
-                              onCheckedChange={() => togglePermission(perm.id)}
-                            />
-                            <Label
-                              htmlFor={perm.id}
-                              className="text-slate-300 font-normal cursor-pointer text-sm"
+                            {group}
+                          </Label>
+                        </div>
+                        <div className="space-y-2">
+                          {perms.map((perm) => (
+                            <div
+                              key={perm.id}
+                              className="flex items-center space-x-2"
                             >
-                              {perm.label}
-                            </Label>
-                          </div>
-                        ))}
+                              <Checkbox
+                                id={perm.id}
+                                checked={selectedPermissions.includes(perm.id)}
+                                onCheckedChange={() =>
+                                  togglePermission(perm.id)
+                                }
+                              />
+                              <Label
+                                htmlFor={perm.id}
+                                className="text-slate-300 font-normal cursor-pointer text-sm"
+                              >
+                                {perm.label}
+                              </Label>
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
-
-          <DialogFooter className="pt-4 border-t border-white/10">
+          <DialogFooter>
             <Button
               type="button"
               variant="ghost"
               onClick={onClose}
-              className="hover:bg-white/10 hover:text-white text-slate-400"
+              className="hover:bg-white/10 hover:text-white text-slate-400 cursor-pointer"
             >
               Hủy
             </Button>
             <Button
               type="submit"
               disabled={isSubmitting}
-              className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white shadow-lg shadow-purple-500/20"
+              className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white shadow-lg shadow-purple-500/20 cursor-pointer"
             >
               {isSubmitting ? (
                 <>
@@ -297,7 +304,7 @@ export function RoleFormModal({
                   Đang lưu...
                 </>
               ) : (
-                "Lưu cấu hình"
+                "Lưu"
               )}
             </Button>
           </DialogFooter>

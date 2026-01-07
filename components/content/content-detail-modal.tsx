@@ -288,74 +288,77 @@ export function ContentDetailModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange || onClose}>
-      <DialogContent className="" showCloseButton={true}>
+      <DialogContent
+        className="w-[1200px] max-w-[95vw] h-[90vh] p-0 gap-0 overflow-hidden flex flex-col"
+        showCloseButton={true}
+      >
         <BackgroundStyle />
 
-        <div className="p-8 relative z-10">
-          <DialogHeader className="space-y-6">
-            <DialogTitle className="text-2xl font-bold leading-tight pr-8 text-slate-900 tracking-wide">
-              {currentItem.idea}
-            </DialogTitle>
-            <div className="space-y-3">
-              {/* Các badge */}
-              <div className="flex flex-wrap items-center gap-3">
-                <Badge
-                  variant="outline"
-                  className={cn(
-                    "border-slate-200 bg-white text-slate-700 px-3 py-1",
-                    statusConfig[currentItem.status].className
-                  )}
-                >
-                  {statusConfig[currentItem.status].label}
-                </Badge>
-                <Badge
-                  variant="outline"
-                  style={{
-                    backgroundColor: project?.color
-                      ? `${project.color}15`
-                      : undefined, // 10% opacity
-                    color: project?.color,
-                    borderColor: project?.color
-                      ? `${project.color}40`
-                      : undefined,
-                  }}
-                  className="backdrop-blur-sm px-3 py-1"
-                >
-                  {currentItem.projectName}
-                </Badge>
-                <Badge
-                  variant="outline"
-                  className={cn("backdrop-blur-sm px-3 py-1", {
-                    "bg-purple-50 text-purple-700 border-purple-200":
-                      currentItem.contentType === "product",
-                    "bg-indigo-50 text-indigo-700 border-indigo-200":
-                      currentItem.contentType === "brand",
-                    "bg-slate-50 text-slate-700 border-slate-200":
-                      currentItem.contentType === "other" ||
-                      !currentItem.contentType,
-                  })}
-                >
-                  {contentTypes.find(
-                    (type) => type.value === currentItem.contentType
-                  )?.label ||
-                    currentItem.contentType ||
-                    "Khác"}
-                </Badge>
-                <Badge
-                  variant="outline"
-                  className={cn(
-                    "backdrop-blur-sm px-3 py-1 flex items-center gap-1",
-                    platformColors[currentItem.platform] ||
-                      "bg-slate-50 text-slate-700 border-slate-200"
-                  )}
-                >
-                  {/* We could use icons here if we want content type icons */}
-                  {currentItem.platform}
-                </Badge>
-              </div>
+        <DialogHeader className="p-8 pb-0 shrink-0 relative z-10 space-y-6">
+          <DialogTitle className="text-2xl font-bold leading-tight pr-8 text-slate-900 tracking-wide">
+            {currentItem.idea}
+          </DialogTitle>
+          <div className="space-y-3">
+            {/* Các badge */}
+            <div className="flex flex-wrap items-center gap-3">
+              <Badge
+                variant="outline"
+                className={cn(
+                  "border-slate-200 bg-white text-slate-700 px-3 py-1",
+                  statusConfig[currentItem.status].className
+                )}
+              >
+                {statusConfig[currentItem.status].label}
+              </Badge>
+              <Badge
+                variant="outline"
+                style={{
+                  backgroundColor: project?.color
+                    ? `${project.color}15`
+                    : undefined, // 10% opacity
+                  color: project?.color,
+                  borderColor: project?.color
+                    ? `${project.color}40`
+                    : undefined,
+                }}
+                className="backdrop-blur-sm px-3 py-1"
+              >
+                {currentItem.projectName}
+              </Badge>
+              <Badge
+                variant="outline"
+                className={cn("backdrop-blur-sm px-3 py-1", {
+                  "bg-purple-50 text-purple-700 border-purple-200":
+                    currentItem.contentType === "product",
+                  "bg-indigo-50 text-indigo-700 border-indigo-200":
+                    currentItem.contentType === "brand",
+                  "bg-slate-50 text-slate-700 border-slate-200":
+                    currentItem.contentType === "other" ||
+                    !currentItem.contentType,
+                })}
+              >
+                {contentTypes.find(
+                  (type) => type.value === currentItem.contentType
+                )?.label ||
+                  currentItem.contentType ||
+                  "Khác"}
+              </Badge>
+              <Badge
+                variant="outline"
+                className={cn(
+                  "backdrop-blur-sm px-3 py-1 flex items-center gap-1",
+                  platformColors[currentItem.platform] ||
+                    "bg-slate-50 text-slate-700 border-slate-200"
+                )}
+              >
+                {/* We could use icons here if we want content type icons */}
+                {currentItem.platform}
+              </Badge>
             </div>
-          </DialogHeader>
+          </div>
+        </DialogHeader>
 
+        <div className="p-8 relative z-10 flex-1 overflow-y-auto">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mt-8">
             {/* Left Column (Metadata, AI, Stats, Posts) */}
             <div className="lg:col-span-5 space-y-6">
@@ -801,9 +804,7 @@ export function ContentDetailModal({
 
               {/* Attachments */}
               <FeatureCard
-                title={`Ảnh đính kèm (${
-                  currentItem.imageLinks?.length || 0
-                })`}
+                title={`Ảnh đính kèm (${currentItem.imageLinks?.length || 0})`}
                 icon={Image}
                 colorTheme="rose"
                 className="flex flex-col"
@@ -841,42 +842,42 @@ export function ContentDetailModal({
               </FeatureCard>
             </div>
           </div>
-
-          <DialogFooter className="">
-            <Button
-              variant="outline"
-              onClick={() => onEdit?.(currentItem)}
-              className="mr-auto bg-white hover:bg-slate-50 border-slate-200 text-slate-700 hover:text-slate-900 shadow-sm"
-            >
-              <Edit2 className="h-4 w-4 mr-2" />
-              Chỉnh sửa
-            </Button>
-
-            <div className="flex gap-2">
-              {currentItem.status === "idea" && (
-                <Button
-                  onClick={() => onApproveIdea?.(currentItem)}
-                  disabled={isLoading}
-                  className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-white border-none shadow-lg shadow-cyan-500/20"
-                >
-                  <CheckCircle className="h-4 w-4 mr-2" />
-                  {isLoading ? "Đang duyệt..." : "Duyệt ý tưởng"}
-                </Button>
-              )}
-
-              {currentItem.status === "awaiting_content_approval" && (
-                <Button
-                  onClick={() => onApprove?.(currentItem)}
-                  disabled={isLoading}
-                  className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white border-none shadow-lg shadow-emerald-500/20"
-                >
-                  <CheckCircle className="h-4 w-4 mr-2" />
-                  {isLoading ? "Đang duyệt..." : "Duyệt nội dung"}
-                </Button>
-              )}
-            </div>
-          </DialogFooter>
         </div>
+
+        <DialogFooter>
+          <Button
+            variant="outline"
+            onClick={() => onEdit?.(currentItem)}
+            className="mr-auto bg-white hover:bg-slate-50 border-slate-200 text-slate-700 hover:text-slate-900 shadow-sm"
+          >
+            <Edit2 className="h-4 w-4 mr-2" />
+            Chỉnh sửa
+          </Button>
+
+          <div className="flex gap-2">
+            {currentItem.status === "idea" && (
+              <Button
+                onClick={() => onApproveIdea?.(currentItem)}
+                disabled={isLoading}
+                className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-white border-none shadow-lg shadow-cyan-500/20"
+              >
+                <CheckCircle className="h-4 w-4 mr-2" />
+                {isLoading ? "Đang duyệt..." : "Duyệt ý tưởng"}
+              </Button>
+            )}
+
+            {currentItem.status === "awaiting_content_approval" && (
+              <Button
+                onClick={() => onApprove?.(currentItem)}
+                disabled={isLoading}
+                className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white border-none shadow-lg shadow-emerald-500/20"
+              >
+                <CheckCircle className="h-4 w-4 mr-2" />
+                {isLoading ? "Đang duyệt..." : "Duyệt nội dung"}
+              </Button>
+            )}
+          </div>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

@@ -38,6 +38,7 @@ import {
 } from "@/lib/api";
 import { toast } from "sonner";
 import { usePermissions } from "@/hooks/use-permissions";
+import { Textarea } from "../ui/textarea";
 
 interface ProjectsTabProps {
   projects: Project[];
@@ -299,14 +300,14 @@ export function ProjectsTab({
 
       {/* Add/Edit Modal */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent>
-          <DialogHeader>
+        <DialogContent className="w-[600px] p-0 gap-0 overflow-hidden">
+          <DialogHeader className="p-8 pb-0 shrink-0">
             <DialogTitle>
               {editItem ? "Chỉnh sửa dự án" : "Thêm dự án mới"}
             </DialogTitle>
           </DialogHeader>
 
-          <div className="grid gap-4 py-4">
+          <div className="grid gap-4 p-8 overflow-y-auto">
             <div className="space-y-2">
               <Label htmlFor="name">Tên dự án</Label>
               <Input
@@ -320,7 +321,7 @@ export function ProjectsTab({
             </div>
             <div className="space-y-2">
               <Label htmlFor="description">Mô tả</Label>
-              <Input
+              <Textarea
                 id="description"
                 value={formData.description || ""}
                 onChange={(e) =>

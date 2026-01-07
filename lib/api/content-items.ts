@@ -131,7 +131,7 @@ export async function createContentItem(
     await createActivityLog("create", "content", data.id, {
       userId: user.userId,
       newValues: data,
-      description: `Tạo nội dung mới ${data.id}`,
+      description: `Tạo nội dung mới ${data.idea}`,
     });
   }
 
@@ -352,9 +352,16 @@ export async function approveIdea(
 // Phê duyệt nội dung (từ awaiting_content_approval → content_approved)
 export async function approveContent(
   id: string,
-  approvedBy: string
+  approvedBy?: string
 ): Promise<ContentItem> {
   await requirePermission("content.approve");
+
+  let finalApprovedBy = approvedBy;
+  if (!finalApprovedBy) {
+    const user = await getCurrentUser();
+    if (!user) throw new Error("Unauthorized: No user found");
+    finalApprovedBy = user.userId;
+  }
 
   // Fetch old data for logging
   const { data: oldData } = await supabase
@@ -367,7 +374,7 @@ export async function approveContent(
     .from("content_items")
     .update({
       status: "content_approved",
-      approved_by: approvedBy,
+      approved_by: finalApprovedBy,
       approved_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     })
@@ -388,9 +395,71 @@ export async function approveContent(
       oldValues: oldData,
       newValues: {
         status: "content_approved",
-        approvedBy,
+        approvedBy: finalApprovedBy,
       },
       description: `Phê duyệt nội dung ${oldData.idea}`,
+    });
+  }
+
+  return camelcaseKeys(data || null, { deep: true }) as ContentItem;
+}
+
+// Đăng bài ngay lập tức (Post Now)
+export async function postContentNow(id: string): Promise<ContentItem> {
+  await requirePermission("content.approve"); // Tạm dùng quyền approve hoặc quyền publish nếu có
+
+  // Fetch old data for logging
+  const { data: oldData } = await supabase
+    .from("content_items")
+    .select("*")
+    .eq("id", id)
+    .single();
+
+  // 1. Cập nhật status -> content_approved (để đánh dấu là đã duyệt và sẵn sàng đăng)
+  // Lưu ý: Có thể update thêm approved_by/at nếu cần thiết
+  const { data, error } = await supabase
+    .from("content_items")
+    .update({
+      status: "content_approved",
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", id)
+    .select()
+    .single();
+
+  if (error) {
+    console.error("Error posting content now:", error);
+    throw error;
+  }
+
+  // 2. Gọi Webhook Post Now
+  const webhookUrl = process.env.NEXT_PUBLIC_POST_NOW_WEBHOOK;
+
+  if (webhookUrl) {
+    // Fire-and-forget
+    fetch(webhookUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        item_id: id,
+      }),
+    }).catch((webhookError) => {
+      console.error("Failed to send post_now webhook:", webhookError);
+    });
+  } else {
+    console.warn("WEBHOOK not configured.");
+  }
+
+  // 3. Log activity
+  const user = await getCurrentUser();
+  if (user) {
+    await createActivityLog("publish", "content", id, {
+      userId: user.userId,
+      oldValues: oldData,
+      newValues: { status: "content_approved", action: "post_now" },
+      description: `Đăng ngay nội dung ${oldData.idea}`,
     });
   }
 
