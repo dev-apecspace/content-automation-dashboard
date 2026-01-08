@@ -4,6 +4,7 @@ import { Be_Vietnam_Pro } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { Providers } from "@/components/providers/providers";
 import { ActivityTracker } from "@/components/layout/activity-tracker";
+import { TourOverlay } from "@/components/ui/tour-overlay";
 import "./globals.css";
 
 const beVietnamPro = Be_Vietnam_Pro({
@@ -48,6 +49,7 @@ export default function RootLayout({
         <Providers>
           {children}
           <ActivityTracker />
+          <TourOverlay />
         </Providers>
         <Analytics />
       </body>

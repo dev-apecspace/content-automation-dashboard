@@ -130,7 +130,7 @@ export function VideoTable({
               value={filterStatus}
               onValueChange={(v) => onFilterChange(v as Status | "all")}
             >
-              <SelectTrigger className="w-[220px] bg-white/60 border-white/60 focus:ring-indigo-500">
+              <SelectTrigger className="w-[220px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -146,7 +146,7 @@ export function VideoTable({
           <div className="flex items-center gap-2">
             <span className="text-sm font-medium text-slate-600">Dự án:</span>
             <Select value={filterProject} onValueChange={onProjectFilterChange}>
-              <SelectTrigger className="w-[180px] bg-white/60 border-white/60 focus:ring-indigo-500">
+              <SelectTrigger className="w-[180px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>

@@ -5,7 +5,14 @@ import { ContentTable } from "@/components/content/content-table";
 import { ContentFormModal } from "@/components/content/content-form-modal";
 import { ContentDetailModal } from "@/components/content/content-detail-modal";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Plus, BookOpen } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { useTourStore } from "@/hooks/use-tour-store";
+import { contentPageSteps } from "@/lib/tour-steps";
 import {
   getContentItems,
   createContentItem,
@@ -36,7 +43,9 @@ export default function ContentPage() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(15);
   const [totalCount, setTotalCount] = useState(0);
+
   const { hasPermission } = usePermissions();
+  const { startTour } = useTourStore();
 
   useEffect(() => {
     loadContentItems();
@@ -249,6 +258,24 @@ export default function ContentPage() {
           <p className="text-slate-500 font-medium mt-1">
             Quản lý bài viết cho các nền tảng mạng xã hội
           </p>
+        </div>
+        <div>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                id="tour-guide-btn"
+                variant="outline"
+                onClick={() => startTour(contentPageSteps)}
+                className="gap-2 bg-white/60 hover:bg-white text-blue-600 border-blue-200 shadow-sm"
+              >
+                <BookOpen className="h-4 w-4" />
+                Hướng dẫn
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              Xem hướng dẫn quy trình tạo nội dung Step-by-step
+            </TooltipContent>
+          </Tooltip>
         </div>
       </div>
 
