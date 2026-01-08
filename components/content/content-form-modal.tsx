@@ -153,6 +153,8 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
     currentStatus === "content_approved" ||
     currentStatus === "post_removed";
 
+  const isManualMode = formData.idea?.includes("Nội dung được tạo thủ công");
+
   const isIdeaValid =
     canEditIdeaFields &&
     !!formData.idea?.trim() &&
@@ -172,8 +174,6 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
 
   const isApprovalValid =
     canEditContentApprovalFields &&
-    !!formData.imageLinks &&
-    formData.imageLinks.length > 0 &&
     !!formData.postingTime &&
     !!formData.caption?.trim();
 
@@ -700,7 +700,7 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
                       </div>
 
                       {/* Post Mode */}
-                      {canEditIdeaFields && (
+                      {canEditIdeaFields && isManualMode && (
                         <div
                           id="tour-content-mode"
                           className="bg-white/60 p-3 rounded-lg border-2 border-green-200"
@@ -770,12 +770,13 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
                                 disabled={
                                   !(
                                     canEditContentApprovalFields ||
-                                    canEditIdeaFields
+                                    (canEditIdeaFields && isManualMode)
                                   ) || !editContent?.id
                                 }
                                 className="h-6 text-[12px] px-2 text-green-700 hover:bg-green-100 hover:text-green-800 cursor-pointer disabled:text-slate-400 disabled:cursor-not-allowed"
                               >
-                                <Sparkles className="w-3 h-3 mr-1" /> AI xếp lịch
+                                <Sparkles className="w-3 h-3 mr-1" /> AI xếp
+                                lịch
                               </Button>
                             </div>
                             <div className="grid grid-cols-2 gap-3">
@@ -795,7 +796,7 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
                                 disabled={
                                   !(
                                     canEditContentApprovalFields ||
-                                    canEditIdeaFields
+                                    (canEditIdeaFields && isManualMode)
                                   )
                                 }
                                 className="bg-white border-2 border-green-200 text-green-900 focus:ring-green-500/20 disabled:bg-slate-100 disabled:text-slate-500"
@@ -814,7 +815,7 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
                                 disabled={
                                   !(
                                     canEditContentApprovalFields ||
-                                    canEditIdeaFields
+                                    (canEditIdeaFields && isManualMode)
                                   )
                                 }
                                 className="bg-white border-2 border-green-200 text-green-900 focus:ring-green-500/20 disabled:bg-slate-100 disabled:text-slate-500"
@@ -858,10 +859,7 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
                                   : "Chọn tài khoản"
                               }
                               disabled={
-                                !(
-                                  canEditContentApprovalFields ||
-                                  canEditIdeaFields
-                                )
+                                !canEditContentApprovalFields && !isManualMode
                               }
                               className="bg-white border-2 border-green-200"
                             />
@@ -1013,7 +1011,8 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
                           htmlFor="manual-mode"
                           className="text-sm font-medium text-slate-700 cursor-pointer"
                         >
-                          Đăng thủ công (Không cần AI tạo nội dung)
+                          Đăng thủ công (Không cần AI tạo nội dung). Lưu ý: Chỉ
+                          được chọn 1 nền tảng.
                         </Label>
                       </div>
 
@@ -1076,9 +1075,7 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
                       }
                       placeholder="Nhập nội dung caption cho bài đăng..."
                       rows={12}
-                      disabled={
-                        !(canEditContentApprovalFields || canEditIdeaFields)
-                      }
+                      disabled={!canEditContentApprovalFields && !isManualMode}
                       className="bg-slate-50 border-slate-200 resize-none focus:bg-white custom-scrollbar"
                     />
                   </div>

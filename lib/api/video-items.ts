@@ -380,3 +380,64 @@ export async function approveVideoContent(
 
   return camelcaseKeys(data || null, { deep: true }) as VideoItem;
 }
+
+// Đăng bài ngay lập tức (Post Now)
+export async function postVideoNow(id: string): Promise<VideoItem> {
+  await requirePermission("videos.edit"); // Use edit permission or appropriate one
+
+  // Fetch old data for logging
+  const { data: oldData } = await supabase
+    .from("video_items")
+    .select("*")
+    .eq("id", id)
+    .single();
+
+  // 1. Cập nhật status -> content_approved
+  const { data, error } = await supabase
+    .from("video_items")
+    .update({
+      status: "content_approved",
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", id)
+    .select()
+    .single();
+
+  if (error) {
+    console.error("Error posting video now:", error);
+    throw error;
+  }
+
+  // 2. Gọi Webhook Post Now
+  const webhookUrl = process.env.NEXT_PUBLIC_POST_NOW_WEBHOOK;
+
+  if (webhookUrl) {
+    // Fire-and-forget
+    fetch(webhookUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        item_id: id,
+      }),
+    }).catch((webhookError) => {
+      console.error("Failed to send post_now webhook:", webhookError);
+    });
+  } else {
+    console.warn("WEBHOOK not configured.");
+  }
+
+  // 3. Log activity
+  const user = await getCurrentUser();
+  if (user) {
+    await createActivityLog("publish", "video", id, {
+      userId: user.userId,
+      oldValues: oldData,
+      newValues: { status: "content_approved", action: "post_now" },
+      description: `Đăng ngay video ${oldData.idea}`,
+    });
+  }
+
+  return camelcaseKeys(data || null, { deep: true }) as VideoItem;
+}

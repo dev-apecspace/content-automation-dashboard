@@ -64,7 +64,7 @@ export const contentPageSteps: TourStep[] = [
     targetId: "tour-row-actions-cell",
     title: "Hành động nhanh",
     description:
-      "Nơi thực hiện các thao tác: \n- Xem chi tiết \n- Chỉnh sửa \n- Duyệt bài \n- Xóa ý tưởng \n\nRê chuột vào từng nút để xem hướng dẫn cụ thể.",
+      "Nơi thực hiện các thao tác: \n- Xem chi tiết \n- Chỉnh sửa \n- Duyệt ý tưởng/Duyệt nội dung \n- Xóa ý tưởng \n\nRê chuột vào từng nút để xem hướng dẫn cụ thể.",
     placement: "left",
   },
 ];
