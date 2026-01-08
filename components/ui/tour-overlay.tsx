@@ -161,9 +161,10 @@ export const TourOverlay = () => {
         className="absolute w-full h-full pointer-events-auto"
         onPointerDown={(e) => e.stopPropagation()}
         onMouseDown={(e) => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
       >
         <div
-          className="absolute bg-white rounded-xl shadow-2xl p-5 w-[400px] max-w-[90vw] border border-slate-200 transition-all duration-300 ease-out"
+          className="absolute bg-white rounded-xl shadow-2xl p-5 w-[400px] max-w-[90vw] border border-slate-200 transition-all duration-300 ease-out tour-overlay-container"
           style={getPopoverStyle() as any}
         >
           {/* Header */}

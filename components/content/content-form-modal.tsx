@@ -700,50 +700,53 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
                       </div>
 
                       {/* Post Mode */}
-                      {canEditIdeaFields && isManualMode && (
-                        <div
-                          id="tour-content-mode"
-                          className="bg-white/60 p-3 rounded-lg border-2 border-green-200"
+                      <div
+                        id="tour-content-mode"
+                        className={cn(
+                          "bg-white/60 p-3 rounded-lg border-2 border-green-200",
+                          (!canEditIdeaFields || !isManualMode) &&
+                            "opacity-60 cursor-not-allowed"
+                        )}
+                      >
+                        <Label className="mb-2 block font-medium text-green-900 text-sm">
+                          Chế độ đăng
+                        </Label>
+                        <RadioGroup
+                          value={postMode}
+                          onValueChange={(v) =>
+                            setPostMode(v as "schedule" | "now")
+                          }
+                          className="flex gap-4"
+                          disabled={!canEditIdeaFields || !isManualMode}
                         >
-                          <Label className="mb-2 block font-medium text-green-900 text-sm">
-                            Chế độ đăng
-                          </Label>
-                          <RadioGroup
-                            value={postMode}
-                            onValueChange={(v) =>
-                              setPostMode(v as "schedule" | "now")
-                            }
-                            className="flex gap-4"
-                          >
-                            <div className="flex items-center space-x-2">
-                              <RadioGroupItem
-                                value="schedule"
-                                id="mode-schedule"
-                                className="text-green-600 border-green-400"
-                              />
-                              <Label
-                                htmlFor="mode-schedule"
-                                className="text-green-800"
-                              >
-                                Lên lịch
-                              </Label>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                              <RadioGroupItem
-                                value="now"
-                                id="mode-now"
-                                className="text-green-600 border-green-400"
-                              />
-                              <Label
-                                htmlFor="mode-now"
-                                className="text-green-800"
-                              >
-                                Đăng ngay
-                              </Label>
-                            </div>
-                          </RadioGroup>
-                        </div>
-                      )}
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem
+                              value="schedule"
+                              id="mode-schedule"
+                              className="text-green-600 border-green-400"
+                            />
+                            <Label
+                              htmlFor="mode-schedule"
+                              className="text-green-800"
+                            >
+                              Lên lịch
+                            </Label>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem
+                              value="now"
+                              id="mode-now"
+                              className="text-green-600 border-green-400"
+                            />
+                            <Label
+                              htmlFor="mode-now"
+                              className="text-green-800"
+                            >
+                              Đăng ngay
+                            </Label>
+                          </div>
+                        </RadioGroup>
+                      </div>
 
                       {/* Time & Account */}
                       <div className="space-y-4">

@@ -40,7 +40,10 @@ import {
   Layers,
   CalendarClock,
   Folder,
+  BookOpen,
 } from "lucide-react";
+import { useTourStore } from "@/hooks/use-tour-store";
+import { videoFormSteps } from "@/lib/tour-steps";
 import { Badge } from "@/components/ui/badge";
 import { getProjects, getAIModels } from "@/lib/api";
 import {
@@ -97,9 +100,10 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
   isLoading,
   onViewDetail,
 }) => {
-  const [projects, setProjects] = useState<Project[]>([]);
   const [modelsList, setModelsList] = useState<AIModel[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
   const [accounts, setAccounts] = useState<Account[]>([]);
+  const { startTour } = useTourStore();
 
   const [formData, setFormData] = useState<Partial<VideoItem>>({
     idea: "",
@@ -148,6 +152,13 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
     formData.platform.length > 0 &&
     !!formData.accountIds &&
     formData.accountIds.length > 0 &&
+    !!formData.videoDuration &&
+    formData.videoDuration > 0 &&
+    !!formData.caption?.trim() &&
+    !!formData.videoLink &&
+    (formData.platform.includes("Youtube Shorts")
+      ? !!formData.title?.trim()
+      : true) &&
     (postMode === "now" || !!formData.postingTime);
 
   // Data Loading
@@ -184,7 +195,7 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
         projectId: "",
         platform: ["Facebook Reels"],
         title: "",
-        videoDuration: undefined,
+        videoDuration: 5,
         existingVideoLink: "",
         videoLink: "",
         imageLink: undefined,
@@ -423,7 +434,7 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
           );
         }
 
-        await approveVideoContent(itemId, "System");
+        await approveVideoContent(itemId);
         toast.success("Đã lên lịch đăng video!");
       }
 
@@ -453,7 +464,15 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange || handleClose}>
-      <DialogContent className="w-[1200px] max-w-[95vw] h-[90vh] p-0 gap-0 overflow-hidden flex flex-col">
+      <DialogContent
+        className="w-[1200px] max-w-[95vw] h-[90vh] p-0 gap-0 overflow-hidden flex flex-col"
+        onInteractOutside={(e) => {
+          const target = e.target as HTMLElement;
+          if (target.closest(".tour-overlay-container")) {
+            e.preventDefault();
+          }
+        }}
+      >
         <BackgroundStyle />
 
         {/* Header */}
@@ -485,6 +504,15 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
                 )}
               </div>
             </DialogTitle>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => startTour(videoFormSteps)}
+              className="gap-2 bg-white/60 hover:bg-white text-blue-600 border-blue-200 shadow-sm ml-auto"
+            >
+              <BookOpen className="h-4 w-4" />
+              Hướng dẫn
+            </Button>
           </div>
         </DialogHeader>
 
@@ -500,7 +528,10 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
               >
                 <div className="space-y-6">
                   {/* --- SECTION 1: NGỮ CẢNH (Context) --- */}
-                  <div className="p-4 bg-indigo-50/80 rounded-xl border-2 border-indigo-300 space-y-4">
+                  <div
+                    id="tour-video-context"
+                    className="p-4 bg-indigo-50/80 rounded-xl border-2 border-indigo-300 space-y-4"
+                  >
                     <div className="flex items-center gap-2 mb-2 text-indigo-900 font-semibold border-b-2 border-indigo-300 pb-2">
                       <Folder className="w-4 h-4" />
                       <span>Ngữ cảnh</span>
@@ -573,7 +604,7 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
                     </div>
 
                     {/* Duration */}
-                    <div>
+                    <div id="tour-video-duration">
                       <SectionLabel className="mb-2 text-indigo-900">
                         Thời lượng (giây)
                       </SectionLabel>
@@ -607,9 +638,16 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
                       <span>Lịch đăng & Tài khoản</span>
                     </div>
 
-                    {/* Post Mode Selection */}
-                    {canEditIdeaFields && isManualMode && (
-                      <div className="bg-white/60 p-3 rounded-lg border-2 border-green-200">
+                    {/* Time & Mode Group */}
+                    <div id="tour-video-time-section" className="space-y-4">
+                      {/* Post Mode Selection */}
+                      <div
+                        className={cn(
+                          "bg-white/60 p-3 rounded-lg border-2 border-green-200",
+                          (!canEditIdeaFields || !isManualMode) &&
+                            "opacity-60 cursor-not-allowed"
+                        )}
+                      >
                         <Label className="mb-2 block font-medium text-green-900 text-sm">
                           Chế độ đăng
                         </Label>
@@ -619,6 +657,7 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
                             setPostMode(v as "schedule" | "now")
                           }
                           className="flex gap-6"
+                          disabled={!canEditIdeaFields || !isManualMode}
                         >
                           <div className="flex items-center space-x-2">
                             <RadioGroupItem
@@ -648,82 +687,88 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
                           </div>
                         </RadioGroup>
                       </div>
-                    )}
 
-                    {/* Posting Time Inputs */}
-                    {(postMode === "schedule" || !canEditIdeaFields) && (
-                      <div>
-                        <div className="flex items-center justify-between mb-1.5">
-                          <SectionLabel className="text-green-900">
-                            Thời gian
-                          </SectionLabel>
-                          {(canEditContentApprovalFields ||
-                            (canEditIdeaFields && isManualMode)) && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() =>
-                                handleEditWithAI(
-                                  "schedule",
-                                  formData.postingTime
-                                )
-                              }
-                              disabled={!formData.idea && !formData.title}
-                              className="h-6 text-[12px] px-2 text-green-700 hover:bg-green-100 hover:text-green-800 cursor-pointer disabled:text-slate-400 disabled:cursor-not-allowed"
-                            >
-                              <Sparkles className="w-3 h-3 mr-1" /> AI xếp lịch
-                            </Button>
-                          )}
-                        </div>
-                        <div className="flex gap-2">
-                          <div className="flex-1">
-                            <Input
-                              type="date"
-                              value={formData.expectedPostDate || ""}
-                              onChange={(e) => {
-                                setFormData((prev) => ({
-                                  ...prev,
-                                  expectedPostDate: e.target.value,
-                                }));
-                                updatePostingTime(
-                                  e.target.value,
+                      {/* Posting Time Inputs */}
+                      {(postMode === "schedule" || !canEditIdeaFields) && (
+                        <div>
+                          <div className="flex items-center justify-between mb-1.5">
+                            <SectionLabel className="text-green-900">
+                              Thời gian
+                            </SectionLabel>
+                            {(canEditContentApprovalFields ||
+                              (canEditIdeaFields && isManualMode)) && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() =>
+                                  handleEditWithAI(
+                                    "schedule",
+                                    formData.postingTime
+                                  )
+                                }
+                                disabled={
+                                  (!formData.idea && !formData.title) ||
+                                  !editVideo?.id
+                                }
+                                className="h-6 text-[12px] px-2 text-green-700 hover:bg-green-100 hover:text-green-800 cursor-pointer disabled:text-slate-400 disabled:cursor-not-allowed"
+                              >
+                                <Sparkles className="w-3 h-3 mr-1" /> AI xếp
+                                lịch
+                              </Button>
+                            )}
+                          </div>
+                          <div className="flex gap-2">
+                            <div className="flex-1">
+                              <Input
+                                type="date"
+                                value={formData.expectedPostDate || ""}
+                                onChange={(e) => {
+                                  setFormData((prev) => ({
+                                    ...prev,
+                                    expectedPostDate: e.target.value,
+                                  }));
+                                  updatePostingTime(
+                                    e.target.value,
+                                    formData.postingTime?.split(" ")[1] || ""
+                                  );
+                                }}
+                                disabled={
+                                  !(
+                                    canEditContentApprovalFields ||
+                                    (canEditIdeaFields && isManualMode)
+                                  )
+                                }
+                                className="h-9 bg-white border-green-200 text-green-900 focus:ring-green-500/20 disabled:bg-slate-100 disabled:text-slate-500"
+                              />
+                            </div>
+                            <div className="w-120px">
+                              <Input
+                                type="time"
+                                value={
                                   formData.postingTime?.split(" ")[1] || ""
-                                );
-                              }}
-                              disabled={
-                                !(
-                                  canEditContentApprovalFields ||
-                                  (canEditIdeaFields && isManualMode)
-                                )
-                              }
-                              className="h-9 bg-white border-green-200 text-green-900 focus:ring-green-500/20 disabled:bg-slate-100 disabled:text-slate-500"
-                            />
-                          </div>
-                          <div className="w-[120px]">
-                            <Input
-                              type="time"
-                              value={formData.postingTime?.split(" ")[1] || ""}
-                              onChange={(e) =>
-                                updatePostingTime(
-                                  formData.expectedPostDate || "",
-                                  e.target.value
-                                )
-                              }
-                              disabled={
-                                !(
-                                  canEditContentApprovalFields ||
-                                  (canEditIdeaFields && isManualMode)
-                                )
-                              }
-                              className="h-9 bg-white border-green-200 text-green-900 focus:ring-green-500/20 disabled:bg-slate-100 disabled:text-slate-500"
-                            />
+                                }
+                                onChange={(e) =>
+                                  updatePostingTime(
+                                    formData.expectedPostDate || "",
+                                    e.target.value
+                                  )
+                                }
+                                disabled={
+                                  !(
+                                    canEditContentApprovalFields ||
+                                    (canEditIdeaFields && isManualMode)
+                                  )
+                                }
+                                className="h-9 bg-white border-green-200 text-green-900 focus:ring-green-500/20 disabled:bg-slate-100 disabled:text-slate-500"
+                              />
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    )}
+                      )}
+                    </div>
 
                     {/* Accounts */}
-                    <div>
+                    <div id="tour-video-account">
                       <SectionLabel className="mb-2 text-green-900">
                         Tài khoản đăng
                       </SectionLabel>
@@ -880,7 +925,7 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
             {/* Right Column */}
             <div className="lg:col-span-7 space-y-6">
               {/* Idea (Moved from Left Column) */}
-              <FeatureCard title="Ý tưởng" icon={FileText} colorTheme="amber">
+              <FeatureCard id="tour-video-idea-input" title="Ý tưởng" icon={FileText} colorTheme="amber">
                 <div className="space-y-4">
                   <div className="flex items-center space-x-2 mb-2">
                     <Switch
@@ -967,6 +1012,7 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
 
               {/* Caption */}
               <FeatureCard
+                id="tour-video-caption"
                 title="Caption"
                 icon={Captions}
                 colorTheme="blue"
@@ -1002,6 +1048,7 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
 
               {/* Video Media */}
               <FeatureCard
+                id="tour-video-input"
                 title="Video"
                 icon={Play}
                 colorTheme="rose"
@@ -1077,7 +1124,7 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
               </FeatureCard>
 
               {/* Thumbnail Image */}
-              <FeatureCard
+              {/* <FeatureCard
                 title="Thumbnail"
                 icon={ImageIcon}
                 colorTheme="purple"
@@ -1155,7 +1202,7 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
                     </div>
                   )}
                 </div>
-              </FeatureCard>
+              </FeatureCard> */}
             </div>
           </div>
         </div>
@@ -1174,7 +1221,7 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
             <div className="mr-auto"></div>
           )}
 
-          <div className="flex gap-2">
+          <div id="tour-video-actions" className="flex gap-2">
             <Button
               variant="outline"
               onClick={handleClose}
@@ -1187,8 +1234,14 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
               <>
                 {/* Nút Cập nhật / Lưu nháp */}
                 <Button
+                  id="tour-video-save-btn"
                   onClick={handleSubmit}
-                  disabled={isSaving || !formData.idea || !formData.projectId}
+                  disabled={
+                    isSaving ||
+                    !formData.idea ||
+                    !formData.projectId ||
+                    !formData.videoDuration
+                  }
                   className="bg-white border-2 border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-slate-900 shadow-sm transition-all"
                 >
                   {isSaving ? (
@@ -1207,6 +1260,7 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
                 {/* Nút Action chính (Post Now, Schedule, Approve Idea) */}
                 {isReadyToPostOrSchedule ? (
                   <Button
+                    id="tour-video-process-btn"
                     onClick={() => handleProcessContent(postMode)}
                     disabled={isSubmitting}
                     className={cn(
@@ -1228,6 +1282,7 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
                 ) : (
                   onApproveIdea && (
                     <Button
+                      id="tour-video-process-btn"
                       onClick={() => editVideo && onApproveIdea(editVideo)}
                       variant="default"
                       className="bg-gradient-to-r from-emerald-500 to-teal-500 text-white"

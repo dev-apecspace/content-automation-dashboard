@@ -278,8 +278,8 @@ export function VideoDetailModal({
       >
         <BackgroundStyle />
 
-        <DialogHeader className="p-8 pb-0 shrink-0 relative z-10 space-y-6">
-          <DialogTitle className="text-2xl font-bold leading-tight pr-8 text-slate-900 tracking-wide">
+        <DialogHeader className="px-8 pt-4 pb-3 shrink-0 relative z-10 space-y-3 bg-blue-50 border-b-2 border-gray-200 backdrop-blur-md">
+          <DialogTitle className="text-xl font-bold leading-tight pr-8 text-blue-900 tracking-wide">
             {currentItem.idea}
           </DialogTitle>
           <div className="space-y-3">
@@ -330,8 +330,8 @@ export function VideoDetailModal({
           </div>
         </DialogHeader>
 
-        <div className="p-8 relative z-10 flex-1 overflow-y-auto">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mt-8">
+        <div className="p-6 relative z-10 flex-1 overflow-y-auto">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
             {/* Left Column (Metadata, AI, Stats, Posts) */}
             <div className="lg:col-span-5 space-y-6">
               {/* General Info */}
@@ -905,7 +905,7 @@ export function VideoDetailModal({
           </div>
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="py-3 bg-blue-50 border-t-2 border-gray-200 backdrop-blur-md">
           <Button
             variant="outline"
             onClick={() => onEdit?.(currentItem)}
