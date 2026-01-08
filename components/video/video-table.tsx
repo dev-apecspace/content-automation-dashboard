@@ -120,7 +120,10 @@ export function VideoTable({
   return (
     <div className="space-y-6">
       {/* Filters */}
-      <div className="bg-white/40 backdrop-blur-sm border border-white/60 shadow-sm rounded-xl p-4">
+      <div
+        id="tour-video-filters"
+        className="bg-white/40 backdrop-blur-sm border border-white/60 shadow-sm rounded-xl p-4"
+      >
         <div className="flex flex-wrap gap-4 items-center">
           <div className="flex items-center gap-2">
             <span className="text-sm font-medium text-slate-600">
@@ -161,6 +164,7 @@ export function VideoTable({
           </div>
           {hasPermission("videos.create") && (
             <Button
+              id="tour-video-add-btn"
               onClick={onAdd}
               className="ml-auto bg-gradient-to-r from-indigo-600 to-cyan-600 hover:from-indigo-700 hover:to-cyan-700 text-white shadow-md shadow-indigo-200 border-0"
             >
@@ -170,6 +174,7 @@ export function VideoTable({
           )}
           {hasPermission("videos.create") && (
             <Button
+              id="tour-video-ai-btn"
               onClick={triggerAiSearchIdeas}
               disabled={loading}
               className={`flex items-center gap-2 font-medium transition-all duration-200 cursor-pointer border-0 shadow-md ${
@@ -183,6 +188,7 @@ export function VideoTable({
           )}
           {onReload && (
             <Button
+              id="tour-video-reload-btn"
               variant="outline"
               size="icon"
               onClick={onReload}
@@ -246,13 +252,16 @@ export function VideoTable({
                   </td>
                 </tr>
               ) : (
-                data.map((item) => (
+                data.map((item, index) => (
                   <tr
                     key={item.id}
                     className="hover:bg-indigo-50/30 transition-colors"
                   >
                     {/* Trạng thái */}
-                    <td className="p-4">
+                    <td
+                      className="p-4"
+                      id={index === 0 ? "tour-video-status" : undefined}
+                    >
                       <Badge
                         variant="outline"
                         className={cn(
@@ -293,7 +302,10 @@ export function VideoTable({
                       })()}
                     </td>
                     {/* Nền tảng  */}
-                    <td className="p-4">
+                    <td
+                      className="p-4"
+                      id={index === 0 ? "tour-video-platforms" : undefined}
+                    >
                       <div className="flex flex-col gap-1">
                         {Array.isArray(item.platform) ? (
                           item.platform.map((p) => (
@@ -335,7 +347,10 @@ export function VideoTable({
                     <td className="p-4 text-sm tracking-tight">
                       <span>{item.postingTime || ""}</span>
                     </td>
-                    <td className="p-4">
+                    <td
+                      className="p-4"
+                      id={index === 0 ? "tour-video-actions" : undefined}
+                    >
                       <div className="flex gap-1 flex-wrap">
                         {/* Xem chi tiết */}
                         <Button

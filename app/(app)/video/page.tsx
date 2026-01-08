@@ -5,7 +5,6 @@ import { VideoTable } from "@/components/video/video-table";
 import { VideoFormModal } from "@/components/video/video-form-modal";
 import { VideoDetailModal } from "@/components/video/video-detail-modal";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
 import {
   getVideoItems,
   createVideoItem,
@@ -18,6 +17,14 @@ import {
 import { toast } from "sonner";
 import type { Status, VideoItem } from "@/lib/types";
 import { useRealtimeSubscription } from "@/hooks/use-realtime-subscription";
+import { videoPageSteps } from "@/lib/tour-steps";
+import { useTourStore } from "@/hooks/use-tour-store";
+import { BookOpen } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 export default function VideoPage() {
   const [videoItems, setVideoItems] = useState<VideoItem[]>([]);
@@ -32,6 +39,8 @@ export default function VideoPage() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(15);
   const [totalCount, setTotalCount] = useState(0);
+
+  const { startTour } = useTourStore();
 
   useEffect(() => {
     loadVideoItems();
@@ -106,7 +115,6 @@ export default function VideoPage() {
     try {
       const updated = await approveVideoIdea(
         item.id,
-        "user_1",
         item.idea,
         item.projectId,
         item.projectName,
@@ -130,7 +138,7 @@ export default function VideoPage() {
     try {
       await schedulePost(item);
 
-      const updated = await approveVideoContent(item.id, "user_1");
+      const updated = await approveVideoContent(item.id);
       setVideoItems((prev) =>
         prev.map((v) => (v.id === item.id ? updated : v))
       );
@@ -235,6 +243,24 @@ export default function VideoPage() {
           <p className="text-slate-500 font-medium mt-1">
             Quản lý video (Reels, Shorts) và phê duyệt
           </p>
+        </div>
+        <div>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                id="tour-guide-btn"
+                variant="outline"
+                onClick={() => startTour(videoPageSteps)}
+                className="gap-2 bg-white/60 hover:bg-white text-blue-600 border-blue-200 shadow-sm"
+              >
+                <BookOpen className="h-4 w-4" />
+                Hướng dẫn
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              Xem hướng dẫn quy trình tạo Video Shorts
+            </TooltipContent>
+          </Tooltip>
         </div>
       </div>
 

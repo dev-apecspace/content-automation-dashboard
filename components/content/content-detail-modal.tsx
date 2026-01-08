@@ -70,6 +70,7 @@ import {
   analyzeCostLogs,
 } from "@/lib/utils/cost";
 import { triggerEngagementTracker } from "@/lib/utils/engagement";
+import { useUser } from "@/hooks/use-user";
 
 interface ContentDetailModalProps {
   isOpen: boolean;
@@ -102,6 +103,7 @@ export function ContentDetailModal({
   const [projectList, setProjectList] = useState<Project[]>([]);
   const [allAccounts, setAllAccounts] = useState<Account[]>([]);
   const [userList, setUserList] = useState<UserType[]>([]);
+  const { user } = useUser();
 
   useEffect(() => {
     setCurrentItem(content ?? item ?? null);
@@ -233,7 +235,7 @@ export function ContentDetailModal({
       } else {
         updatedItem();
         await createActivityLog("remove-post", "content", currentItem.id, {
-          userId: "user_1",
+          userId: user?.id || "user_1",
           description: `Xóa bài đăng: ${currentItem.idea}`,
         });
         toast.success("Đã xóa bài đăng thành công");
@@ -294,8 +296,8 @@ export function ContentDetailModal({
       >
         <BackgroundStyle />
 
-        <DialogHeader className="p-8 pb-0 shrink-0 relative z-10 space-y-6">
-          <DialogTitle className="text-2xl font-bold leading-tight pr-8 text-slate-900 tracking-wide">
+        <DialogHeader className="px-8 pt-4 pb-3 shrink-0 relative z-10 space-y-3 bg-blue-50 border-b-2 border-gray-200 backdrop-blur-md">
+          <DialogTitle className="text-xl font-bold leading-tight pr-8 text-blue-900 tracking-wide">
             {currentItem.idea}
           </DialogTitle>
           <div className="space-y-3">
@@ -359,7 +361,7 @@ export function ContentDetailModal({
         </DialogHeader>
 
         <div className="p-8 relative z-10 flex-1 overflow-y-auto">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mt-8">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
             {/* Left Column (Metadata, AI, Stats, Posts) */}
             <div className="lg:col-span-5 space-y-6">
               {/* General Info */}
@@ -844,7 +846,7 @@ export function ContentDetailModal({
           </div>
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="py-3 bg-blue-50 border-t-2 border-gray-200 backdrop-blur-md">
           <Button
             variant="outline"
             onClick={() => onEdit?.(currentItem)}

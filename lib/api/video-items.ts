@@ -249,7 +249,6 @@ export async function updateVideoStatus(
 // Phê duyệt ý tưởng (từ idea → ai_generating_content)
 export async function approveVideoIdea(
   id: string,
-  approvedBy: string,
   idea: string,
   projectId: string,
   projectName: string,
@@ -260,6 +259,8 @@ export async function approveVideoIdea(
   imageLink?: string
 ): Promise<VideoItem> {
   await requirePermission("videos.edit");
+  const user = await getCurrentUser();
+  if (!user) throw new Error("Unauthorized");
 
   // Fetch old data for logging
   const { data: oldData } = await supabase
@@ -272,10 +273,11 @@ export async function approveVideoIdea(
     .from("video_items")
     .update({
       status: "ai_generating_content",
-      approved_by: approvedBy,
+      approved_by: user.userId,
       approved_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     })
+
     .eq("id", id)
     .select()
     .single();
@@ -316,14 +318,13 @@ export async function approveVideoIdea(
   }
 
   // Log activity
-  const user = await getCurrentUser();
   if (user) {
     await createActivityLog("approve", "video", id, {
       userId: user.userId,
       oldValues: oldData,
       newValues: {
         status: "ai_generating_content",
-        approvedBy,
+        approvedBy: user.userId,
         idea,
       },
       description: `Phê duyệt ý tưởng video ${oldData.idea}`,
@@ -334,11 +335,10 @@ export async function approveVideoIdea(
 }
 
 // Phê duyệt nội dung (từ awaiting_content_approval → content_approved)
-export async function approveVideoContent(
-  id: string,
-  approvedBy: string
-): Promise<VideoItem> {
+export async function approveVideoContent(id: string): Promise<VideoItem> {
   await requirePermission("videos.edit");
+  const user = await getCurrentUser();
+  if (!user) throw new Error("Unauthorized");
 
   // Fetch old data for logging
   const { data: oldData } = await supabase
@@ -351,7 +351,7 @@ export async function approveVideoContent(
     .from("video_items")
     .update({
       status: "content_approved",
-      approved_by: approvedBy,
+      approved_by: user.userId,
       approved_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     })
@@ -365,16 +365,76 @@ export async function approveVideoContent(
   }
 
   // Log activity
-  const user = await getCurrentUser();
   if (user) {
     await createActivityLog("approve", "video", id, {
       userId: user.userId,
       oldValues: oldData,
       newValues: {
         status: "content_approved",
-        approvedBy,
+        approvedBy: user.userId,
       },
       description: `Phê duyệt nội dung video ${oldData.idea}`,
+    });
+  }
+
+  return camelcaseKeys(data || null, { deep: true }) as VideoItem;
+}
+
+// Đăng bài ngay lập tức (Post Now)
+export async function postVideoNow(id: string): Promise<VideoItem> {
+  await requirePermission("videos.edit"); // Use edit permission or appropriate one
+
+  // Fetch old data for logging
+  const { data: oldData } = await supabase
+    .from("video_items")
+    .select("*")
+    .eq("id", id)
+    .single();
+
+  // 1. Cập nhật status -> content_approved
+  const { data, error } = await supabase
+    .from("video_items")
+    .update({
+      status: "content_approved",
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", id)
+    .select()
+    .single();
+
+  if (error) {
+    console.error("Error posting video now:", error);
+    throw error;
+  }
+
+  // 2. Gọi Webhook Post Now
+  const webhookUrl = process.env.NEXT_PUBLIC_POST_NOW_WEBHOOK;
+
+  if (webhookUrl) {
+    // Fire-and-forget
+    fetch(webhookUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        item_id: id,
+      }),
+    }).catch((webhookError) => {
+      console.error("Failed to send post_now webhook:", webhookError);
+    });
+  } else {
+    console.warn("WEBHOOK not configured.");
+  }
+
+  // 3. Log activity
+  const user = await getCurrentUser();
+  if (user) {
+    await createActivityLog("publish", "video", id, {
+      userId: user.userId,
+      oldValues: oldData,
+      newValues: { status: "content_approved", action: "post_now" },
+      description: `Đăng ngay video ${oldData.idea}`,
     });
   }
 

@@ -64,7 +64,7 @@ export const contentPageSteps: TourStep[] = [
     targetId: "tour-row-actions-cell",
     title: "Hành động nhanh",
     description:
-      "Nơi thực hiện các thao tác: \n- Xem chi tiết \n- Chỉnh sửa \n- Duyệt bài \n- Xóa ý tưởng \n\nRê chuột vào từng nút để xem hướng dẫn cụ thể.",
+      "Nơi thực hiện các thao tác: \n- Xem chi tiết \n- Chỉnh sửa \n- Duyệt ý tưởng/Duyệt nội dung \n- Xóa ý tưởng \n\nRê chuột vào từng nút để xem hướng dẫn cụ thể.",
     placement: "left",
   },
 ];
@@ -124,6 +124,153 @@ export const contentFormSteps: TourStep[] = [
     title: "Đăng bài / Lên lịch",
     description:
       "Để nút này sáng lên, bạn cần nhập đủ: Ý tưởng, Dự án, Nền tảng, Loại Content, Caption, Tài khoản và Thời gian (nếu lên lịch).",
+    placement: "top",
+  },
+];
+
+export const videoPageSteps: TourStep[] = [
+  {
+    targetId: "tour-guide-btn",
+    title: "Hướng dẫn",
+    description:
+      "Tóm tắt quy trình:\n\n" +
+      "1. 💡 Ý tưởng: AI gợi ý (hoặc bạn nhập), bạn duyệt.\n" +
+      "2. 📝 Nội dung: AI viết bài, bạn duyệt.\n" +
+      "3. 🚀 Đăng bài: Hệ thống tự động đăng.\n\n" +
+      "Chỉ cần click 3 nút:\n" +
+      "1. ✨AI tạo ý tưởng\n" +
+      "2. ✅ Duyệt ý tưởng (khi Trạng thái = 'Ý tưởng')\n" +
+      "3. ✅ Duyệt nội dung (khi Trạng thái = 'Chờ duyệt nội dung')",
+    placement: "bottom",
+  },
+  {
+    targetId: "tour-video-filters",
+    title: "Bộ lọc thông minh",
+    description:
+      "Lọc danh sách video theo Trạng thái (Idea, Producing...) hoặc theo Dự án để dễ dàng quản lý tiến độ.",
+    placement: "bottom",
+  },
+  {
+    targetId: "tour-video-add-btn",
+    title: "Tạo Video Mới",
+    description:
+      "Bấm nút này để thêm ý tưởng video mới.\n" +
+      "Bạn có thể nhập ý tưởng thủ công, hoặc upload video đã làm xong để đăng ngay.",
+    placement: "bottom",
+  },
+  {
+    targetId: "tour-video-ai-btn",
+    title: "AI Gợi ý Ý tưởng",
+    description:
+      "Bí ý tưởng? Click để AI gợi ý các chủ đề phù hợp với dự án của bạn.",
+    placement: "bottom",
+  },
+  {
+    targetId: "tour-video-reload-btn",
+    title: "Làm mới dữ liệu",
+    description: "Cập nhật lại trạng thái mới nhất của các video từ hệ thống.",
+    placement: "bottom",
+  },
+  {
+    targetId: "tour-video-status",
+    title: "Theo dõi Trạng thái",
+    description:
+      "Mỗi video sẽ đi qua các bước:\n" +
+      "- 🟡 Ý tưởng: Cần duyệt để bắt đầu tạo nội dung.\n" +
+      "- 🟠 Chờ duyệt nội dung: Video đã làm xong, chờ duyệt.\n" +
+      "- 🟢 Đã duyệt/Đăng: Sẵn sàng lên sóng.",
+    placement: "right",
+  },
+  {
+    targetId: "tour-video-platforms",
+    title: "Nền tảng",
+    description:
+      "Hiển thị các nền tảng sẽ đăng video.\n" +
+      "⚠️ Lưu ý: Một Ý TƯỞNG có chủ đích đăng trên nhiều nền tảng (VD: Reels + TikTok) sẽ hiển thị gộp ở đây. Khi DUYỆT Ý TƯỞNG, hệ thống sẽ tách thành 2 dòng riêng để quản lý riêng biệt.",
+    placement: "bottom",
+  },
+  {
+    targetId: "tour-video-actions",
+    title: "Thao tác nhanh",
+    description:
+      "Các hành động chính:\n" +
+      "- 👁️ Xem chi tiết\n" +
+      "- ✏️ Chỉnh sửa thông tin\n" +
+      "- ✅ Duyệt (Ý tưởng/nội dung)\n" +
+      "- 🗑️ Xóa ý tưởng",
+    placement: "left",
+  },
+];
+
+export const videoFormSteps: TourStep[] = [
+  {
+    targetId: "tour-video-context",
+    title: "Thông tin Video",
+    description:
+      "Thiết lập các thông tin cơ bản:\n" +
+      "- Dự án: Video thuộc dự án nào.\n" +
+      "- Nền tảng: Chọn 1 hoặc nhiều nền tảng.\n⚠️ Lưu ý: Nếu chọn video này cho nhiều nền tảng, khi 'Duyệt ý tưởng', hệ thống sẽ tự động tách thành các video riêng biệt cho từng nền tảng.",
+    placement: "left",
+  },
+  {
+    targetId: "tour-video-duration",
+    title: "Thời lượng",
+    description:
+      "Nhập thời lượng dự kiến (giây) để hệ thống ước tính chi phí (nếu dùng AI/thuê ngoài) hoặc để quản lý video ngắn.",
+    placement: "right",
+  },
+  {
+    targetId: "tour-video-time-section",
+    title: "Thời gian & Chế độ đăng",
+    description:
+      "Thiết lập thời gian đăng bài (Lên lịch) hoặc chọn chế độ 'Đăng ngay'.",
+    placement: "left",
+  },
+  {
+    targetId: "tour-video-account",
+    title: "Chọn kênh đăng",
+    description:
+      "Chọn các tài khoản mạng xã hội (Pages/Channels) mà video này sẽ xuất hiện.",
+    placement: "left",
+  },
+  {
+    targetId: "tour-video-idea-input",
+    title: "Nội dung & Kịch bản",
+    description:
+      "Nhập ý tưởng quay, kịch bản chi tiết cho video tại đây. Nội dung này sẽ được dùng để sản xuất video, viết title và caption.",
+    placement: "left",
+  },
+  {
+    targetId: "tour-video-caption",
+    title: "Caption (Mô tả)",
+    description:
+      "Nội dung văn bản sẽ đăng kèm video.",
+    placement: "left",
+  },
+  {
+    targetId: "tour-video-input",
+    title: "Video File/Link",
+    description:
+      "Tải video lên hoặc dán link video. Đây là thành phần quan trọng nhất để có thể đăng bài.",
+    placement: "left",
+  },
+  {
+    targetId: "tour-video-save-btn",
+    title: "Lưu nháp",
+    description:
+      "Chỉ cần có 'Ý tưởng', 'Dự án', 'Nền tảng', và 'Thời lượng' (mặc định 5s), bạn có thể lưu lại để tiếp tục chỉnh sửa sau.",
+    placement: "top",
+  },
+  {
+    targetId: "tour-video-process-btn",
+    title: "Xử lý & Xuất bản",
+    description:
+      "Để nút này sáng lên (Lên lịch/Đăng ngay), bạn CẦN điền đủ:\n" +
+      "- Dự án, Nền tảng, Thời lượng\n" +
+      "- Chế độ đăng (Chọn giờ nếu lên lịch)\n" +
+      "- Tài khoản đăng\n" +
+      "- Caption & Video\n" +
+      "- Title (nếu là Youtube)",
     placement: "top",
   },
 ];

@@ -40,6 +40,7 @@ import { usePermissions } from "@/hooks/use-permissions";
 
 import { getMyProfile } from "@/actions/auth-actions";
 import { useEffect, useState } from "react";
+import { useUser } from "@/hooks/use-user";
 
 interface MenuItem {
   route: string;
@@ -116,15 +117,13 @@ export function Sidebar({
 }: SidebarProps) {
   const pathname = usePathname();
   const { hasPermission } = usePermissions();
-  const [user, setUser] = useState<{ name: string; email: string } | null>(
-    null
-  );
+  const { user, fetchUser } = useUser();
 
   useEffect(() => {
-    getMyProfile().then((u) => {
-      if (u) setUser(u);
-    });
-  }, []);
+    if (!user) {
+      fetchUser();
+    }
+  }, [user, fetchUser]);
 
   const filteredMenuItems = menuItems.filter((item) => {
     if (!item.permission) return true;
