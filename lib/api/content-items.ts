@@ -270,7 +270,7 @@ export async function updateContentStatus(
   return data;
 }
 
-// Phê duyệt ý tưởng (từ idea → idea_approved)
+// Phê duyệt ý tưởng (từ idea → ai_generating_content)
 export async function approveIdea(
   id: string,
   approvedBy: string,

@@ -122,7 +122,7 @@ export function AccountSelector({
           aria-expanded={open}
           disabled={disabled}
           className={cn(
-            "w-full justify-between bg-white/50 border-white/60 hover:bg-white/80 h-auto min-h-[2.75rem] py-2",
+            "w-full justify-between bg-white/50 border-white/60 hover:bg-white/80 h-auto min-h-[2.75rem] py-2 cursor-pointer",
             className
           )}
         >

@@ -246,7 +246,7 @@ export async function updateVideoStatus(
   return updateVideoItem(id, { status });
 }
 
-// Phê duyệt ý tưởng (từ idea → idea_approved)
+// Phê duyệt ý tưởng (từ idea → ai_generating_content)
 export async function approveVideoIdea(
   id: string,
   approvedBy: string,

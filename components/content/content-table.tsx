@@ -20,7 +20,14 @@ import {
   CheckCircle,
   X,
   RefreshCw,
+  HelpCircle,
+  BookOpen,
 } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import type { ContentItem, Project } from "@/lib/types";
 import { platformColors, statusConfig, type Status } from "@/lib/types";
@@ -120,7 +127,10 @@ export function ContentTable({
   return (
     <div className="space-y-6">
       {/* Filters */}
-      <div className="bg-white/40 backdrop-blur-sm border border-white/60 shadow-sm rounded-xl p-4">
+      <div
+        id="tour-filters"
+        className="bg-white/40 backdrop-blur-sm border border-white/60 shadow-sm rounded-xl p-4"
+      >
         <div className="flex flex-wrap gap-4 items-center">
           <div className="flex items-center gap-2">
             <span className="text-sm font-medium text-slate-600">
@@ -130,7 +140,7 @@ export function ContentTable({
               value={filterStatus}
               onValueChange={(v) => onFilterChange(v as Status | "all")}
             >
-              <SelectTrigger className="w-[220px] bg-white/60 border-white/60 focus:ring-indigo-500">
+              <SelectTrigger className="w-[220px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -146,7 +156,7 @@ export function ContentTable({
           <div className="flex items-center gap-2">
             <span className="text-sm font-medium text-slate-600">Dự án:</span>
             <Select value={filterProject} onValueChange={onProjectFilterChange}>
-              <SelectTrigger className="w-[180px] bg-white/60 border-white/60 focus:ring-indigo-500">
+              <SelectTrigger className="w-[180px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -160,43 +170,69 @@ export function ContentTable({
             </Select>
           </div>
           {hasPermission("content.create") && (
-            <Button
-              onClick={onAdd}
-              className="ml-auto bg-gradient-to-r from-indigo-600 to-cyan-600 hover:from-indigo-700 hover:to-cyan-700 text-white shadow-md shadow-indigo-200 border-0"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Thêm ý tưởng
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  id="tour-add-btn"
+                  onClick={onAdd}
+                  className="ml-auto bg-gradient-to-r from-indigo-600 to-cyan-600 hover:from-indigo-700 hover:to-cyan-700 text-white shadow-md shadow-indigo-200 border-0"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Thêm ý tưởng
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                Bấm vào đây để bắt đầu soạn một bài viết mới từ đầu. Một bảng sẽ
+                hiện ra để bạn nhập ý tưởng.
+              </TooltipContent>
+            </Tooltip>
           )}
           {hasPermission("content.create") && (
-            <Button
-              onClick={triggerAiSearchIdeas}
-              disabled={loading}
-              className={`flex items-center gap-2 font-medium transition-all duration-200 cursor-pointer border-0 shadow-md ${
-                loading
-                  ? "bg-gray-100 text-gray-400"
-                  : "bg-gradient-to-r from-amber-200 to-yellow-400 hover:from-amber-300 hover:to-yellow-500 text-amber-900"
-              }`}
-            >
-              {loading ? <>✨ Đang tạo...</> : <>✨ AI tạo ý tưởng</>}
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  id="tour-ai-btn"
+                  onClick={triggerAiSearchIdeas}
+                  disabled={loading}
+                  className={`flex items-center gap-2 font-medium transition-all duration-200 cursor-pointer border-0 shadow-md ${
+                    loading
+                      ? "bg-gray-100 text-gray-400"
+                      : "bg-gradient-to-r from-amber-200 to-yellow-400 hover:from-amber-300 hover:to-yellow-500 text-amber-900"
+                  }`}
+                >
+                  {loading ? <>✨ Đang tạo...</> : <>✨ AI tạo ý tưởng</>}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                Bấm vào đây nếu bạn bí ý tưởng. AI sẽ tự động nghĩ ra các chủ đề
+                hay dựa trên xu hướng hiện tại cho bạn.
+              </TooltipContent>
+            </Tooltip>
           )}
           {onReload && (
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={onReload}
-              className="bg-white/40 p-1.5 rounded-lg border border-white/60 shadow-sm backdrop-blur-sm cursor-pointer"
-              title="Làm mới"
-              disabled={isLoading}
-            >
-              <RefreshCw
-                className={cn(
-                  "h-4 w-4 text-slate-600",
-                  isLoading && "animate-spin"
-                )}
-              />
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  id="tour-reload-btn"
+                  variant="outline"
+                  size="icon"
+                  onClick={onReload}
+                  className="bg-white/40 p-1.5 rounded-lg border border-white/60 shadow-sm backdrop-blur-sm cursor-pointer"
+                  disabled={isLoading}
+                >
+                  <RefreshCw
+                    className={cn(
+                      "h-4 w-4 text-slate-600",
+                      isLoading && "animate-spin"
+                    )}
+                  />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                Bấm để tải lại danh sách mới nhất (ví dụ: khi vừa có người khác
+                thêm bài).
+              </TooltipContent>
+            </Tooltip>
           )}
         </div>
       </div>
@@ -222,7 +258,10 @@ export function ContentTable({
                 <th className="text-left p-4 font-semibold text-sm text-slate-600">
                   Thời gian đăng
                 </th>
-                <th className="text-left p-4 font-semibold text-sm text-slate-600">
+                <th
+                  id="tour-row-actions"
+                  className="text-left p-4 font-semibold text-sm text-slate-600"
+                >
                   Hành động
                 </th>
               </tr>
@@ -243,25 +282,28 @@ export function ContentTable({
                   </td>
                 </tr>
               ) : (
-                data.map((item) => (
+                data.map((item, index) => (
                   <tr
                     key={item.id}
                     className="hover:bg-indigo-50/30 transition-colors"
                   >
                     {/* Trạng thái */}
                     <td className="p-4">
-                      <Badge
-                        variant="outline"
-                        className={cn(
-                          "border shadow-sm bg-white/50 backdrop-blur-sm py-1",
-                          statusConfig[item.status].className
-                        )}
-                      >
-                        {statusConfig[item.status].label}
-                      </Badge>
+                      <div id={index === 0 ? "tour-row-status" : undefined}>
+                        <Badge
+                          variant="outline"
+                          className={cn(
+                            "border shadow-sm bg-white/50 backdrop-blur-sm py-1",
+                            statusConfig[item.status].className
+                          )}
+                        >
+                          {statusConfig[item.status].label}
+                        </Badge>
+                      </div>
                     </td>
                     {/* Ý tưởng */}
                     <td
+                      id={index === 0 ? "tour-row-idea" : undefined}
                       className="p-4 font-medium text-slate-700 max-w-[250px] truncate"
                       title={item.idea}
                     >
@@ -306,17 +348,28 @@ export function ContentTable({
                       <span>{item.postingTime || ""}</span>
                     </td>
                     <td className="p-4">
-                      <div className="flex gap-1 flex-wrap">
+                      <div
+                        id={index === 0 ? "tour-row-actions-cell" : undefined}
+                        className="flex gap-1 flex-wrap"
+                      >
                         {/* Xem chi tiết */}
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => onViewDetails(item)}
-                          title="Xem chi tiết"
-                          className="hover:bg-white/60 hover:text-indigo-600"
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
+                        {/* Xem chi tiết */}
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => onViewDetails(item)}
+                              className="hover:bg-white/60 hover:text-indigo-600"
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            Bấm để xem thử nội dung bài viết trông như thế nào
+                            trước khi làm việc khác.
+                          </TooltipContent>
+                        </Tooltip>
 
                         {/* Chỉnh sửa */}
                         {hasPermission("content.edit") &&
@@ -324,43 +377,63 @@ export function ContentTable({
                             item.status === "awaiting_content_approval" ||
                             item.status === "content_approved" ||
                             item.status === "post_removed") && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => onEdit(item)}
-                              title="Chỉnh sửa"
-                              className="hover:bg-white/60 hover:text-indigo-600"
-                            >
-                              <Edit2 className="h-4 w-4" />
-                            </Button>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => onEdit(item)}
+                                  className="hover:bg-white/60 hover:text-indigo-600"
+                                >
+                                  <Edit2 className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                Bấm vào đây để sửa lại nội dung. Bạn có thể thay
+                                đổi câu chữ, chỉnh lại giờ đăng hoặc thay đổi
+                                ảnh.
+                              </TooltipContent>
+                            </Tooltip>
                           )}
 
                         {/* Phê duyệt ý tưởng */}
                         {hasPermission("content.approve") &&
                           item.status === "idea" && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => onApproveIdea?.(item)}
-                              className="text-green-600 hover:text-green-700 hover:bg-green-50"
-                              title="Phê duyệt ý tưởng"
-                            >
-                              <CheckCircle className="h-4 w-4" />
-                            </Button>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => onApproveIdea?.(item)}
+                                  className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                                >
+                                  <CheckCircle className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                Bấm vào đây nếu bạn thấy ý tưởng này OK. AI sẽ tự động viết caption và xếp lịch đăng cho bạn.
+                              </TooltipContent>
+                            </Tooltip>
                           )}
 
                         {/* Phê duyệt nội dung */}
                         {hasPermission("content.approve") &&
                           item.status === "awaiting_content_approval" && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => onApproveContent?.(item)}
-                              className="text-green-600 hover:text-green-700 hover:bg-green-50"
-                              title="Phê duyệt nội dung"
-                            >
-                              <CheckCircle className="h-4 w-4" />
-                            </Button>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => onApproveContent?.(item)}
+                                  className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                                >
+                                  <CheckCircle className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                Bấm vào đây để CHỐT nội dung này. Bài viết sẽ được tự động hẹn giờ để đăng lên Fanpage/Kênh của bạn.
+                              </TooltipContent>
+                            </Tooltip>
                           )}
 
                         {/* Xem ảnh */}
@@ -368,20 +441,27 @@ export function ContentTable({
                           item.imageLinks.length > 0 &&
                           (!item.posts || item.posts.length === 0) &&
                           onViewImage && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => onViewImage(item)}
-                              title={`Xem ${item.imageLinks.length} ảnh`}
-                              className="hover:bg-white/60 hover:text-indigo-600 w-auto px-2"
-                            >
-                              <Image className="h-4 w-4" />
-                              {item.imageLinks.length > 1 && (
-                                <span className="ml-1 text-[10px] font-bold">
-                                  {item.imageLinks.length}
-                                </span>
-                              )}
-                            </Button>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => onViewImage(item)}
+                                  className="hover:bg-white/60 hover:text-indigo-600 w-auto px-2"
+                                >
+                                  <Image className="h-4 w-4" />
+                                  {item.imageLinks.length > 1 && (
+                                    <span className="ml-1 text-[10px] font-bold">
+                                      {item.imageLinks.length}
+                                    </span>
+                                  )}
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                Bấm để xem phóng to các ảnh đính kèm trong bài
+                                viết này.
+                              </TooltipContent>
+                            </Tooltip>
                           )}
 
                         {/* Xem post */}
@@ -389,40 +469,64 @@ export function ContentTable({
                           item.posts &&
                           item.posts.length > 0 &&
                           onViewPost && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => onViewPost(item)}
-                              className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                              title={`Xem post\nReactions: ${(
-                                item.posts || []
-                              ).reduce(
-                                (acc, p) => acc + (p.reactions || 0),
-                                0
-                              )}\nComments: ${(item.posts || []).reduce(
-                                (acc, p) => acc + (p.comments || 0),
-                                0
-                              )}\nShares: ${(item.posts || []).reduce(
-                                (acc, p) => acc + (p.shares || 0),
-                                0
-                              )}`}
-                            >
-                              <ExternalLink className="h-4 w-4" />
-                            </Button>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => onViewPost(item)}
+                                  className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                                >
+                                  <ExternalLink className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <div className="space-y-1">
+                                  <p>
+                                    Bấm để mở bài viết thực tế đã đăng trên
+                                    Facebook/TikTok/Youtube.
+                                  </p>
+                                  <div className="text-xs text-slate-400 pt-1 border-t border-slate-700/50 mt-1">
+                                    Reactions:{" "}
+                                    {(item.posts || []).reduce(
+                                      (acc, p) => acc + (p.reactions || 0),
+                                      0
+                                    )}{" "}
+                                    • Comments:{" "}
+                                    {(item.posts || []).reduce(
+                                      (acc, p) => acc + (p.comments || 0),
+                                      0
+                                    )}{" "}
+                                    • Shares:{" "}
+                                    {(item.posts || []).reduce(
+                                      (acc, p) => acc + (p.shares || 0),
+                                      0
+                                    )}
+                                  </div>
+                                </div>
+                              </TooltipContent>
+                            </Tooltip>
                           )}
 
                         {/* Xóa ý tưởng */}
                         {hasPermission("content.delete") &&
                           item.status === "idea" && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => onDelete(item.id)}
-                              className="text-red-400 hover:text-red-600 hover:bg-red-50"
-                              title="Xóa ý tưởng"
-                            >
-                              <X className="h-4 w-4" />
-                            </Button>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => onDelete(item.id)}
+                                  className="text-red-400 hover:text-red-600 hover:bg-red-50"
+                                >
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                Bấm để xóa bỏ ý tưởng này nếu bạn thấy không cần
+                                thiết nữa.
+                              </TooltipContent>
+                            </Tooltip>
                           )}
                       </div>
                     </td>

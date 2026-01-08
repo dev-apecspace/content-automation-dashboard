@@ -57,7 +57,6 @@ export type ActiveTab =
 
 export type Status =
   | "idea"
-  | "idea_approved"
   | "ai_generating_content"
   | "awaiting_content_approval"
   | "content_approved"
@@ -75,10 +74,6 @@ export const statusConfig: Record<
   idea: {
     label: "Ý tưởng",
     className: "bg-yellow-100 text-yellow-700 border-yellow-300",
-  },
-  idea_approved: {
-    label: "Đã duyệt ý tưởng",
-    className: "bg-green-100 text-green-700 border-green-300",
   },
   ai_generating_content: {
     label: "AI đang tạo nội dung",

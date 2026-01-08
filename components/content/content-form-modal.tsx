@@ -37,7 +37,6 @@ import {
   Sparkles,
   Image,
   Calendar,
-  Clock,
   MessageSquare,
   Upload,
   Plus,
@@ -55,10 +54,12 @@ import {
   BarChart3,
   Captions,
   Eye,
+  BookOpen,
 } from "lucide-react";
-import { Checkbox } from "@/components/ui/checkbox";
 import { getProjects, getAIModels } from "@/lib/api";
 import { AccountService } from "@/lib/services/account-service";
+import { useTourStore } from "@/hooks/use-tour-store";
+import { contentFormSteps } from "@/lib/tour-steps";
 import {
   ContentItem,
   contentTypes,
@@ -141,6 +142,8 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [postMode, setPostMode] = useState<"schedule" | "now">("schedule"); // Chế độ đăng
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showGuide, setShowGuide] = useState(false);
+  const { startTour, isOpen: isTourOpen } = useTourStore();
 
   // ------------------- QUYỀN & VALIDATION (Moved up for dependencies) -------------------
   const currentStatus = editContent?.status || "idea";
@@ -456,64 +459,7 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
     if (canEditIdeaFields && isReadyToPostOrSchedule) {
       setIsAiLoading(true); // Tận dụng state loading này hoặc tạo riêng
       try {
-        // 1. Lưu/Cập nhật trước (như logic cũ của onSave nhưng cần await để lấy ID)
-        // Lưu ý: onSave hiện tại chỉ gọi callback, prop truyền vào parent xử lý.
-        // Do logic phức tạp hơn (cần ID để gọi postContentNow), ta nên xử lý ở prop onSave
-        // TUY NHIÊN, để đơn giản và không thay đổi signature onSave quá nhiều,
-        // ta sẽ gửi kèm 1 flag đặc biệt hoặc xử lý trực tiếp nếu có ID.
-
-        // Cách tiếp cận:
-        // - Nếu Post Now: Gọi postContentNow (cần ID). Nếu chưa có ID (tạo mới), phải tạo xong mới gọi.
-        // - Nếu Schedule: Gọi approveContent (cần ID).
-
-        // Để an toàn, ta sẽ dùng onSave truyền data kèm meta action nếu cần,
-        // HOẶC xử lý tại đây nếu có editContent.id.
-        // Nhưng onSave của parent (ContentPage) chỉ create/update thuần túy.
-
-        // ==> Ta sẽ Save trước.
         const dataToSave = { ...formData };
-        // Gọi save xong, parent sẽ refresh.
-        // Nhưng ta muốn thực hiện hành động tiếp theo.
-        // Tạm thời: Ta sẽ gọi onSave và đóng modal nếu chỉ là Save Draft.
-        // Nếu là Post Now / Schedule, ta cần flow khác.
-
-        // GIẢI PHÁP:
-        // Kiểm tra nếu editContent đã có ID, ta có thể gọi API trực tiếp.
-        // Nếu chưa có ID (Tạo mới), ta không thể gọi API post/approve ngay được trừ khi createContent trả về ID và ta await nó.
-        // Hiện tại onSave không return Promise<ContentItem>.
-
-        // => Sửa: Ta sẽ gọi onSave như bình thường cho Save Draft.
-        // Với Post Now/Schedule: Ta sẽ gọi onSave kèm 1 callback hoặc flag?
-        // Do user yêu cầu "các chức năng cũ giữ nguyên", ta nên cẩn trọng.
-
-        // IMPLEMENTATION ĐƠN GIẢN NHẤT HỢP VỚI YÊU CẦU:
-        // "nếu đủ thì: nếu là hẹn lịch thì là chức năng duyệt nội dung như cũ. nếu là đăng ngay thì gọi webhook"
-        // Việc "duyệt nội dung như cũ" là flow: Idea -> Idea Approved -> AI Write -> ... -> Content Approved.
-        // Nhưng user bảo "nhập thủ công... có thể đăng bài (hẹn lịch hoặc đăng ngay)".
-        // Tức là bypass các bước AI?
-        // "hẹn lịch thì là chức năng duyệt nội dung như cũ" => Có nghĩa là set status = content_approved? hay idea_approved?
-        // Context: "kiểm tra đã đủ các trường... nếu đủ thì...".
-        // Nếu đủ hết (Caption, Image...), ta có thể skip bước AI Write/Generate.
-        // Vậy ta sẽ coi như "Duyệt nội dung" (Approve Content) luôn.
-
-        // Do `onSave` ở parent chỉ là create/update DB, chưa handle logic Approve/Post.
-        // Ta sẽ handle logic đó ở đây nếu có ID. Nếu chưa có ID (Create), ta cần Create trước.
-
-        // REF: Parent `onSave` logic: (item) => handleSaveContent(item)
-        // handleSaveContent calls createContentItem or updateContentItem.
-        // Both return the item.
-        // Nhưng props `onSave` trả về void.
-
-        // => Ta cần sửa `onSave` prop để trả về Promise<ContentItem | void> để ta có thể chain action.
-        // Nhưng không sửa được file parent (không nằm trong request, nhưng user cho phép sửa "các id visual").
-        // Request: "sửa các ${id}..." là request trước. Request này là "trong content...".
-
-        // Workaround: Tự gọi create/update API tại đây thay vì dùng onSave prop,
-        // HOẶC chấp nhận user phải Save Draft (có ID) rồi mới Post/Schedule được?
-        // User muốn: "khi tạo mới... có thể đăng bài". => Phải làm trong 1 step.
-
-        // => Ta sẽ import `createContentItem`, `updateContentItem` vào đây để dùng trực tiếp cho case Post/Schedule.
-        // Case "Lưu nháp" vẫn dùng `onSave` để giữ compatibility.
       } catch (e) {
         console.error(e);
         toast.error("Có lỗi xảy ra");
@@ -592,38 +538,55 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
         <DialogContent
           className="w-[1200px] max-w-[95vw] h-[90vh] p-0 gap-0 overflow-hidden flex flex-col"
           showCloseButton={true}
+          onPointerDownOutside={(e) => {
+            if (isTourOpen) e.preventDefault();
+          }}
+          onInteractOutside={(e) => {
+            if (isTourOpen) e.preventDefault();
+          }}
         >
           <BackgroundStyle />
 
           <DialogHeader className="pl-6 pr-12 py-4 shrink-0 relative z-10 bg-blue-50/80 border-b-2 border-slate-300 backdrop-blur-md">
             <div className="flex items-center justify-between gap-4">
-              <DialogTitle className="text-lg font-bold leading-tight text-blue tracking-wide">
+              <DialogTitle className="text-lg font-bold leading-tight text-blue-800 tracking-wide flex items-center gap-8">
                 {editContent ? "Chỉnh sửa nội dung" : "Tạo nội dung mới"}
-              </DialogTitle>
-
-              <div className="flex flex-wrap items-center gap-2">
-                <Badge
-                  variant="outline"
-                  className="border-slate-200 bg-white text-slate-700 px-2.5 py-0.5 text-xs font-normal"
-                >
-                  {canEditIdeaFields && "Giai đoạn: Ý tưởng"}
-                  {canEditContentApprovalFields && "Giai đoạn: Duyệt nội dung"}
-                  {!canEditIdeaFields &&
-                    !canEditContentApprovalFields &&
-                    "Chế độ xem"}
-                </Badge>
-                {editContent?.status && (
+                <div className="flex flex-wrap items-center gap-2">
                   <Badge
                     variant="outline"
-                    className={cn(
-                      "border-slate-200 bg-white text-slate-700 px-2.5 py-0.5 text-xs font-normal",
-                      statusConfig[editContent.status].className
-                    )}
+                    className="border-orange-200 bg-white text-slate-700 px-2.5 py-0.5 text-xs font-normal"
                   >
-                    {statusConfig[editContent.status].label}
+                    {canEditIdeaFields && "Giai đoạn: Ý tưởng"}
+                    {canEditContentApprovalFields &&
+                      "Giai đoạn: Duyệt nội dung"}
+                    {!canEditIdeaFields &&
+                      !canEditContentApprovalFields &&
+                      "Chế độ xem"}
                   </Badge>
-                )}
-              </div>
+                  {editContent?.status && (
+                    <Badge
+                      variant="outline"
+                      className={cn(
+                        "border-slate-200 bg-white text-slate-700 px-2.5 py-0.5 text-xs font-normal",
+                        statusConfig[editContent.status].className
+                      )}
+                    >
+                      {statusConfig[editContent.status].label}
+                    </Badge>
+                  )}
+                </div>
+              </DialogTitle>
+
+              <Button
+                variant="outline"
+                size="sm"
+                className="ml-2 h-7 gap-1.5 bg-white/60 hover:bg-white text-blue-600 border-blue-200 shadow-sm"
+                onClick={() => startTour(contentFormSteps)}
+                title="Bắt đầu Tour hướng dẫn"
+              >
+                <BookOpen className="h-3.5 w-3.5" />
+                <span className="text-xs font-semibold">Hướng dẫn</span>
+              </Button>
             </div>
           </DialogHeader>
 
@@ -639,7 +602,10 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
                 >
                   <div className="space-y-6">
                     {/* GROUP 1: CONTEXT (Project, Platform, Type) */}
-                    <div className="p-4 bg-indigo-50/80 rounded-xl border-2 border-indigo-300 space-y-4">
+                    <div
+                      id="tour-content-context"
+                      className="p-4 bg-indigo-50/80 rounded-xl border-2 border-indigo-300 space-y-4"
+                    >
                       <div className="flex items-center gap-2 mb-2 text-indigo-900 font-semibold border-b-2 border-indigo-300 pb-2">
                         <Folder className="w-4 h-4" />
                         <span>Ngữ cảnh</span>
@@ -735,7 +701,10 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
 
                       {/* Post Mode */}
                       {canEditIdeaFields && (
-                        <div className="bg-white/60 p-3 rounded-lg border-2 border-green-200">
+                        <div
+                          id="tour-content-mode"
+                          className="bg-white/60 p-3 rounded-lg border-2 border-green-200"
+                        >
                           <Label className="mb-2 block font-medium text-green-900 text-sm">
                             Chế độ đăng
                           </Label>
@@ -806,7 +775,7 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
                                 }
                                 className="h-6 text-[12px] px-2 text-green-700 hover:bg-green-100 hover:text-green-800 cursor-pointer disabled:text-slate-400 disabled:cursor-not-allowed"
                               >
-                                <Sparkles className="w-3 h-3 mr-1" /> AI
+                                <Sparkles className="w-3 h-3 mr-1" /> AI xếp lịch
                               </Button>
                             </div>
                             <div className="grid grid-cols-2 gap-3">
@@ -855,7 +824,7 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
                         )}
 
                         {/* Tài khoản */}
-                        <div>
+                        <div id="tour-content-account">
                           <SectionLabel className="mb-1.5 text-green-900">
                             Tài khoản{" "}
                             {(canEditContentApprovalFields ||
@@ -1012,6 +981,7 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
                     title="Ý tưởng"
                     icon={Lightbulb}
                     colorTheme="amber"
+                    id="tour-content-idea"
                   >
                     <div className="space-y-2">
                       <Label htmlFor="idea" className="sr-only">
@@ -1073,6 +1043,7 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
                   title="Caption"
                   icon={Captions}
                   colorTheme="blue"
+                  id="tour-content-caption"
                   action={
                     <Button
                       variant="ghost"
@@ -1118,6 +1089,7 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
                   title="Ảnh đính kèm"
                   icon={Image}
                   colorTheme="rose"
+                  id="tour-content-media"
                   action={
                     estimatedCost &&
                     estimatedCost.total > 0 && (
@@ -1268,7 +1240,7 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
             ) : (
               <div></div>
             )}
-            <div className="flex gap-2">
+            <div className="flex gap-2" id="tour-content-actions">
               <Button
                 variant="outline"
                 onClick={handleClose}
@@ -1290,6 +1262,7 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
                   {/* Nút Lưu Nháp (Luôn hiện) */}
                   <Button
                     variant="default"
+                    id="tour-action-save-draft"
                     onClick={handleSubmit}
                     disabled={
                       isSaving || isLoading || isSubmitting || !isIdeaValid
@@ -1312,6 +1285,7 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
                   {/* Nút Action chính */}
                   <Button
                     onClick={() => handleProcessContent(postMode)}
+                    id="tour-action-process"
                     disabled={
                       isSaving ||
                       isLoading ||
