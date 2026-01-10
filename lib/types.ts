@@ -1,26 +1,94 @@
-export type Platform =
+export type ContentPlatform =
   | "Facebook Post"
+  | "Tiktok Carousel"
+  | "Zalo Post"
+  | "Instagram Post"
+  | "Threads"
+  | "X"
+  | "Linkedin Post"
+  | "Youtube Post";
+
+export type VideoPlatform =
   | "Facebook Reels"
   | "Youtube Shorts"
-  | "Tiktok Carousel"
-  | "Tiktok Video";
+  | "Tiktok Video"
+  | "Zalo Video"
+  | "Instagram Reels"
+  | "LinkedIn Video"
+  | "Threads Video";
 
-export const platformColors: Record<string, string> = {
+export const CONTENT_PLATFORMS: ContentPlatform[] = [
+  "Facebook Post",
+  "Tiktok Carousel",
+  "Zalo Post",
+  "Instagram Post",
+  "Threads",
+  "X",
+  "Linkedin Post",
+  "Youtube Post",
+];
+
+export const VIDEO_PLATFORMS: VideoPlatform[] = [
+  "Facebook Reels",
+  "Youtube Shorts",
+  "Tiktok Video",
+  "Zalo Video",
+  "Instagram Reels",
+  "LinkedIn Video",
+  "Threads Video",
+];
+
+export type Platform = ContentPlatform | VideoPlatform;
+
+export const platformColors: Record<Platform, string> = {
   "Facebook Post": "bg-blue-500 text-blue-100 border-blue-300",
   "Facebook Reels": "bg-blue-100 text-blue-700 border-blue-300",
+  "Instagram Post": "bg-pink-500 text-white border-pink-300",
+  Threads: "bg-gray-900 text-white border-gray-600",
+  "Zalo Post": "bg-blue-400 text-white border-blue-200",
   "Youtube Shorts": "bg-red-500 text-white border-red-300",
+  "Youtube Post": "bg-red-600 text-white border-red-400",
   "Tiktok Carousel": "bg-black text-white border-gray-600",
   "Tiktok Video": "bg-black text-white border-gray-600",
-  Tiktok: "bg-black text-white border-gray-600",
+  X: "bg-black text-white border-gray-600",
+  "Linkedin Post": "bg-blue-700 text-white border-blue-500",
+  "Instagram Reels": "bg-pink-500 text-white border-pink-300",
+  "Zalo Video": "bg-blue-400 text-white border-blue-200",
+  "LinkedIn Video": "bg-blue-700 text-white border-blue-500",
+  "Threads Video": "bg-black text-white border-gray-600",
 };
 
-export type AccountPlatform = "Facebook" | "Youtube" | "Tiktok";
+export type AccountPlatform =
+  | "Facebook"
+  | "Youtube"
+  | "Tiktok"
+  | "Zalo"
+  | "Instagram"
+  | "Linkedin"
+  | "X"
+  | "Threads";
 
 export const accountPlatformColors: Record<AccountPlatform, string> = {
   Facebook: "bg-blue-600 text-white border-blue-400",
   Youtube: "bg-red-600 text-white border-red-400",
   Tiktok: "bg-black text-white border-gray-600",
+  Zalo: "bg-blue-400 text-white border-blue-200",
+  Instagram: "bg-pink-500 text-white border-pink-300",
+  Linkedin: "bg-blue-700 text-white border-blue-500",
+  X: "bg-black text-white border-gray-600",
+  Threads: "bg-black text-white border-gray-600",
 };
+
+export const ACCOUNT_PLATFORMS_LIST: AccountPlatform[] = [
+  "Facebook",
+  "Youtube",
+  "Tiktok",
+  "Zalo",
+  "Instagram",
+  "Linkedin",
+  "X",
+  "Threads",
+];
 
 export interface Account {
   id: string;
@@ -137,7 +205,7 @@ export interface Post {
   id: string;
   itemId: string;
   itemType: "content" | "video";
-  platform: string;
+  platform: Platform;
   postUrl?: string;
   publishedAt?: string;
   status: "published" | "removed";
@@ -172,7 +240,7 @@ export interface BaseContentItem {
 }
 
 export interface ContentItem extends BaseContentItem {
-  platform: Platform;
+  platform: ContentPlatform[];
   contentType: string;
   imageLinks?: string[];
   editRequest?: string; // Không lưu db
@@ -180,7 +248,7 @@ export interface ContentItem extends BaseContentItem {
 }
 
 export interface VideoItem extends BaseContentItem {
-  platform: Platform[];
+  platform: VideoPlatform[];
   videoDuration?: number;
   existingVideoLink?: string;
   imageLink?: string;

@@ -29,7 +29,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import type { ContentItem, Project } from "@/lib/types";
+import type { ContentItem, Platform, Project } from "@/lib/types";
 import { platformColors, statusConfig, type Status } from "@/lib/types";
 import { useEffect, useState } from "react";
 import { getProjects } from "@/lib/api";
@@ -333,15 +333,32 @@ export function ContentTable({
                     </td>
                     {/* Nền tảng  */}
                     <td className="p-4">
-                      <Badge
-                        variant="outline"
-                        className={cn(
-                          "border shadow-sm bg-white/50 backdrop-blur-sm",
-                          platformColors[item.platform]
+                      <div className="flex flex-col gap-1">
+                        {Array.isArray(item.platform) ? (
+                          item.platform.map((p) => (
+                            <Badge
+                              key={p}
+                              variant="outline"
+                              className={cn(
+                                "border shadow-sm bg-white/50 backdrop-blur-sm",
+                                platformColors[p]
+                              )}
+                            >
+                              {p}
+                            </Badge>
+                          ))
+                        ) : (
+                          <Badge
+                            variant="outline"
+                            className={cn(
+                              "border shadow-sm bg-white/50 backdrop-blur-sm",
+                              platformColors[item.platform as Platform]
+                            )}
+                          >
+                            {item.platform}
+                          </Badge>
                         )}
-                      >
-                        {item.platform}
-                      </Badge>
+                      </div>
                     </td>
                     {/* Thời gian đăng */}
                     <td className="p-4 text-sm tracking-tight">
@@ -411,7 +428,8 @@ export function ContentTable({
                                 </Button>
                               </TooltipTrigger>
                               <TooltipContent>
-                                Bấm vào đây nếu bạn thấy ý tưởng này OK. AI sẽ tự động viết caption và xếp lịch đăng cho bạn.
+                                Bấm vào đây nếu bạn thấy ý tưởng này OK. AI sẽ
+                                tự động viết caption và xếp lịch đăng cho bạn.
                               </TooltipContent>
                             </Tooltip>
                           )}
@@ -431,7 +449,9 @@ export function ContentTable({
                                 </Button>
                               </TooltipTrigger>
                               <TooltipContent>
-                                Bấm vào đây để CHỐT nội dung này. Bài viết sẽ được tự động hẹn giờ để đăng lên Fanpage/Kênh của bạn.
+                                Bấm vào đây để CHỐT nội dung này. Bài viết sẽ
+                                được tự động hẹn giờ để đăng lên Fanpage/Kênh
+                                của bạn.
                               </TooltipContent>
                             </Tooltip>
                           )}
@@ -482,10 +502,7 @@ export function ContentTable({
                               </TooltipTrigger>
                               <TooltipContent>
                                 <div className="space-y-1">
-                                  <p>
-                                    Bấm để mở bài viết thực tế đã đăng trên
-                                    Facebook/TikTok/Youtube.
-                                  </p>
+                                  <p>Bấm để mở bài viết thực tế đã đăng.</p>
                                   <div className="text-xs text-slate-400 pt-1 border-t border-slate-700/50 mt-1">
                                     Reactions:{" "}
                                     {(item.posts || []).reduce(

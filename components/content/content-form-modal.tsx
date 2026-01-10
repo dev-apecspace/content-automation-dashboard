@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/dialog";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -67,6 +68,8 @@ import {
   AIModel,
   Account,
   Platform,
+  ContentPlatform,
+  CONTENT_PLATFORMS,
   AccountPlatform,
   statusConfig,
 } from "@/lib/types";
@@ -80,6 +83,7 @@ import { InfoCard } from "@/components/ui/info-card";
 import { SectionLabel } from "@/components/ui/section-label";
 import { BackgroundStyle } from "@/components/ui/background-style";
 import { cn } from "@/lib/utils";
+import { MultiSelect, Option } from "@/components/ui/multi-select";
 
 interface ContentFormModalProps {
   isOpen: boolean;
@@ -94,12 +98,18 @@ interface ContentFormModalProps {
 }
 
 // ==================== HELPER ====================
-const getAccountPlatform = (
-  contentPlatform: string
+
+const mapPlatformToAccountPlatform = (
+  platform: string
 ): AccountPlatform | null => {
-  if (contentPlatform.includes("Facebook")) return "Facebook";
-  if (contentPlatform.includes("Youtube")) return "Youtube";
-  if (contentPlatform.includes("Tiktok")) return "Tiktok";
+  if (platform.includes("Facebook")) return "Facebook";
+  if (platform.includes("Youtube")) return "Youtube";
+  if (platform.includes("Tiktok")) return "Tiktok";
+  if (platform.includes("Threads")) return "Threads";
+  if (platform.includes("Instagram")) return "Instagram";
+  if (platform.includes("Zalo")) return "Zalo";
+  if (platform.includes("Linkedin")) return "Linkedin";
+  if (platform === "X") return "X";
   return null;
 };
 
@@ -121,7 +131,7 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
   const [formData, setFormData] = useState<Partial<ContentItem>>({
     idea: "",
     projectId: "",
-    platform: "Facebook Post",
+    platform: ["Facebook Post"],
     contentType: "",
     imageLinks: undefined,
     expectedPostDate: "",
@@ -167,6 +177,7 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
     !!formData.projectId &&
     !!formData.contentType &&
     !!formData.platform &&
+    formData.platform.length > 0 &&
     !!formData.caption?.trim() &&
     !!formData.accountIds &&
     formData.accountIds.length > 0 &&
@@ -206,6 +217,9 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
       setFormData({
         ...editContent,
         imageLinks: currentImage,
+        platform: Array.isArray(editContent.platform)
+          ? (editContent.platform as ContentPlatform[])
+          : [editContent.platform as unknown as ContentPlatform], // Fallback if old data is string
         expectedPostDate:
           editContent.postingTime && editContent.postingTime.includes("/")
             ? editContent.postingTime
@@ -220,7 +234,7 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
       setFormData({
         idea: "",
         projectId: "",
-        platform: "Facebook Post",
+        platform: ["Facebook Post"],
         contentType: "other",
         imageLinks: undefined,
         expectedPostDate: "",
@@ -240,6 +254,34 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
       ...prev,
       projectId: value,
       projectName: project?.name || "",
+    }));
+  };
+
+  // ------------------- XỬ LÝ PLATFORM -------------------
+  // Helper for MultiSelect
+  const platformOptions: Option[] = CONTENT_PLATFORMS.map((p) => ({
+    label: p,
+    value: p,
+  }));
+
+  const handlePlatformChange = (values: string[]) => {
+    if (!canEditIdeaFields) return;
+
+    // Manual Mode Logic Validation
+    const isManual = formData.idea?.includes("Nội dung được tạo thủ công");
+    if (isManual && values.length > 1) {
+      const lastSelected = values[values.length - 1];
+      setFormData((prev) => ({
+        ...prev,
+        platform: [lastSelected as ContentPlatform],
+      }));
+      toast.warning("Chế độ thủ công chỉ cho phép chọn 1 nền tảng.");
+      return;
+    }
+
+    setFormData((prev) => ({
+      ...prev,
+      platform: values as ContentPlatform[],
     }));
   };
 
@@ -285,10 +327,12 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
 
   // ------------------- XỬ LÝ ACCOUNT SELECTION -------------------
   const filteredAccounts = accounts.filter((acc) => {
-    // 1. Filter by Platform (Show ALL accounts with this platform, regardless of project)
-    if (!formData.platform) return false;
-    const requiredPlatform = getAccountPlatform(formData.platform);
-    return acc.platform === requiredPlatform;
+    // 1. Filter by Platform (Show ALL accounts with any of the selected platforms)
+    if (!formData.platform || formData.platform.length === 0) return false;
+    const requiredPlatforms = formData.platform
+      .map(mapPlatformToAccountPlatform)
+      .filter(Boolean) as AccountPlatform[];
+    return requiredPlatforms.includes(acc.platform);
   });
 
   const handleAccountToggle = (accountId: string) => {
@@ -389,7 +433,7 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
         projectId: formData.projectId,
         id: editContent?.id,
         require: requirement,
-        platform: formData.platform,
+        platform: formData.platform?.[0] || "Facebook Post",
       };
 
       // --- LOGIC RIÊNG CHO IMAGE ---
@@ -480,6 +524,17 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
       let itemId = editContent?.id;
       let itemData = { ...formData };
 
+      // Nếu chọn Đăng ngay, tự động set thời gian là hiện tại
+      if (mode === "now") {
+        const now = new Date();
+        const day = String(now.getDate()).padStart(2, "0");
+        const month = String(now.getMonth() + 1).padStart(2, "0");
+        const year = now.getFullYear();
+        const hours = String(now.getHours()).padStart(2, "0");
+        const minutes = String(now.getMinutes()).padStart(2, "0");
+        itemData.postingTime = `${day}/${month}/${year} ${hours}:${minutes}`;
+      }
+
       // 1. Create or Update Item
       if (itemId) {
         // Use top-level import functions
@@ -505,8 +560,8 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            posting_time: itemData.posting_time,
-            platform: itemData.platform,
+            posting_time: itemData.postingTime,
+            platform: itemData.platform?.[0], // Webhook taking single platform for now
           }),
         });
 
@@ -640,28 +695,18 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
                           <SectionLabel className="mb-1.5 text-indigo-900">
                             Nền tảng
                           </SectionLabel>
-                          <Select
-                            value={formData.platform}
-                            onValueChange={(v) =>
-                              setFormData((prev) => ({
-                                ...prev,
-                                platform: v as any,
-                              }))
-                            }
+                          <MultiSelect
+                            options={platformOptions}
+                            selected={(formData.platform as string[]) || []}
+                            onChange={handlePlatformChange}
+                            placeholder="Chọn nền tảng"
                             disabled={!canEditIdeaFields}
-                          >
-                            <SelectTrigger className="bg-white border-indigo-200 text-indigo-900 focus:ring-indigo-500/20 disabled:bg-slate-100 disabled:text-slate-500">
-                              <SelectValue placeholder="Nền tảng" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="Facebook Post">
-                                Facebook Post
-                              </SelectItem>
-                              <SelectItem value="Tiktok Carousel">
-                                Tiktok Carousel
-                              </SelectItem>
-                            </SelectContent>
-                          </Select>
+                            className={cn(
+                              "bg-white border-2 border-indigo-200",
+                              !canEditIdeaFields &&
+                                "bg-slate-100 text-slate-500"
+                            )}
+                          />
                         </div>
                         <div>
                           <SectionLabel className="mb-1.5 text-indigo-900">
@@ -998,9 +1043,20 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
                           onCheckedChange={(checked) => {
                             if (checked) {
                               const timestamp = formatManualPostTimestamp();
+
+                              // Logic enforce single platform
+                              let newPlatform = formData.platform;
+                              if (newPlatform && newPlatform.length > 1) {
+                                newPlatform = [newPlatform[0]];
+                                toast.warning(
+                                  "Chế độ thủ công chỉ cho phép chọn 1 nền tảng. Đã tự động giữ lại nền tảng đầu tiên."
+                                );
+                              }
+
                               setFormData((prev) => ({
                                 ...prev,
                                 idea: `${timestamp} - Nội dung được tạo thủ công`,
+                                platform: newPlatform,
                               }));
                             } else {
                               setFormData((prev) => ({

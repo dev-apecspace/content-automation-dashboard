@@ -8,21 +8,18 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
+import { Edit, Trash2, CheckCircle2, XCircle } from "lucide-react";
 import {
-  Edit,
-  Trash2,
-  CheckCircle2,
-  XCircle,
-  Facebook,
-  Youtube,
-  Video,
-  Link,
-} from "lucide-react";
-import { Account, Project } from "@/lib/types";
+  ACCOUNT_PLATFORMS_LIST,
+  AccountPlatform,
+  Account,
+  Project,
+} from "@/lib/types";
+import { accountPlatformIcons } from "@/components/accounts/platform-config";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { usePermissions } from "@/hooks/use-permissions";
-import { TiktokIcon } from "@/components/ui/icons/tiktok";
+import { Link } from "lucide-react";
 
 interface AccountsTableProps {
   accounts: Account[];
@@ -40,16 +37,7 @@ export const AccountsTable: React.FC<AccountsTableProps> = ({
   const { hasPermission } = usePermissions();
 
   const getPlatformIcon = (platform: string) => {
-    switch (platform) {
-      case "Facebook":
-        return <Facebook className="w-5 h-5 text-blue-600" />;
-      case "Youtube":
-        return <Youtube className="w-5 h-5 text-red-600" />;
-      case "Tiktok":
-        return <TiktokIcon className="w-5 h-5 text-black" />;
-      default:
-        return null;
-    }
+    return accountPlatformIcons[platform as AccountPlatform];
   };
 
   return (
