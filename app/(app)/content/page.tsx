@@ -135,7 +135,10 @@ export default function ContentPage() {
         item.idea,
         item.projectId,
         item.contentType,
-        item.imageLinks || []
+        item.imageLinks || [],
+        item.platform,
+        item.createdAt || new Date().toISOString(),
+        item.projectName
       );
       setContentItems((prev) =>
         prev.map((c) => (c.id === item.id ? updated : c))

@@ -277,7 +277,10 @@ export async function approveIdea(
   idea: string,
   projectId: string,
   contentType: string,
-  imageLinks: string[]
+  imageLinks: string[],
+  platform: string[],
+  createdAt: string,
+  projectName: string
 ): Promise<ContentItem> {
   await requirePermission("content.approve");
 
@@ -320,8 +323,11 @@ export async function approveIdea(
           id,
           idea,
           projectId,
+          projectName,
           contentType,
           imageLinks,
+          platform,
+          createdAt,
         },
       }),
     }).catch((webhookError) => {
@@ -341,6 +347,9 @@ export async function approveIdea(
         status: "ai_generating_content",
         approvedBy,
         idea,
+        platform,
+        createdAt,
+        projectName,
       },
       description: `Phê duyệt ý tưởng ${oldData.idea}`,
     });
