@@ -52,6 +52,8 @@ import {
   AIModel,
   statusConfig,
   Platform,
+  VideoPlatform,
+  VIDEO_PLATFORMS,
 } from "@/lib/types";
 import { uploadImageFile, uploadVideoFile } from "@/app/api/cloudinary";
 import { AiRequirementDialog } from "@/components/shared/ai-requirement-dialog";
@@ -74,6 +76,7 @@ import { SectionLabel } from "@/components/ui/section-label";
 import { InfoCard } from "@/components/ui/info-card";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
+import { MultiSelect, Option } from "@/components/ui/multi-select";
 
 interface VideoFormModalProps {
   isOpen: boolean;
@@ -184,6 +187,9 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
     if (editVideo) {
       setFormData({
         ...editVideo,
+        platform: Array.isArray(editVideo.platform)
+          ? (editVideo.platform as VideoPlatform[])
+          : [editVideo.platform as unknown as VideoPlatform],
         expectedPostDate:
           editVideo.postingTime && editVideo.postingTime.includes("/")
             ? editVideo.postingTime.split(" ")[0].split("/").reverse().join("-")
@@ -238,7 +244,8 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
         projectId: formData.projectId,
         id: editVideo?.id,
         require: requirement,
-        platform: formData.platform?.[0] || "Facebook Reels",
+        platform:
+          (formData.platform as VideoPlatform[])?.[0] || "Facebook Reels",
       };
 
       const res = await fetch("/api/webhook/edit-content-text", {
@@ -319,39 +326,43 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
     }));
   };
 
-  const handlePlatformToggle = (platform: string) => {
-    if (!canEditIdeaFields) return; // Prevent toggle if readonly logic fails (though input is hidden)
-    setFormData((prev) => {
-      const isManualMode = prev.idea?.includes("Nội dung được tạo thủ công");
-      const currentPlatforms: any[] = Array.isArray(prev.platform)
-        ? prev.platform
-        : [];
+  // ------------------- XỬ LÝ PLATFORM -------------------
+  const platformOptions: Option[] = VIDEO_PLATFORMS.map((p) => ({
+    label: p,
+    value: p,
+  }));
 
-      let updated;
-      if (currentPlatforms.includes(platform)) {
-        // Deselecting: always allowed
-        updated = currentPlatforms.filter((item) => item !== platform);
-      } else {
-        // Selecting: check mode
-        if (isManualMode) {
-          // Manual mode: Allow only 1 => Select this one, deselect others
-          updated = [platform];
-        } else {
-          // Normal mode: Append
-          updated = [...currentPlatforms, platform];
-        }
-      }
+  const handlePlatformChange = (values: string[]) => {
+    if (!canEditIdeaFields) return;
 
-      return { ...prev, platform: updated };
-    });
+    // Manual Mode Logic Validation
+    const isManual = formData.idea?.includes("Nội dung được tạo thủ công");
+    if (isManual && values.length > 1) {
+      const lastSelected = values[values.length - 1];
+      setFormData((prev) => ({
+        ...prev,
+        platform: [lastSelected as VideoPlatform],
+      }));
+      toast.warning("Chế độ thủ công chỉ cho phép chọn 1 nền tảng.");
+      return;
+    }
+
+    setFormData((prev) => ({
+      ...prev,
+      platform: values as VideoPlatform[],
+    }));
   };
 
   const mapVideoPlatformToAccountPlatform = (
-    videoPlatform: string
+    videoPlatform: VideoPlatform
   ): AccountPlatform | null => {
     if (videoPlatform === "Facebook Reels") return "Facebook";
     if (videoPlatform === "Youtube Shorts") return "Youtube";
     if (videoPlatform === "Tiktok Video") return "Tiktok";
+    if (videoPlatform === "Zalo Video") return "Zalo";
+    if (videoPlatform === "Instagram Reels") return "Instagram";
+    if (videoPlatform === "LinkedIn Video") return "Linkedin";
+    if (videoPlatform === "Threads Video") return "Threads";
     return null;
   };
 
@@ -399,7 +410,21 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
     setIsSubmitting(true);
     try {
       let itemId = editVideo?.id;
-      let itemData = { ...formData };
+      let itemData = {
+        ...formData,
+        platform: formData.platform as VideoPlatform[],
+      };
+
+      // Nếu chọn Đăng ngay, tự động set thời gian là hiện tại
+      if (mode === "now") {
+        const now = new Date();
+        const day = String(now.getDate()).padStart(2, "0");
+        const month = String(now.getMonth() + 1).padStart(2, "0");
+        const year = now.getFullYear();
+        const hours = String(now.getHours()).padStart(2, "0");
+        const minutes = String(now.getMinutes()).padStart(2, "0");
+        itemData.postingTime = `${day}/${month}/${year} ${hours}:${minutes}`;
+      }
 
       // 1. Create or Update Item
       if (itemId) {
@@ -565,42 +590,17 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
                       <SectionLabel className="mb-2 text-indigo-900">
                         Nền tảng
                       </SectionLabel>
-                      <div className="flex flex-wrap gap-3">
-                        {(
-                          [
-                            "Facebook Reels",
-                            "Youtube Shorts",
-                            "Tiktok Video",
-                          ] as Platform[]
-                        ).map((p) => (
-                          <div
-                            key={p}
-                            className={`flex items-center gap-2 p-2 bg-white rounded-lg border border-indigo-200 shadow-sm transition-colors ${
-                              !canEditIdeaFields
-                                ? "bg-slate-100 pointer-events-none"
-                                : "cursor-pointer hover:bg-slate-50"
-                            }`}
-                          >
-                            <Checkbox
-                              id={`p-${p}`}
-                              checked={formData.platform?.includes(p)}
-                              onCheckedChange={() => handlePlatformToggle(p)}
-                              disabled={!canEditIdeaFields}
-                              className="data-[state=checked]:bg-indigo-600 data-[state=checked]:border-indigo-600 disabled:data-[state=checked]:bg-slate-500 disabled:border-slate-300"
-                            />
-                            <Label
-                              htmlFor={`p-${p}`}
-                              className={`text-sm font-medium text-indigo-900 ${
-                                !canEditIdeaFields
-                                  ? "cursor-not-allowed text-slate-500"
-                                  : "cursor-pointer"
-                              }`}
-                            >
-                              {p}
-                            </Label>
-                          </div>
-                        ))}
-                      </div>
+                      <MultiSelect
+                        options={platformOptions}
+                        selected={(formData.platform as string[]) || []}
+                        onChange={handlePlatformChange}
+                        placeholder="Chọn nền tảng"
+                        disabled={!canEditIdeaFields}
+                        className={cn(
+                          "bg-white border-2 border-indigo-200",
+                          !canEditIdeaFields && "bg-slate-100 text-slate-500"
+                        )}
+                      />
                     </div>
 
                     {/* Duration */}
@@ -925,7 +925,12 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
             {/* Right Column */}
             <div className="lg:col-span-7 space-y-6">
               {/* Idea (Moved from Left Column) */}
-              <FeatureCard id="tour-video-idea-input" title="Ý tưởng" icon={FileText} colorTheme="amber">
+              <FeatureCard
+                id="tour-video-idea-input"
+                title="Ý tưởng"
+                icon={FileText}
+                colorTheme="amber"
+              >
                 <div className="space-y-4">
                   <div className="flex items-center space-x-2 mb-2">
                     <Switch

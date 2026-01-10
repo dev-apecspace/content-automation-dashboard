@@ -16,20 +16,24 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Account, AccountPlatform, Project } from "@/lib/types";
+import {
+  ACCOUNT_PLATFORMS_LIST,
+  AccountPlatform,
+  Account,
+  Project,
+} from "@/lib/types";
+import { accountPlatformIcons } from "@/components/accounts/platform-config";
 import { AccountService } from "@/lib/services/account-service";
 import { toast } from "sonner";
 import { getProjects } from "@/lib/api"; // Ensure this exists or mock if needed
 import {
-  Facebook,
-  Youtube,
-  Video,
   Hash,
   User,
   Key,
   CheckCircle,
   Folder,
   Link,
+  Youtube,
 } from "lucide-react"; // Icons
 import { BackgroundStyle } from "../ui/background-style";
 
@@ -170,34 +174,6 @@ export const AccountFormModal: React.FC<AccountFormModalProps> = ({
     }
   };
 
-  const getPlatformIcon = (platform?: string) => {
-    switch (platform) {
-      case "Facebook":
-        return <Facebook className="w-5 h-5 text-blue-600" />;
-      case "Youtube":
-        return <Youtube className="w-5 h-5 text-red-600" />;
-      case "Tiktok":
-        return (
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="w-5 h-5 text-black"
-          >
-            <path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5" />
-          </svg>
-        ); // Using Video icon as placeholder or appropriate one
-      default:
-        return <User className="w-5 h-5" />;
-    }
-  };
-
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="w-[600px] p-0 gap-0 overflow-hidden flex flex-col">
@@ -253,35 +229,13 @@ export const AccountFormModal: React.FC<AccountFormModalProps> = ({
                   <SelectValue placeholder="Chọn nền tảng" />
                 </SelectTrigger>
                 <SelectContent className="rounded-xl border-white/60 bg-white/90 backdrop-blur-xl">
-                  <SelectItem value="Facebook">
-                    <div className="flex items-center gap-2">
-                      <Facebook className="w-5 h-5 text-blue-600" /> Facebook
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="Youtube">
-                    <div className="flex items-center gap-2">
-                      <Youtube className="w-5 h-5 text-red-600" /> Youtube
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="Tiktok">
-                    <div className="flex items-center gap-2">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="24"
-                        height="24"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        className="w-4 h-4 text-black"
-                      >
-                        <path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5" />
-                      </svg>{" "}
-                      Tiktok
-                    </div>
-                  </SelectItem>
+                  {ACCOUNT_PLATFORMS_LIST.map((platform) => (
+                    <SelectItem key={platform} value={platform}>
+                      <div className="flex items-center gap-2">
+                        {accountPlatformIcons[platform]} {platform}
+                      </div>
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

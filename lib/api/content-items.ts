@@ -135,7 +135,7 @@ export async function createContentItem(
     });
   }
 
-  return data;
+  return camelcaseKeys(data || null, { deep: true }) as ContentItem;
 }
 
 export async function updateContentItem(

@@ -153,7 +153,7 @@ export async function updateAccount(
       userId: user.userId,
       oldValues: oldData ? maskAccount(oldData) : undefined,
       newValues: updatedAccount,
-      description: `Cập nhật tài khoản ${updatedAccount.channelName} trên ${updatedAccount.platform}`,
+      description: `Cập nhật tài khoản ${updatedAccount.platform} của ${updatedAccount.channelName}`,
     });
   }
 
@@ -178,7 +178,7 @@ export async function deleteAccount(id: string): Promise<void> {
   if (user) {
     await createActivityLog("delete", "settings", id, {
       userId: user.userId,
-      description: `Xóa tài khoản ${data.channel_name} trên ${data.platform}`,
+      description: `Xóa tài khoản ${data.platform} của ${data.channel_name}`,
     });
   }
 }
