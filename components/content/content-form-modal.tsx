@@ -8,7 +8,7 @@ import {
   updateContentItem,
   createContentItem,
 } from "@/lib/api/content-items";
-import { formatManualPostTimestamp } from "@/lib/utils/date";
+import { formatManualPostTimestamp, formatPostDate } from "@/lib/utils/date";
 import {
   Dialog,
   DialogContent,
@@ -267,17 +267,7 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
   const handlePlatformChange = (values: string[]) => {
     if (!canEditIdeaFields) return;
 
-    // Manual Mode Logic Validation
-    const isManual = formData.idea?.includes("Nội dung được tạo thủ công");
-    if (isManual && values.length > 1) {
-      const lastSelected = values[values.length - 1];
-      setFormData((prev) => ({
-        ...prev,
-        platform: [lastSelected as ContentPlatform],
-      }));
-      toast.warning("Chế độ thủ công chỉ cho phép chọn 1 nền tảng.");
-      return;
-    }
+    // Manual Mode Logic Validation - REMOVED (Allow multi-platform)
 
     setFormData((prev) => ({
       ...prev,
@@ -521,59 +511,119 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
   const handleProcessContent = async (mode: "now" | "schedule") => {
     setIsSubmitting(true);
     try {
-      let itemId = editContent?.id;
-      let itemData = { ...formData };
+      const platforms = formData.platform || [];
+      const isManual = formData.idea?.includes("Nội dung được tạo thủ công");
+      const shouldSplit = isManual && platforms.length > 1;
 
-      // Nếu chọn Đăng ngay, tự động set thời gian là hiện tại
-      if (mode === "now") {
-        const now = new Date();
-        const day = String(now.getDate()).padStart(2, "0");
-        const month = String(now.getMonth() + 1).padStart(2, "0");
-        const year = now.getFullYear();
-        const hours = String(now.getHours()).padStart(2, "0");
-        const minutes = String(now.getMinutes()).padStart(2, "0");
-        itemData.postingTime = `${day}/${month}/${year} ${hours}:${minutes}`;
-      }
+      // Helper to process a single item (Post Now or Schedule)
+      const processSingleItem = async (id: string, itemData: any) => {
+        if (mode === "now") {
+          await postContentNow(id);
+        } else {
+          // 1. Call Schedule Webhook
+          const scheduleRes = await fetch("/api/webhook/schedule-post", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              posting_time: itemData.postingTime,
+              platform: itemData.platform?.[0],
+            }),
+          });
 
-      // 1. Create or Update Item
-      if (itemId) {
-        // Use top-level import functions
-        const updated = await updateContentItem(itemId!, itemData);
-        itemData = updated;
-      } else {
-        const created = await createContentItem(itemData as any);
-        itemId = created.id;
-        itemData = created;
-      }
+          if (!scheduleRes.ok) {
+            throw new Error(
+              "Lỗi gọi webhook lên lịch: " + (await scheduleRes.text())
+            );
+          }
 
-      if (!itemId) throw new Error("Không lấy được ID bài viết");
+          // 2. Approve Content
+          await approveContent(id);
+        }
+      };
 
-      // 2. Action based on mode
-      if (mode === "now") {
-        await postContentNow(itemId);
-        toast.success("Đang đăng bài...");
-      } else {
-        // Schedule => Call Webhook -> Approve Content (set status = content_approved)
+      // Helper to filter accounts for a specific platform
+      const filterAccountsForPlatform = (
+        targetPlatform: ContentPlatform,
+        allAccountIds: string[]
+      ) => {
+        const targetAccountPlatform =
+          mapPlatformToAccountPlatform(targetPlatform);
+        if (!targetAccountPlatform) return [];
 
-        // 1. Call Schedule Webhook
-        const scheduleRes = await fetch("/api/webhook/schedule-post", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            posting_time: itemData.postingTime,
-            platform: itemData.platform?.[0], // Webhook taking single platform for now
-          }),
+        return allAccountIds.filter((accId) => {
+          const acc = accounts.find((a) => a.id === accId);
+          return acc?.platform === targetAccountPlatform;
         });
+      };
 
-        if (!scheduleRes.ok) {
-          throw new Error(
-            "Lỗi gọi webhook lên lịch: " + (await scheduleRes.text())
+      if (shouldSplit) {
+        // --- SPLIT ITEMS LOGIC ---
+        const results: string[] = [];
+
+        for (let i = 0; i < platforms.length; i++) {
+          const p = platforms[i];
+          const filteredAccountIds = filterAccountsForPlatform(
+            p,
+            formData.accountIds || []
           );
+
+          // Clone base data
+          let itemData = {
+            ...formData,
+            platform: [p],
+            accountIds: filteredAccountIds,
+          };
+
+          // Handle "Post Now" time logic
+          if (mode === "now") {
+            itemData.postingTime = formatPostDate();
+          }
+
+          let currentItemId: string | undefined;
+
+          // First platform: Update existing if check editing, else Create
+          if (i === 0 && editContent?.id) {
+            const updated = await updateContentItem(editContent.id, itemData);
+            currentItemId = updated.id;
+          } else {
+            const { id, ...dataToCreate } = itemData as any;
+            const created = await createContentItem(dataToCreate);
+            currentItemId = created.id;
+          }
+
+          if (currentItemId) {
+            await processSingleItem(currentItemId, itemData);
+            results.push(currentItemId);
+          }
         }
 
-        // 2. Approve Content
-        await approveContent(itemId);
-        toast.success("Đã lên lịch đăng bài!");
+        toast.success(`Đã xử lý thành công ${results.length} bài viết!`);
+      } else {
+        // --- EXISTING SINGLE ITEM LOGIC ---
+        let itemId = editContent?.id;
+        let itemData = { ...formData };
+
+        // Nếu chọn Đăng ngay, tự động set thời gian là hiện tại
+        if (mode === "now") {
+          itemData.postingTime = formatPostDate();
+        }
+
+        // 1. Create or Update Item
+        if (itemId) {
+          const updated = await updateContentItem(itemId!, itemData);
+          itemData = updated;
+        } else {
+          const created = await createContentItem(itemData as any);
+          itemId = created.id;
+          itemData = created;
+        }
+
+        if (!itemId) throw new Error("Không lấy được ID bài viết");
+
+        await processSingleItem(itemId, itemData);
+        toast.success(
+          mode === "now" ? "Đang đăng bài..." : "Đã lên lịch đăng bài!"
+        );
       }
 
       // 3. Close & Refresh
@@ -1044,19 +1094,12 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
                             if (checked) {
                               const timestamp = formatManualPostTimestamp();
 
-                              // Logic enforce single platform
-                              let newPlatform = formData.platform;
-                              if (newPlatform && newPlatform.length > 1) {
-                                newPlatform = [newPlatform[0]];
-                                toast.warning(
-                                  "Chế độ thủ công chỉ cho phép chọn 1 nền tảng. Đã tự động giữ lại nền tảng đầu tiên."
-                                );
-                              }
+                              // Logic enforce single platform - REMOVED (Allow multi-platform)
 
                               setFormData((prev) => ({
                                 ...prev,
                                 idea: `${timestamp} - Nội dung được tạo thủ công`,
-                                platform: newPlatform,
+                                // platform: newPlatform, // Keep existing selection
                               }));
                             } else {
                               setFormData((prev) => ({
@@ -1070,8 +1113,7 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
                           htmlFor="manual-mode"
                           className="text-sm font-medium text-slate-700 cursor-pointer"
                         >
-                          Đăng thủ công (Không cần AI tạo nội dung). Lưu ý: Chỉ
-                          được chọn 1 nền tảng.
+                          Đăng thủ công (Không cần AI tạo nội dung).
                         </Label>
                       </div>
 

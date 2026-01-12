@@ -64,7 +64,7 @@ import {
   createVideoItem,
   approveVideoContent,
 } from "@/lib/api/video-items";
-import { formatManualPostTimestamp } from "@/lib/utils/date";
+import { formatManualPostTimestamp, formatPostDate } from "@/lib/utils/date";
 import { toast } from "sonner";
 import { calculateVideoCost } from "@/lib/utils/cost";
 import { AccountService } from "@/lib/services/account-service";
@@ -335,18 +335,6 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
   const handlePlatformChange = (values: string[]) => {
     if (!canEditIdeaFields) return;
 
-    // Manual Mode Logic Validation
-    const isManual = formData.idea?.includes("Nội dung được tạo thủ công");
-    if (isManual && values.length > 1) {
-      const lastSelected = values[values.length - 1];
-      setFormData((prev) => ({
-        ...prev,
-        platform: [lastSelected as VideoPlatform],
-      }));
-      toast.warning("Chế độ thủ công chỉ cho phép chọn 1 nền tảng.");
-      return;
-    }
-
     setFormData((prev) => ({
       ...prev,
       platform: values as VideoPlatform[],
@@ -406,61 +394,98 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
     onSave(formData);
   };
 
+  const processSingleItem = async (
+    id: string | undefined,
+    data: Partial<VideoItem>,
+    mode: "now" | "schedule"
+  ) => {
+    let itemId = id;
+    let itemData = { ...data };
+
+    // Nếu chọn Đăng ngay, tự động set thời gian là hiện tại
+    if (mode === "now") {
+      itemData.postingTime = formatPostDate();
+    }
+
+    // 1. Create or Update Item
+    if (itemId) {
+      const updated = await updateVideoItem(itemId, itemData);
+      itemData = updated;
+    } else {
+      const created = await createVideoItem(itemData as any);
+      itemId = created.id;
+      itemData = created;
+    }
+
+    if (!itemId) throw new Error("Không lấy được ID video");
+
+    // 2. Action based on mode
+    if (mode === "now") {
+      await postVideoNow(itemId);
+    } else {
+      // Schedule
+      const scheduleRes = await fetch("/api/webhook/schedule-post", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          posting_time: itemData.postingTime,
+          platform: itemData.platform?.[0], // Should be single platform now
+        }),
+      });
+
+      if (!scheduleRes.ok) {
+        throw new Error(
+          "Lỗi gọi webhook lên lịch: " + (await scheduleRes.text())
+        );
+      }
+
+      await approveVideoContent(itemId);
+    }
+  };
+
   const handleProcessContent = async (mode: "now" | "schedule") => {
     setIsSubmitting(true);
     try {
-      let itemId = editVideo?.id;
-      let itemData = {
-        ...formData,
-        platform: formData.platform as VideoPlatform[],
-      };
+      const platforms = (formData.platform as VideoPlatform[]) || [];
+      const isManual = formData.idea?.includes("Nội dung được tạo thủ công");
 
-      // Nếu chọn Đăng ngay, tự động set thời gian là hiện tại
-      if (mode === "now") {
-        const now = new Date();
-        const day = String(now.getDate()).padStart(2, "0");
-        const month = String(now.getMonth() + 1).padStart(2, "0");
-        const year = now.getFullYear();
-        const hours = String(now.getHours()).padStart(2, "0");
-        const minutes = String(now.getMinutes()).padStart(2, "0");
-        itemData.postingTime = `${day}/${month}/${year} ${hours}:${minutes}`;
-      }
+      if (isManual && platforms.length > 1) {
+        // --- MULTI-PLATFORM SPLIT LOGIC ---
+        await Promise.all(
+          platforms.map(async (platform, index) => {
+            // For the first platform, reuse the existing ID if editing
+            // For subsequent platforms, force create new (id = undefined)
+            const targetId = index === 0 ? editVideo?.id : undefined;
 
-      // 1. Create or Update Item
-      if (itemId) {
-        const updated = await updateVideoItem(itemId, itemData);
-        itemData = updated;
+            // Filter accounts for THIS platform
+            const targetPlatformType =
+              mapVideoPlatformToAccountPlatform(platform);
+            const targetAccountIds =
+              formData.accountIds?.filter((accId) => {
+                const acc = accounts.find((a) => a.id === accId);
+                return acc?.platform === targetPlatformType;
+              }) || [];
+
+            const singlePlatformData = {
+              ...formData,
+              platform: [platform],
+              accountIds: targetAccountIds,
+            };
+
+            await processSingleItem(targetId, singlePlatformData, mode);
+          })
+        );
+        toast.success(
+          mode === "now"
+            ? "Đã đăng video lên các nền tảng!"
+            : "Đã lên lịch đăng video cho các nền tảng!"
+        );
       } else {
-        const created = await createVideoItem(itemData as any);
-        itemId = created.id;
-        itemData = created;
-      }
-
-      if (!itemId) throw new Error("Không lấy được ID video");
-
-      // 2. Action based on mode
-      if (mode === "now") {
-        await postVideoNow(itemId);
-        toast.success("Đang đăng video...");
-      } else {
-        // Schedule
-        const scheduleRes = await fetch("/api/webhook/schedule-post", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            posting_time: itemData.postingTime,
-            platform: itemData.platform?.[0],
-          }),
-        });
-
-        if (!scheduleRes.ok) {
-          throw new Error(
-            "Lỗi gọi webhook lên lịch: " + (await scheduleRes.text())
-          );
-        }
-
-        await approveVideoContent(itemId);
-        toast.success("Đã lên lịch đăng video!");
+        // --- ORIGINAL SINGLE LOGIC ---
+        await processSingleItem(editVideo?.id, formData, mode);
+        toast.success(
+          mode === "now" ? "Đang đăng video..." : "Đã lên lịch đăng video!"
+        );
       }
 
       handleClose();
