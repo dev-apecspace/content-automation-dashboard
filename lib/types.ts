@@ -4,7 +4,7 @@ export type ContentPlatform =
   | "Zalo Post"
   | "Instagram Post"
   | "Threads"
-  | "X"
+  | "X Tweet"
   | "Linkedin Post"
   | "Youtube Post";
 
@@ -15,7 +15,8 @@ export type VideoPlatform =
   | "Zalo Video"
   | "Instagram Reels"
   | "LinkedIn Video"
-  | "Threads Video";
+  | "Threads Video"
+  | "X Tweet Video";
 
 export const CONTENT_PLATFORMS: ContentPlatform[] = [
   "Facebook Post",
@@ -23,9 +24,9 @@ export const CONTENT_PLATFORMS: ContentPlatform[] = [
   "Zalo Post",
   "Instagram Post",
   "Threads",
-  "X",
+  "X Tweet",
   "Linkedin Post",
-  "Youtube Post",
+  // "Youtube Post",
 ];
 
 export const VIDEO_PLATFORMS: VideoPlatform[] = [
@@ -36,6 +37,7 @@ export const VIDEO_PLATFORMS: VideoPlatform[] = [
   "Instagram Reels",
   "LinkedIn Video",
   "Threads Video",
+  // "X Tweet Video",
 ];
 
 export type Platform = ContentPlatform | VideoPlatform;
@@ -50,12 +52,13 @@ export const platformColors: Record<Platform, string> = {
   "Youtube Post": "bg-red-600 text-white border-red-400",
   "Tiktok Carousel": "bg-black text-white border-gray-600",
   "Tiktok Video": "bg-black text-white border-gray-600",
-  X: "bg-black text-white border-gray-600",
+  "X Tweet": "bg-black text-white border-gray-600",
   "Linkedin Post": "bg-blue-700 text-white border-blue-500",
   "Instagram Reels": "bg-pink-500 text-white border-pink-300",
   "Zalo Video": "bg-blue-400 text-white border-blue-200",
   "LinkedIn Video": "bg-blue-700 text-white border-blue-500",
   "Threads Video": "bg-black text-white border-gray-600",
+  "X Tweet Video": "bg-black text-white border-gray-600",
 };
 
 export type AccountPlatform =

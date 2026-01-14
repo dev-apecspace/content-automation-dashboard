@@ -109,7 +109,7 @@ const mapPlatformToAccountPlatform = (
   if (platform.includes("Instagram")) return "Instagram";
   if (platform.includes("Zalo")) return "Zalo";
   if (platform.includes("Linkedin")) return "Linkedin";
-  if (platform === "X") return "X";
+  if (platform === "X Tweet") return "X";
   return null;
 };
 
@@ -152,6 +152,13 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [postMode, setPostMode] = useState<"schedule" | "now">("schedule"); // Chế độ đăng
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const projectColorMap = React.useMemo(() => {
+    return projects.reduce((acc, p) => {
+      acc[p.id] = p.color;
+      return acc;
+    }, {} as Record<string, string>);
+  }, [projects]);
   const [showGuide, setShowGuide] = useState(false);
   const { startTour, isOpen: isTourOpen } = useTourStore();
 
@@ -960,6 +967,7 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
                                 !canEditContentApprovalFields && !isManualMode
                               }
                               className="bg-white border-2 border-green-200"
+                              projectColors={projectColorMap}
                             />
                           </div>
                         </div>
