@@ -772,31 +772,31 @@ export function ScheduleTab({
 
                             {/* Platform Badge */}
                             <div className="flex flex-wrap gap-1 mt-1 mb-1">
-                              {event.type === "content" ? (
-                                <span
-                                  className={cn(
-                                    "px-1 rounded text-[8px] font-medium border bg-white/50",
-                                    platformColors[
-                                      (item as ContentItem).platform
-                                    ] || "border-gray-300 text-gray-500"
-                                  )}
-                                >
-                                  {(item as ContentItem).platform.split(" ")[0]}
-                                </span>
-                              ) : (
-                                (item as VideoItem).platform.map((p, i) => (
-                                  <span
-                                    key={i}
-                                    className={cn(
-                                      "px-1 rounded text-[8px] font-medium border bg-white/50",
-                                      platformColors[p] ||
-                                        "border-gray-300 text-gray-500"
-                                    )}
-                                  >
-                                    {p.split(" ")[0]}
-                                  </span>
-                                ))
-                              )}
+                              {event.type === "content"
+                                ? (item as ContentItem).platform.map((p, i) => (
+                                    <span
+                                      key={i}
+                                      className={cn(
+                                        "px-1 rounded text-[8px] font-medium border bg-white/50",
+                                        platformColors[p] ||
+                                          "border-gray-300 text-gray-500"
+                                      )}
+                                    >
+                                      {p.split(" ")[0]}
+                                    </span>
+                                  ))
+                                : (item as VideoItem).platform.map((p, i) => (
+                                    <span
+                                      key={i}
+                                      className={cn(
+                                        "px-1 rounded text-[8px] font-medium border bg-white/50",
+                                        platformColors[p] ||
+                                          "border-gray-300 text-gray-500"
+                                      )}
+                                    >
+                                      {p.split(" ")[0]}
+                                    </span>
+                                  ))}
                             </div>
 
                             <span className="opacity-80 block truncate">
