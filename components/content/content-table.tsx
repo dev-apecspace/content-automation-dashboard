@@ -266,7 +266,7 @@ export function ContentTable({
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/40">
+            <tbody className="divide-y divide-slate-200">
               {data.length === 0 ? (
                 <tr>
                   <td
@@ -422,9 +422,9 @@ export function ContentTable({
                                   variant="ghost"
                                   size="icon"
                                   onClick={() => onApproveIdea?.(item)}
-                                  className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                                  className="text-green-600 hover:text-green-700 hover:bg-green-100"
                                 >
-                                  <CheckCircle className="h-4 w-4" />
+                                  <CheckCircle className="size-5" />
                                 </Button>
                               </TooltipTrigger>
                               <TooltipContent>
@@ -443,9 +443,9 @@ export function ContentTable({
                                   variant="ghost"
                                   size="icon"
                                   onClick={() => onApproveContent?.(item)}
-                                  className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                                  className="text-green-600 hover:text-green-700 hover:bg-green-100"
                                 >
-                                  <CheckCircle className="h-4 w-4" />
+                                  <CheckCircle className="size-5" />
                                 </Button>
                               </TooltipTrigger>
                               <TooltipContent>

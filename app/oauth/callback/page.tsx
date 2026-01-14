@@ -14,9 +14,10 @@ function OAuthLogic() {
       // 1. Parse code from URL
       const code = searchParams.get("code");
       const errorParam = searchParams.get("error");
+      const platform = sessionStorage.getItem("oauth_platform") || "google";
 
       if (errorParam) {
-        setError(`Lỗi từ Google: ${errorParam}`);
+        setError(`Lỗi xác thực: ${errorParam}`);
         return;
       }
 
@@ -37,29 +38,52 @@ function OAuthLogic() {
         return;
       }
 
-      setStatus("Đang trao đổi token với Google...");
+      setStatus(`Đang trao đổi token với ${platform}...`);
 
       try {
-        // 3. Exchange code for tokens
-        const res = await fetch("https://oauth2.googleapis.com/token", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/x-www-form-urlencoded",
-          },
-          body: new URLSearchParams({
-            code: code,
-            client_id: clientId,
-            client_secret: clientSecret,
-            redirect_uri: redirectUri,
-            grant_type: "authorization_code",
-          }),
-        });
+        let res;
+        let data;
 
-        const data = await res.json();
+        if (platform === "x") {
+          // X (Twitter) Token Exchange via Server Proxy (to avoid CORS)
+          res = await fetch("/api/auth/twitter/exchange", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              code,
+              clientId,
+              clientSecret,
+              redirectUri,
+              codeVerifier: "challenge",
+            }),
+          });
+        } else {
+          // Google Token Exchange
+          res = await fetch("https://oauth2.googleapis.com/token", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/x-www-form-urlencoded",
+            },
+            body: new URLSearchParams({
+              code: code,
+              client_id: clientId,
+              client_secret: clientSecret,
+              redirect_uri: redirectUri,
+              grant_type: "authorization_code",
+            }),
+          });
+        }
+
+        data = await res.json();
 
         if (!res.ok) {
           throw new Error(
-            data.error_description || data.error || "Lỗi khi lấy token"
+            data.error_description ||
+              data.error ||
+              JSON.stringify(data) ||
+              "Lỗi khi lấy token"
           );
         }
 
@@ -90,6 +114,7 @@ function OAuthLogic() {
         // Cleanup sensitive data
         sessionStorage.removeItem("oauth_client_id");
         sessionStorage.removeItem("oauth_client_secret");
+        sessionStorage.removeItem("oauth_platform");
       }
     }
 
@@ -104,7 +129,7 @@ function OAuthLogic() {
         <>
           <Loader2 className="w-10 h-10 text-blue-600 animate-spin mx-auto" />
           <h1 className="text-xl font-semibold text-slate-800">
-            Xác thực Google OAuth
+            Xác thực OAuth
           </h1>
           <p className="text-slate-500 text-sm">{status}</p>
         </>

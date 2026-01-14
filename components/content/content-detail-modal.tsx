@@ -32,6 +32,7 @@ import {
   Maximize2,
   SquareUser,
   Image,
+  Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { FeatureCard } from "@/components/ui/feature-card";
@@ -95,6 +96,7 @@ export function ContentDetailModal({
 }: ContentDetailModalProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [isSpinning, setIsSpinning] = useState(false);
+  const [deletingPostId, setDeletingPostId] = useState<string | null>(null);
   const [currentItem, setCurrentItem] = useState<ContentItem | null>(
     content ?? item ?? null
   );
@@ -216,7 +218,7 @@ export function ContentDetailModal({
 
   const handleRemovePost = async (post: Post) => {
     if (!confirm("Bạn có chắc chắn muốn xóa bài đăng này?")) return;
-    setIsLoading(true);
+    setDeletingPostId(post.id);
     try {
       const response = await fetch("/api/webhook/remove-post", {
         method: "POST",
@@ -244,7 +246,7 @@ export function ContentDetailModal({
       console.error(error);
       throw error;
     } finally {
-      setIsLoading(false);
+      setDeletingPostId(null);
     }
   };
 
@@ -345,17 +347,19 @@ export function ContentDetailModal({
                   currentItem.contentType ||
                   "Khác"}
               </Badge>
-              <Badge
-                variant="outline"
-                className={cn(
-                  "backdrop-blur-sm px-3 py-1 flex items-center gap-1",
-                  platformColors[currentItem.platform] ||
-                    "bg-slate-50 text-slate-700 border-slate-200"
-                )}
-              >
-                {/* We could use icons here if we want content type icons */}
-                {currentItem.platform}
-              </Badge>
+              {currentItem.platform.map((plat) => (
+                <Badge
+                  key={plat}
+                  variant="outline"
+                  className={cn(
+                    "backdrop-blur-sm px-3 py-1 flex items-center gap-1",
+                    platformColors[plat] ||
+                      "bg-slate-50 text-slate-700 border-slate-200"
+                  )}
+                >
+                  {plat}
+                </Badge>
+              ))}
             </div>
           </div>
         </DialogHeader>
@@ -560,15 +564,22 @@ export function ContentDetailModal({
                               );
                             })()}
 
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-7 w-7 p-0 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-full cursor-pointer"
-                              onClick={() => handleRemovePost(post)}
-                              title="Xóa bài đăng này"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
+                            {post.status !== "removed" && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 w-7 p-0 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-full cursor-pointer"
+                                onClick={() => handleRemovePost(post)}
+                                title="Xóa bài đăng này"
+                                disabled={deletingPostId === post.id}
+                              >
+                                {deletingPostId === post.id ? (
+                                  <Loader2 className="h-4 w-4 animate-spin text-red-500" />
+                                ) : (
+                                  <Trash2 className="h-4 w-4" />
+                                )}
+                              </Button>
+                            )}
                           </div>
                           <div className="flex gap-3 text-xs text-slate-500 font-medium">
                             <span>View: {post.views || 0}</span>

@@ -34,6 +34,7 @@ interface AccountSelectorProps {
   placeholder?: string;
   disabled?: boolean;
   className?: string;
+  projectColors?: Record<string, string>;
 }
 
 export function AccountSelector({
@@ -44,7 +45,19 @@ export function AccountSelector({
   placeholder = "Chọn tài khoản...",
   disabled = false,
   className,
+  projectColors,
 }: AccountSelectorProps) {
+  const platformTextColor: Record<string, string> = {
+    Facebook: "text-blue-600",
+    Youtube: "text-red-600",
+    Tiktok: "text-slate-900",
+    Zalo: "text-blue-500",
+    Instagram: "text-pink-600",
+    Linkedin: "text-blue-700",
+    X: "text-slate-900",
+    Threads: "text-slate-900",
+  };
+
   const [open, setOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -228,7 +241,12 @@ export function AccountSelector({
                       <span className="font-medium text-slate-900">
                         {acc.channelName}
                       </span>
-                      <span className="text-[10px] text-slate-500">
+                      <span
+                        className={cn(
+                          "text-[10px]",
+                          platformTextColor[acc.platform] || "text-slate-500"
+                        )}
+                      >
                         {acc.platform}
                       </span>
                     </div>
@@ -265,12 +283,26 @@ export function AccountSelector({
                       <span className="font-medium text-slate-700">
                         {acc.channelName}
                       </span>
-                      <div className="flex items-center gap-2">
-                        <span className="text-[10px] text-slate-500">
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <span
+                          className={cn(
+                            "text-[10px]",
+                            platformTextColor[acc.platform] || "text-slate-500"
+                          )}
+                        >
                           {acc.platform}
                         </span>
-                        <span className="text-[10px] text-slate-400">•</span>
-                        <span className="text-[10px] text-slate-400 italic">
+                        <span className="text-[10px] text-slate-300">•</span>
+                        <span
+                          className={cn(
+                            "text-[10px] font-medium",
+                            !projectColors?.[acc.projectId || ""] &&
+                              "text-indigo-600"
+                          )}
+                          style={{
+                            color: projectColors?.[acc.projectId || ""],
+                          }}
+                        >
                           {acc.projectName || "Unknown Project"}
                         </span>
                       </div>

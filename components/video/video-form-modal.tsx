@@ -138,6 +138,13 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
   const [postMode, setPostMode] = useState<"schedule" | "now">("schedule");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const projectColorMap = React.useMemo(() => {
+    return projects.reduce((acc, p) => {
+      acc[p.id] = p.color;
+      return acc;
+    }, {} as Record<string, string>);
+  }, [projects]);
+
   // Permissions Logic
   const currentStatus = editVideo?.status || "idea";
   const canEditIdeaFields = currentStatus === "idea";
@@ -351,6 +358,7 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
     if (videoPlatform === "Instagram Reels") return "Instagram";
     if (videoPlatform === "LinkedIn Video") return "Linkedin";
     if (videoPlatform === "Threads Video") return "Threads";
+    if (videoPlatform === "X Tweet Video") return "X";
     return null;
   };
 
@@ -818,6 +826,7 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
                           disabled={
                             !canEditContentApprovalFields && !isManualMode
                           }
+                          projectColors={projectColorMap}
                         />
                       </div>
                     </div>

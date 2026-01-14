@@ -34,6 +34,8 @@ import {
   Folder,
   Link,
   Youtube,
+  Eye,
+  EyeOff,
 } from "lucide-react"; // Icons
 import { BackgroundStyle } from "../ui/background-style";
 
@@ -59,6 +61,7 @@ export const AccountFormModal: React.FC<AccountFormModalProps> = ({
     clientSecret: "",
     isActive: true,
   });
+  const [showToken, setShowToken] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [projects, setProjects] = useState<Project[]>([]);
 
@@ -108,7 +111,19 @@ export const AccountFormModal: React.FC<AccountFormModalProps> = ({
     const left = window.screen.width / 2 - width / 2;
     const top = window.screen.height / 2 - height / 2;
 
-    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${formData.clientId}&redirect_uri=${window.location.origin}/oauth/callback&response_type=code&scope=https://www.googleapis.com/auth/youtube&access_type=offline&prompt=consent`;
+    let authUrl = "";
+    if (formData.platform === "Youtube") {
+      authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${formData.clientId}&redirect_uri=${window.location.origin}/oauth/callback&response_type=code&scope=https://www.googleapis.com/auth/youtube&access_type=offline&prompt=consent`;
+      sessionStorage.setItem("oauth_platform", "google");
+    } else if (formData.platform === "X") {
+      // X (Twitter) OAuth 2.0
+      // Scopes: tweet.read tweet.write users.read offline.access like.read media.write
+      authUrl = `https://twitter.com/i/oauth2/authorize?response_type=code&client_id=${formData.clientId}&redirect_uri=${window.location.origin}/oauth/callback&scope=tweet.read%20tweet.write%20users.read%20offline.access%20like.read%20media.write&state=state&code_challenge=challenge&code_challenge_method=plain`;
+      sessionStorage.setItem("oauth_platform", "x");
+    } else {
+      toast.error("Nền tảng này chưa hỗ trợ lấy token tự động");
+      return;
+    }
 
     const popup = window.open(
       authUrl,
@@ -292,14 +307,14 @@ export const AccountFormModal: React.FC<AccountFormModalProps> = ({
               />
             </div>
 
-            {/* OAuth Fields for Youtube */}
-            {formData.platform === "Youtube" && (
+            {/* OAuth Fields for Youtube & X */}
+            {(formData.platform === "Youtube" || formData.platform === "X") && (
               <>
                 <div className="space-y-2">
                   <Label className="flex items-center gap-2 text-slate-700 font-medium">
                     Client ID{" "}
                     <span className="text-xs text-slate-400 font-normal">
-                      (Youtube)
+                      ({formData.platform})
                     </span>
                   </Label>
                   <Input
@@ -315,7 +330,7 @@ export const AccountFormModal: React.FC<AccountFormModalProps> = ({
                   <Label className="flex items-center gap-2 text-slate-700 font-medium">
                     Client Secret{" "}
                     <span className="text-xs text-slate-400 font-normal">
-                      (Youtube)
+                      ({formData.platform})
                     </span>
                   </Label>
                   <Input
@@ -336,12 +351,13 @@ export const AccountFormModal: React.FC<AccountFormModalProps> = ({
               <Label className="flex items-center justify-between text-slate-700 font-medium">
                 <div className="flex items-center gap-2">
                   <Key className="w-4 h-4 text-gray-500" />
-                  {formData.platform === "Youtube"
+                  {formData.platform === "Youtube" || formData.platform === "X"
                     ? "Refresh Token"
                     : "Access Token"}{" "}
                   <span className="text-red-500">*</span>
                 </div>
-                {formData.platform === "Youtube" && (
+                {(formData.platform === "Youtube" ||
+                  formData.platform === "X") && (
                   <Button
                     type="button"
                     variant="outline"
@@ -349,27 +365,42 @@ export const AccountFormModal: React.FC<AccountFormModalProps> = ({
                     onClick={handleGetOAuthToken}
                     className="h-7 text-xs bg-red-50 text-red-600 hover:bg-red-100 border-red-200"
                   >
-                    <Youtube className="w-3 h-3 mr-1" />
                     Lấy Token
                   </Button>
                 )}
               </Label>
-              <Input
-                type="password"
-                value={formData.token}
-                onChange={(e) =>
-                  setFormData({ ...formData, token: e.target.value })
-                }
-                placeholder={
-                  editAccount
-                    ? "Mã hoá (Nhập để thay đổi)"
-                    : formData.platform === "Youtube"
-                    ? "Refresh Token..."
-                    : "Access Token..."
-                }
-                required={!editAccount} // Required only on create
-                className="bg-white/50 border-white/60 focus:bg-white/80 rounded-xl shadow-sm font-mono text-sm"
-              />
+              <div className="relative">
+                <Input
+                  type={showToken ? "text" : "password"}
+                  value={formData.token}
+                  onChange={(e) =>
+                    setFormData({ ...formData, token: e.target.value })
+                  }
+                  placeholder={
+                    editAccount
+                      ? "Mã hoá (Nhập để thay đổi)"
+                      : formData.platform === "Youtube" ||
+                        formData.platform === "X"
+                      ? "Refresh Token..."
+                      : "Access Token..."
+                  }
+                  required={!editAccount} // Required only on create
+                  className="bg-white/50 border-white/60 focus:bg-white/80 rounded-xl shadow-sm font-mono text-sm pr-10"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-0 top-0 h-full px-3 text-gray-500 hover:text-gray-700"
+                  onClick={() => setShowToken(!showToken)}
+                >
+                  {showToken ? (
+                    <EyeOff className="w-4 h-4" />
+                  ) : (
+                    <Eye className="w-4 h-4" />
+                  )}
+                </Button>
+              </div>
               <p className="text-xs text-slate-500 italic">
                 Token sẽ được mã hoá bảo mật trước khi lưu.
               </p>
