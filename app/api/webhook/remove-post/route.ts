@@ -6,7 +6,7 @@ export async function POST(request: NextRequest) {
   try {
     const { itemId, postId, platform, accountId, postUrl } =
       await request.json();
-
+console.log("============ platform: ", platform)
     const res = await fetch(WEBHOOK_URL, {
       method: "POST",
       headers: {

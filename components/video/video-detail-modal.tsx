@@ -34,6 +34,7 @@ import {
   Maximize2,
   SquareUser,
   Image as ImageIcon,
+  Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { FeatureCard } from "@/components/ui/feature-card";
@@ -91,6 +92,7 @@ export function VideoDetailModal({
 }: VideoDetailModalProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [isSpinning, setIsSpinning] = useState(false);
+  const [deletingPostId, setDeletingPostId] = useState<string | null>(null);
   const [currentItem, setCurrentItem] = useState<VideoItem | null>(
     content ?? item ?? null
   );
@@ -198,8 +200,8 @@ export function VideoDetailModal({
   };
 
   const handleRemovePost = async (post: Post) => {
-    confirm("Bạn có chắc chắn muốn xóa bài đăng này?");
-    setIsLoading(true);
+    if (!confirm("Bạn có chắc chắn muốn xóa bài đăng này?")) return;
+    setDeletingPostId(post.id);
     try {
       const response = await fetch("/api/webhook/remove-post", {
         method: "POST",
@@ -222,12 +224,13 @@ export function VideoDetailModal({
         });
 
         toast.success("Đã xóa bài đăng thành công");
+        updatedItem(); // Ensure item is updated after delete
       }
     } catch (error) {
       console.error(error);
       throw error;
     } finally {
-      setIsLoading(false);
+      setDeletingPostId(null);
     }
   };
 
@@ -554,15 +557,22 @@ export function VideoDetailModal({
                               );
                             })()}
 
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-7 w-7 p-0 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-full cursor-pointer"
-                              onClick={() => handleRemovePost(post)}
-                              title="Xóa bài đăng này"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
+                            {post.status !== "removed" && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 w-7 p-0 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-full cursor-pointer"
+                                onClick={() => handleRemovePost(post)}
+                                title="Xóa bài đăng này"
+                                disabled={deletingPostId === post.id}
+                              >
+                                {deletingPostId === post.id ? (
+                                  <Loader2 className="h-4 w-4 animate-spin text-red-500" />
+                                ) : (
+                                  <Trash2 className="h-4 w-4" />
+                                )}
+                              </Button>
+                            )}
                           </div>
                           <div className="flex gap-3 text-xs text-slate-500 font-medium">
                             <span>Views: {post.views || 0}</span>
