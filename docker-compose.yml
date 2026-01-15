@@ -1,0 +1,27 @@
+
+services:
+  conetent-apec-global:
+    container_name: conetent-apec-global
+    image: conetent-apec-global
+    build:
+      context: .
+      dockerfile: Dockerfile
+
+    env_file:
+      - .env  
+    ports:
+      - "127.0.0.1:3007:3007"
+
+    restart: unless-stopped
+
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3007"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
