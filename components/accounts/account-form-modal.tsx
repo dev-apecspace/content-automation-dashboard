@@ -22,7 +22,7 @@ import {
   Account,
   Project,
 } from "@/lib/types";
-import { accountPlatformIcons } from "@/components/accounts/platform-config";
+import { accountPlatformIcons } from "@/components/shared/platform-icons";
 import { AccountService } from "@/lib/services/account-service";
 import { toast } from "sonner";
 import { getProjects } from "@/lib/api"; // Ensure this exists or mock if needed
