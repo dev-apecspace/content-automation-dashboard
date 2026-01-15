@@ -82,7 +82,7 @@ import { FeatureCard } from "@/components/ui/feature-card";
 import { InfoCard } from "@/components/ui/info-card";
 import { SectionLabel } from "@/components/ui/section-label";
 import { BackgroundStyle } from "@/components/ui/background-style";
-import { cn } from "@/lib/utils";
+import { cn, countCharacters } from "@/lib/utils";
 import { MultiSelect, Option } from "@/components/ui/multi-select";
 
 interface ContentFormModalProps {
@@ -1187,6 +1187,9 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
                       disabled={!canEditContentApprovalFields && !isManualMode}
                       className="bg-slate-50 border-slate-200 resize-none focus:bg-white custom-scrollbar"
                     />
+                    <div className="text-right text-xs text-slate-600  font-medium pt-2">
+                      {countCharacters(formData.caption)} ký tự
+                    </div>
                   </div>
                 </FeatureCard>
 
