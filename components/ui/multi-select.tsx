@@ -103,6 +103,7 @@ export function MultiSelect({
                       variant="secondary"
                       className="bg-slate-100 text-slate-700 hover:bg-slate-200 border-slate-300 gap-1 pr-1 py-0.5"
                     >
+                      {option.icon}
                       {option.label}
                       <div
                         className="rounded-full hover:bg-slate-300 p-0.5 cursor-pointer"

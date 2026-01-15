@@ -3,7 +3,7 @@ export type ContentPlatform =
   | "Tiktok Carousel"
   | "Zalo Post"
   | "Instagram Post"
-  | "Threads"
+  | "Threads Post"
   | "X Tweet"
   | "Linkedin Post"
   | "Youtube Post";
@@ -20,23 +20,23 @@ export type VideoPlatform =
 
 export const CONTENT_PLATFORMS: ContentPlatform[] = [
   "Facebook Post",
+  "Instagram Post",
+  "Threads Post",
   "Tiktok Carousel",
   "Zalo Post",
-  "Instagram Post",
-  "Threads",
   "X Tweet",
   "Linkedin Post",
   // "Youtube Post",
 ];
 
 export const VIDEO_PLATFORMS: VideoPlatform[] = [
-  "Facebook Reels",
   "Youtube Shorts",
+  "Facebook Reels",
+  "Instagram Reels",
+  "Threads Video",
   "Tiktok Video",
   "Zalo Video",
-  "Instagram Reels",
   "LinkedIn Video",
-  "Threads Video",
   // "X Tweet Video",
 ];
 
@@ -46,19 +46,19 @@ export const platformColors: Record<Platform, string> = {
   "Facebook Post": "bg-blue-500 text-blue-100 border-blue-300",
   "Facebook Reels": "bg-blue-100 text-blue-700 border-blue-300",
   "Instagram Post": "bg-pink-500 text-white border-pink-300",
-  Threads: "bg-gray-900 text-white border-gray-600",
-  "Zalo Post": "bg-blue-400 text-white border-blue-200",
+  "Instagram Reels": "bg-pink-500 text-white border-pink-300",
+  "Threads Post": "bg-gray-900 text-white border-gray-600",
+  "Threads Video": "bg-black text-white border-gray-600",
   "Youtube Shorts": "bg-red-500 text-white border-red-300",
   "Youtube Post": "bg-red-600 text-white border-red-400",
   "Tiktok Carousel": "bg-black text-white border-gray-600",
   "Tiktok Video": "bg-black text-white border-gray-600",
   "X Tweet": "bg-black text-white border-gray-600",
-  "Linkedin Post": "bg-blue-700 text-white border-blue-500",
-  "Instagram Reels": "bg-pink-500 text-white border-pink-300",
-  "Zalo Video": "bg-blue-400 text-white border-blue-200",
-  "LinkedIn Video": "bg-blue-700 text-white border-blue-500",
-  "Threads Video": "bg-black text-white border-gray-600",
   "X Tweet Video": "bg-black text-white border-gray-600",
+  "Linkedin Post": "bg-blue-700 text-white border-blue-500",
+  "LinkedIn Video": "bg-blue-700 text-white border-blue-500",
+  "Zalo Post": "bg-blue-400 text-white border-blue-200",
+  "Zalo Video": "bg-blue-400 text-white border-blue-200",
 };
 
 export type AccountPlatform =

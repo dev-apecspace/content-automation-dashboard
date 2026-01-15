@@ -74,9 +74,10 @@ import { BackgroundStyle } from "@/components/ui/background-style";
 import { FeatureCard } from "@/components/ui/feature-card";
 import { SectionLabel } from "@/components/ui/section-label";
 import { InfoCard } from "@/components/ui/info-card";
-import { cn } from "@/lib/utils";
+import { cn, countCharacters } from "@/lib/utils";
 import { format } from "date-fns";
 import { MultiSelect, Option } from "@/components/ui/multi-select";
+import { videoPlatformIcons } from "@/components/shared/platform-icons";
 
 interface VideoFormModalProps {
   isOpen: boolean;
@@ -337,6 +338,7 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
   const platformOptions: Option[] = VIDEO_PLATFORMS.map((p) => ({
     label: p,
     value: p,
+    icon: videoPlatformIcons[p],
   }));
 
   const handlePlatformChange = (values: string[]) => {
@@ -1083,6 +1085,9 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
                   disabled={!canEditContentApprovalFields && !isManualMode}
                   className="bg-white min-h-[200px] disabled:bg-slate-100 disabled:text-slate-500"
                 />
+                <div className="text-right text-xs text-slate-600  font-medium pt-2">
+                  {countCharacters(formData.caption)} ký tự
+                </div>
               </FeatureCard>
 
               {/* Video Media */}
