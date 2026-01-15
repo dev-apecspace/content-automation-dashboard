@@ -77,6 +77,7 @@ import { InfoCard } from "@/components/ui/info-card";
 import { cn, countCharacters } from "@/lib/utils";
 import { format } from "date-fns";
 import { MultiSelect, Option } from "@/components/ui/multi-select";
+import { videoPlatformIcons } from "@/components/shared/platform-icons";
 
 interface VideoFormModalProps {
   isOpen: boolean;
@@ -337,6 +338,7 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
   const platformOptions: Option[] = VIDEO_PLATFORMS.map((p) => ({
     label: p,
     value: p,
+    icon: videoPlatformIcons[p],
   }));
 
   const handlePlatformChange = (values: string[]) => {

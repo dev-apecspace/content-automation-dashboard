@@ -15,7 +15,7 @@ import {
   Account,
   Project,
 } from "@/lib/types";
-import { accountPlatformIcons } from "@/components/accounts/platform-config";
+import { accountPlatformIcons } from "@/components/shared/platform-icons";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { usePermissions } from "@/hooks/use-permissions";

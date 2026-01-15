@@ -84,6 +84,7 @@ import { SectionLabel } from "@/components/ui/section-label";
 import { BackgroundStyle } from "@/components/ui/background-style";
 import { cn, countCharacters } from "@/lib/utils";
 import { MultiSelect, Option } from "@/components/ui/multi-select";
+import { contentPlatformIcons } from "@/components/shared/platform-icons";
 
 interface ContentFormModalProps {
   isOpen: boolean;
@@ -269,6 +270,7 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
   const platformOptions: Option[] = CONTENT_PLATFORMS.map((p) => ({
     label: p,
     value: p,
+    icon: contentPlatformIcons[p],
   }));
 
   const handlePlatformChange = (values: string[]) => {

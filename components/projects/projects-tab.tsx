@@ -22,7 +22,7 @@ import {
   Youtube,
   User,
 } from "lucide-react";
-import { TiktokIcon } from "@/components/ui/icons/tiktok";
+import { TiktokIcon } from "@/components/shared/platform-icons";
 import type {
   Project,
   ContentItem,
