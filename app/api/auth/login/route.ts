@@ -69,8 +69,6 @@ export async function POST(req: NextRequest) {
 
     response.headers.append("Set-Cookie", cookie);
 
-    response.headers.append("Set-Cookie", cookie);
-
     // Log login activity
     await createActivityLog("login", "auth", user.id, {
       userId: user.id,
@@ -85,4 +83,22 @@ export async function POST(req: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+// Handle other methods
+export async function OPTIONS(req: NextRequest) {
+  return new NextResponse(null, {
+    status: 200,
+    headers: {
+      "Allow": "POST, OPTIONS",
+      "Content-Type": "application/json",
+    },
+  });
+}
+
+export async function GET(req: NextRequest) {
+  return NextResponse.json(
+    { error: "Method not allowed" },
+    { status: 405 }
+  );
 }
