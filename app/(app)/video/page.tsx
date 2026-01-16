@@ -167,7 +167,7 @@ export default function VideoPage() {
 
         await createActivityLog("schedule", "video", item.id, {
           userId: "user_1",
-          description: `Lên lịch đăng bài: ${item.idea} vào ${item.postingTime}`,
+          description: `Lên lịch đăng bài: "${item.idea}" vào ${item.postingTime}`,
         });
       }
     } catch (error) {

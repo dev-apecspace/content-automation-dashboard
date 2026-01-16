@@ -205,7 +205,7 @@ export async function updateVideoItem(
       userId: user.userId,
       oldValues: oldData,
       newValues: dbData,
-      description: `Cập nhật video ${oldData.idea}`,
+      description: `Cập nhật video "${oldData.idea}"`,
     });
   }
 
@@ -233,7 +233,7 @@ export async function deleteVideoItem(id: string): Promise<void> {
   if (user && oldData) {
     await createActivityLog("delete", "video", id, {
       userId: user.userId,
-      description: `Xóa video ${oldData.idea}`,
+      description: `Xóa video "${oldData.idea}"`,
     });
   }
 }
@@ -327,7 +327,7 @@ export async function approveVideoIdea(
         approvedBy: user.userId,
         idea,
       },
-      description: `Phê duyệt ý tưởng video ${oldData.idea}`,
+      description: `Phê duyệt ý tưởng video "${oldData.idea}"`,
     });
   }
 
@@ -373,7 +373,7 @@ export async function approveVideoContent(id: string): Promise<VideoItem> {
         status: "content_approved",
         approvedBy: user.userId,
       },
-      description: `Phê duyệt nội dung video ${oldData.idea}`,
+      description: `Phê duyệt nội dung video "${oldData.idea}"`,
     });
   }
 
@@ -434,7 +434,7 @@ export async function postVideoNow(id: string): Promise<VideoItem> {
       userId: user.userId,
       oldValues: oldData,
       newValues: { status: "content_approved", action: "post_now" },
-      description: `Đăng ngay video ${oldData.idea}`,
+      description: `Đăng ngay video "${oldData.idea}"`,
     });
   }
 

@@ -138,6 +138,7 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [postMode, setPostMode] = useState<"schedule" | "now">("schedule");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isVideoUploading, setIsVideoUploading] = useState(false);
 
   const projectColorMap = React.useMemo(() => {
     return projects.reduce((acc, p) => {
@@ -385,10 +386,21 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
   const handleVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
-    const file = files[0];
-    const url = await uploadVideoFile(file);
-    if (url) {
-      setFormData((prev) => ({ ...prev, videoLink: url }));
+
+    setIsVideoUploading(true);
+    try {
+      const file = files[0];
+      const url = await uploadVideoFile(file);
+      if (url) {
+        setFormData((prev) => ({ ...prev, videoLink: url }));
+      }
+    } catch (error) {
+      console.error("Video upload failed:", error);
+      toast.error("Tải video lên thất bại");
+    } finally {
+      setIsVideoUploading(false);
+      // Reset input to allow re-selection
+      e.target.value = "";
     }
   };
 
@@ -1123,10 +1135,16 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
                           document.getElementById("video-upload")?.click()
                         }
                         disabled={
-                          !(canEditIdeaFields || canEditContentApprovalFields)
+                          !(
+                            canEditIdeaFields || canEditContentApprovalFields
+                          ) || isVideoUploading
                         }
                       >
-                        <Upload className="w-4 h-4" />
+                        {isVideoUploading ? (
+                          <RefreshCw className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Upload className="w-4 h-4" />
+                        )}
                       </Button>
                       <input
                         id="video-upload"

@@ -171,7 +171,7 @@ export default function ContentPage() {
         // Tạo activity log cho việc schedule
         await createActivityLog("schedule", "content", item.id, {
           userId: "user_1",
-          description: `Lên lịch đăng bài: ${item.idea} vào ${item.postingTime}`,
+          description: `Lên lịch đăng bài: "${item.idea}" vào ${item.postingTime}`,
         });
       }
     } catch (error) {
