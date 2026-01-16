@@ -153,6 +153,7 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [postMode, setPostMode] = useState<"schedule" | "now">("schedule"); // Chế độ đăng
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isImageUploading, setIsImageUploading] = useState(false);
 
   const projectColorMap = React.useMemo(() => {
     return projects.reduce((acc, p) => {
@@ -289,19 +290,29 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
-    // Upload từng file
-    const newLinks: string[] = [];
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
-      const url = await uploadImageFile(file);
-      if (url) newLinks.push(url);
-    }
+    setIsImageUploading(true);
+    try {
+      // Upload từng file
+      const newLinks: string[] = [];
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const url = await uploadImageFile(file);
+        if (url) newLinks.push(url);
+      }
 
-    if (newLinks.length > 0) {
-      setFormData((prev) => ({
-        ...prev,
-        imageLinks: [...(prev.imageLinks || []), ...newLinks],
-      }));
+      if (newLinks.length > 0) {
+        setFormData((prev) => ({
+          ...prev,
+          imageLinks: [...(prev.imageLinks || []), ...newLinks],
+        }));
+      }
+    } catch (error) {
+      console.error("Upload failed:", error);
+      toast.error("Tải ảnh thất bại");
+    } finally {
+      setIsImageUploading(false);
+      // Reset input value to allow selecting same files again if needed
+      e.target.value = "";
     }
   };
 
@@ -749,8 +760,8 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
                       </div>
 
                       {/* Nền tảng & Loại Content */}
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
+                      <div className="grid grid-cols-5 gap-4">
+                        <div className="col-span-3">
                           <SectionLabel className="mb-1.5 text-indigo-900">
                             Nền tảng
                           </SectionLabel>
@@ -767,7 +778,7 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
                             )}
                           />
                         </div>
-                        <div>
+                        <div className="col-span-2">
                           <SectionLabel className="mb-1.5 text-indigo-900">
                             Loại Content
                           </SectionLabel>
@@ -1263,7 +1274,9 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
                         onChange={handleImageUpload}
                         className="hidden"
                         disabled={
-                          !(canEditIdeaFields || canEditContentApprovalFields)
+                          !(
+                            canEditIdeaFields || canEditContentApprovalFields
+                          ) || isImageUploading
                         }
                       />
                     </div>
@@ -1312,9 +1325,20 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
 
                     {/* Empty State */}
                     {(!formData.imageLinks ||
-                      formData.imageLinks.length === 0) && (
-                      <div className="col-span-full py-8 text-center text-slate-400 italic border border-dashed border-slate-200 rounded-xl bg-slate-50/50">
-                        Chưa có hình ảnh nào
+                      formData.imageLinks.length === 0) &&
+                      !isImageUploading && (
+                        <div className="col-span-full py-8 text-center text-slate-400 italic border border-dashed border-slate-200 rounded-xl bg-slate-50/50">
+                          Chưa có hình ảnh nào
+                        </div>
+                      )}
+
+                    {/* Uploading Skeleton */}
+                    {isImageUploading && (
+                      <div className="relative rounded-xl overflow-hidden border border-slate-200 aspect-video bg-slate-50 flex flex-col items-center justify-center gap-2">
+                        <RefreshCw className="w-6 h-6 text-blue-500 animate-spin" />
+                        <span className="text-xs text-slate-500 font-medium">
+                          Đang tải lên...
+                        </span>
                       </div>
                     )}
                   </div>

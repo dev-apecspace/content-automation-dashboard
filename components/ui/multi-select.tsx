@@ -88,7 +88,7 @@ export function MultiSelect({
             className
           )}
         >
-          <div className="flex flex-wrap gap-1 text-left items-center">
+          <div className="flex-1 flex flex-wrap gap-1 text-left items-center min-w-0">
             {selected.length === 0 && (
               <span className="text-slate-500 font-normal">{placeholder}</span>
             )}
