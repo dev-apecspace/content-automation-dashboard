@@ -105,6 +105,7 @@ export interface Account {
   projectId?: string;
   projectName?: string;
   isActive: boolean;
+  expires_in?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -202,6 +203,17 @@ export interface Schedule {
   createdAt: string;
   updatedAt: string;
   isActive: boolean;
+}
+
+export interface Prompt {
+  id: number;
+  name: string;
+  description?: string;
+  template: string;
+  type: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface Post {
@@ -406,7 +418,8 @@ export type EntityType =
   | "video"
   | "auth"
   | "page"
-  | "security";
+  | "security"
+  | "prompt";
 
 export interface ActivityLog {
   id: number;
@@ -515,5 +528,9 @@ export const entityTypeConfig: Record<
   security: {
     label: "Bảo mật",
     className: "bg-red-700 text-red-100",
+  },
+  prompt: {
+    label: "Prompt",
+    className: "bg-fuchsia-700 text-fuchsia-100",
   },
 };

@@ -131,7 +131,7 @@ export async function createContentItem(
     await createActivityLog("create", "content", data.id, {
       userId: user.userId,
       newValues: data,
-      description: `Tạo nội dung mới ${data.idea}`,
+      description: `Tạo nội dung mới "${data.idea}"`,
     });
   }
 
@@ -195,7 +195,7 @@ export async function updateContentItem(
       userId: user.userId,
       oldValues: oldData,
       newValues: dbData,
-      description: `Cập nhật nội dung ${oldData.idea}`,
+      description: `Cập nhật nội dung "${oldData.idea}"`,
     });
   }
 
@@ -221,7 +221,7 @@ export async function deleteContentItem(id: string): Promise<void> {
   if (user && oldData) {
     await createActivityLog("delete", "content", id, {
       userId: user.userId,
-      description: `Xóa nội dung ${oldData.idea}`,
+      description: `Xóa nội dung "${oldData.idea}"`,
     });
   }
 }
@@ -263,7 +263,7 @@ export async function updateContentStatus(
       userId: user.userId,
       oldValues: oldData,
       newValues: updates,
-      description: `Cập nhật trạng thái nội dung ${oldData.idea} sang ${status}`,
+      description: `Cập nhật trạng thái nội dung "${oldData.idea}" sang ${status}`,
     });
   }
 
@@ -351,7 +351,7 @@ export async function approveIdea(
         createdAt,
         projectName,
       },
-      description: `Phê duyệt ý tưởng ${oldData.idea}`,
+      description: `Phê duyệt ý tưởng "${oldData.idea}"`,
     });
   }
 
@@ -406,7 +406,7 @@ export async function approveContent(
         status: "content_approved",
         approvedBy: finalApprovedBy,
       },
-      description: `Phê duyệt nội dung ${oldData.idea}`,
+      description: `Phê duyệt nội dung "${oldData.idea}"`,
     });
   }
 
@@ -468,7 +468,7 @@ export async function postContentNow(id: string): Promise<ContentItem> {
       userId: user.userId,
       oldValues: oldData,
       newValues: { status: "content_approved", action: "post_now" },
-      description: `Đăng ngay nội dung ${oldData.idea}`,
+      description: `Đăng ngay nội dung "${oldData.idea}"`,
     });
   }
 

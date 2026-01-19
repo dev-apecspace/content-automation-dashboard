@@ -582,11 +582,11 @@ export function ContentDetailModal({
                             )}
                           </div>
                           <div className="flex gap-3 text-xs text-slate-500 font-medium">
-                            <span>View: {post.views || 0}</span>
+                            <span>Likes: {post.reactions || 0}</span>
                             <span className="w-1 h-1 rounded-full bg-slate-300 transform translate-y-2"></span>
-                            <span>Like: {post.reactions || 0}</span>
+                            <span>Cmts: {post.comments || 0}</span>
                             <span className="w-1 h-1 rounded-full bg-slate-300 transform translate-y-2"></span>
-                            <span>Cmt: {post.comments || 0}</span>
+                            <span>Shares: {post.shares || 0}</span>
                           </div>
                         </div>
                       ))}
