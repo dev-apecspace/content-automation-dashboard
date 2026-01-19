@@ -17,13 +17,12 @@ import {
   LogsIcon,
   UserCircle,
   LogOut,
-  Shield,
   ShieldCheck,
   ChevronLeft,
-  PanelLeft,
   Menu,
   Users,
   SquareUser,
+  FilePenLine,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -95,11 +94,17 @@ const menuItems: MenuItem[] = [
     permission: "activity_logs.view",
   },
   {
-    route: "/guide",
-    label: "Hướng dẫn",
-    icon: HelpCircle,
-    permission: "guide.view",
+    route: "/prompts",
+    label: "Prompts",
+    icon: FilePenLine,
+    permission: "prompts.view",
   },
+  // {
+  //   route: "/guide",
+  //   label: "Hướng dẫn",
+  //   icon: HelpCircle,
+  //   permission: "guide.view",
+  // },
   {
     route: "/settings",
     label: "Cài đặt",
@@ -140,13 +145,13 @@ export function Sidebar({
           // Desktop state
           isDesktopOpen
             ? "w-64 lg:translate-x-0"
-            : "w-64 lg:w-20 lg:translate-x-0"
+            : "w-64 lg:w-20 lg:translate-x-0",
         )}
       >
         <div
           className={cn(
             "flex items-center p-5 border-b border-white/10 bg-white/5 transition-all duration-300",
-            isDesktopOpen ? "justify-between" : "justify-center"
+            isDesktopOpen ? "justify-between" : "justify-center",
           )}
         >
           <div className="flex items-center gap-3 overflow-hidden whitespace-nowrap">
@@ -154,7 +159,7 @@ export function Sidebar({
             <span
               className={cn(
                 "text-lg font-bold text-white tracking-wide drop-shadow-md transition-opacity duration-300",
-                isDesktopOpen ? "opacity-100" : "opacity-0 w-0 hidden delay-0"
+                isDesktopOpen ? "opacity-100" : "opacity-0 w-0 hidden delay-0",
               )}
             >
               Content Dashboard
@@ -173,7 +178,7 @@ export function Sidebar({
         <nav
           className={cn(
             "flex-1 p-4 space-y-2 overflow-y-auto scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent",
-            isDesktopOpen ? "min-w-[256px]" : "min-w-[80px]"
+            isDesktopOpen ? "min-w-[256px]" : "min-w-[80px]",
           )}
         >
           {filteredMenuItems.map((item) => (
@@ -185,7 +190,7 @@ export function Sidebar({
                 pathname === item.route
                   ? "bg-blue-600 text-white shadow-lg shadow-blue-500/30"
                   : "text-slate-400 hover:bg-white/5 hover:text-white",
-                !isDesktopOpen && "justify-center"
+                !isDesktopOpen && "justify-center",
               )}
               onClick={onClose}
               title={!isDesktopOpen ? item.label : undefined}
@@ -195,13 +200,13 @@ export function Sidebar({
                   "h-5 w-5 transition-colors duration-200 min-w-[20px]",
                   pathname === item.route
                     ? "text-white"
-                    : "text-slate-500 group-hover:text-blue-300"
+                    : "text-slate-500 group-hover:text-blue-300",
                 )}
               />
               <span
                 className={cn(
                   "font-medium transition-all duration-300 whitespace-nowrap",
-                  isDesktopOpen ? "opacity-100" : "opacity-0 w-0 hidden"
+                  isDesktopOpen ? "opacity-100" : "opacity-0 w-0 hidden",
                 )}
               >
                 {item.label}
@@ -214,7 +219,7 @@ export function Sidebar({
           <div
             className={cn(
               "flex items-center gap-3 transition-all duration-300",
-              isDesktopOpen ? "justify-start" : "justify-center"
+              isDesktopOpen ? "justify-start" : "justify-center",
             )}
           >
             <div className="h-10 w-10 rounded-full bg-gradient-to-br from-indigo-500 to-cyan-500 flex items-center justify-center text-white font-bold shadow-lg shrink-0">
@@ -228,7 +233,7 @@ export function Sidebar({
             <div
               className={cn(
                 "flex-1 min-w-0 overflow-hidden transition-all duration-300",
-                isDesktopOpen ? "opacity-100" : "opacity-0 w-0 hidden"
+                isDesktopOpen ? "opacity-100" : "opacity-0 w-0 hidden",
               )}
             >
               <p className="text-sm font-medium text-white truncate">
@@ -243,7 +248,7 @@ export function Sidebar({
               className={cn(
                 "text-slate-400 hover:text-red-400 hover:bg-red-500/10 shrink-0 cursor-pointer",
                 !isDesktopOpen &&
-                  "hidden group-hover:flex absolute inset-0 bg-black/50 backdrop-blur-sm rounded-xl"
+                  "hidden group-hover:flex absolute inset-0 bg-black/50 backdrop-blur-sm rounded-xl",
               )}
               onClick={async () => {
                 await fetch("/api/auth/logout", { method: "POST" });
@@ -281,14 +286,14 @@ export function Sidebar({
           "active:scale-95",
           "cursor-pointer",
           isDesktopOpen ? "left-[15rem]" : "left-[4rem]",
-          "top-8"
+          "top-8",
         )}
         onClick={onDesktopToggle}
       >
         <ChevronLeft
           className={cn(
             "h-4 w-4 transition-transform duration-300",
-            !isDesktopOpen && "rotate-180"
+            !isDesktopOpen && "rotate-180",
           )}
         />
       </Button>

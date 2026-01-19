@@ -58,6 +58,9 @@ export const AccountsTable: React.FC<AccountsTableProps> = ({
               Trạng thái
             </TableHead>
             <TableHead className="font-semibold text-slate-700">
+              Hết hạn
+            </TableHead>
+            <TableHead className="font-semibold text-slate-700">
               Ngày tạo
             </TableHead>
             <TableHead className="w-[50px]"></TableHead>
@@ -67,7 +70,7 @@ export const AccountsTable: React.FC<AccountsTableProps> = ({
           {accounts.length === 0 ? (
             <TableRow>
               <TableCell
-                colSpan={5}
+                colSpan={6}
                 className="h-24 text-center text-slate-500"
               >
                 Chưa có tài khoản nào được kết nối.
@@ -89,7 +92,7 @@ export const AccountsTable: React.FC<AccountsTableProps> = ({
                     <span
                       style={{
                         backgroundColor: projects.find(
-                          (p) => p.id === account.projectId
+                          (p) => p.id === account.projectId,
                         )?.color
                           ? `${
                               projects.find((p) => p.id === account.projectId)
@@ -99,7 +102,7 @@ export const AccountsTable: React.FC<AccountsTableProps> = ({
                         color: projects.find((p) => p.id === account.projectId)
                           ?.color,
                         borderColor: projects.find(
-                          (p) => p.id === account.projectId
+                          (p) => p.id === account.projectId,
                         )?.color
                           ? `${
                               projects.find((p) => p.id === account.projectId)
@@ -138,7 +141,7 @@ export const AccountsTable: React.FC<AccountsTableProps> = ({
                       "flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold w-fit",
                       account.isActive
                         ? "bg-green-100 text-green-700 border border-green-200"
-                        : "bg-slate-100 text-slate-600 border border-slate-200"
+                        : "bg-slate-100 text-slate-600 border border-slate-200",
                     )}
                   >
                     {account.isActive ? (
@@ -151,6 +154,9 @@ export const AccountsTable: React.FC<AccountsTableProps> = ({
                       </>
                     )}
                   </div>
+                </TableCell>
+                <TableCell className="text-slate-500 text-sm">
+                  {account.expires_in || "-"}
                 </TableCell>
                 <TableCell className="text-slate-500 text-sm">
                   {account.createdAt
