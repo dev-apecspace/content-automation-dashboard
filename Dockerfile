@@ -11,6 +11,14 @@ RUN pnpm install --frozen-lockfile
 
 # ---------- Build ----------
 FROM base AS build
+ARG NEXT_PUBLIC_SUPABASE_URL
+ARG NEXT_PUBLIC_SUPABASE_ANON_KEY
+ARG SUPABASE_SERVICE_ROLE_KEY
+
+ENV NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL
+ENV NEXT_PUBLIC_SUPABASE_ANON_KEY=$NEXT_PUBLIC_SUPABASE_ANON_KEY
+ENV SUPABASE_SERVICE_ROLE_KEY=$SUPABASE_SERVICE_ROLE_KEY
+
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN pnpm build
@@ -21,7 +29,6 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 
-# ?? B?T BU?C CÀI PNPM L?I
 RUN corepack enable && corepack prepare pnpm@9.0.0 --activate
 
 COPY --from=build /app/.next ./.next
