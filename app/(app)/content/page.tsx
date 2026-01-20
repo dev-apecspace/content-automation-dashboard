@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import { ContentTable } from "@/components/content/content-table";
 import { ContentFormModal } from "@/components/content/content-form-modal";
 import { ContentDetailModal } from "@/components/content/content-detail-modal";
+import { ScheduleFormModal } from "@/components/schedule/schedule-form-modal";
+import { MissingScheduleDialog } from "@/components/shared/missing-schedule-dialog";
 import { Button } from "@/components/ui/button";
 import { Plus, BookOpen } from "lucide-react";
 import {
@@ -27,6 +29,8 @@ import type { ContentItem } from "@/lib/types";
 import type { Status } from "@/lib/types";
 import { usePermissions } from "@/hooks/use-permissions";
 import { useRealtimeSubscription } from "@/hooks/use-realtime-subscription";
+import { useScheduleCheck } from "@/hooks/use-schedule-check";
+import type { Schedule, Platform } from "@/lib/types";
 
 export default function ContentPage() {
   const [contentItems, setContentItems] = useState<ContentItem[]>([]);
@@ -46,11 +50,34 @@ export default function ContentPage() {
   const [pageSize, setPageSize] = useState(15);
   const [totalCount, setTotalCount] = useState(0);
 
+  // States for Schedule Check Dialog
+  const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
+  const [scheduleInitialData, setScheduleInitialData] = useState<
+    Partial<Schedule>
+  >({});
+  // Item pending approval while we handle the schedule warning
+  const [pendingApprovalItem, setPendingApprovalItem] =
+    useState<ContentItem | null>(null);
+
+  const {
+    checkMissingSchedules,
+    isWarningOpen,
+    missingPlatforms,
+    openWarning,
+    closeWarning,
+  } = useScheduleCheck();
+
+  const [projects, setProjects] = useState<any[]>([]); // Need projects for schedule modal
+
   const { hasPermission } = usePermissions();
   const { startTour } = useTourStore();
 
   useEffect(() => {
     loadContentItems();
+    // Load projects for schedule modal if needed
+    import("@/lib/api").then(({ getProjects }) => {
+      getProjects().then(setProjects);
+    });
   }, [filterStatus, filterProject, page, pageSize]);
 
   // Subscribe to realtime changes
@@ -127,9 +154,9 @@ export default function ContentPage() {
   };
 
   // Phê duyệt ý tưởng
-  const handleApproveIdea = async (item: ContentItem) => {
-    if (!confirm("Bạn có chắc chắn muốn phê duyệt ý tưởng này?")) return;
 
+  // Phê duyệt ý tưởng Logic Gốc (được gọi sau khi đã pass check)
+  const executeApproveIdea = async (item: ContentItem) => {
     try {
       const updated = await approveIdea(
         item.id,
@@ -149,6 +176,43 @@ export default function ContentPage() {
     } catch (error) {
       toast.error("Phê duyệt ý tưởng thất bại");
       console.error(error);
+    }
+  };
+
+  const handleApproveIdea = async (item: ContentItem) => {
+    // 1. Check schedules
+    const missing = await checkMissingSchedules(item.projectId, item.platform);
+
+    if (missing.length > 0) {
+      setPendingApprovalItem(item);
+      openWarning(missing);
+      return;
+    }
+
+    // 2. No missing schedules -> confirm normally
+    if (!confirm("Bạn có chắc chắn muốn phê duyệt ý tưởng này?")) return;
+    await executeApproveIdea(item);
+  };
+
+  // Callback khi chọn "Tiếp tục" trong dialog cảnh báo
+  const handleContinueApproval = async () => {
+    if (pendingApprovalItem) {
+      await executeApproveIdea(pendingApprovalItem);
+      setPendingApprovalItem(null);
+    }
+  };
+
+  // Callback khi chọn "Thêm lịch" -> mở modal schedule
+  const handleAddSchedule = () => {
+    if (pendingApprovalItem) {
+      setScheduleInitialData({
+        projectId: pendingApprovalItem.projectId,
+        projectName: pendingApprovalItem.projectName,
+        // Pre-select first missing platform if available, else first platform of item
+        platform: missingPlatforms[0] || pendingApprovalItem.platform[0],
+      });
+      setIsScheduleModalOpen(true);
+      closeWarning();
     }
   };
 
@@ -322,6 +386,32 @@ export default function ContentPage() {
         content={selectedContent}
         onEdit={handleEditClick}
         onApproveIdea={handleApproveIdea}
+      />
+
+      <MissingScheduleDialog
+        isOpen={isWarningOpen}
+        onClose={() => {
+          closeWarning();
+          setPendingApprovalItem(null);
+        }}
+        missingPlatforms={missingPlatforms as string[]}
+        onAddSchedule={handleAddSchedule}
+        // onContinue={handleContinueApproval} // Removed to enforce schedule
+      />
+
+      <ScheduleFormModal
+        isOpen={isScheduleModalOpen}
+        onOpenChange={setIsScheduleModalOpen}
+        projects={projects}
+        initialData={scheduleInitialData}
+        onSuccess={() => {
+          // Sau khi thêm lịch thành công, user có thể thử approve lại từ đầu
+          // Hoặc có thể tự động approve luôn?
+          // Ở đây mình cứ đóng modal, để user bấm approve lại cho chắc
+          setPendingApprovalItem(null);
+          closeWarning(); // Đóng warning nếu đang mở (nhưng thực ra flow là warning -> add schedule -> schedule modal open, warning closed or overlapped?)
+          // Logic hợp lý: Warning close ngay khi bấm Add Schedule.
+        }}
       />
     </div>
   );

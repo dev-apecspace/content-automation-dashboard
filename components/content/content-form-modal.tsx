@@ -1408,7 +1408,7 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
                   </div>
 
                   {/* Image Edit Request (Idea Phase) */}
-                  <div className="mt-4 pt-4 border-t border-slate-100">
+                  {/* <div className="mt-4 pt-4 border-t border-slate-100">
                     <SectionLabel className="mb-2">
                       Yêu cầu sửa ảnh (Tùy chọn)
                     </SectionLabel>
@@ -1420,7 +1420,7 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
                       disabled={!canEditIdeaFields}
                       className="bg-white border-slate-200 text-sm disabled:bg-slate-100 disabled:text-slate-500"
                     />
-                  </div>
+                  </div> */}
                 </FeatureCard>
               </div>
             </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -11,14 +11,11 @@ import {
   Trash2,
   List,
   CalendarDays,
-  FileImage,
-  Video,
   RefreshCcw,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   type Schedule,
-  type Platform,
   type Frequency,
   type Project,
   type ContentItem,
@@ -27,21 +24,13 @@ import {
   statusConfig,
 } from "@/lib/types";
 import {
-  createSchedule,
-  updateSchedule,
   deleteSchedule,
-  createActivityLog,
 } from "@/lib/api";
 import { toast } from "sonner";
 import {
   format,
-  startOfMonth,
-  endOfMonth,
-  eachDayOfInterval,
   isSameMonth,
   isSameDay,
-  parseISO,
-  isValid,
 } from "date-fns";
 import { vi } from "date-fns/locale";
 import { usePermissions } from "@/hooks/use-permissions";
@@ -64,14 +53,6 @@ interface ScheduleTabProps {
   isLoading?: boolean;
   onRefresh?: () => void;
 }
-
-const platforms: Platform[] = [
-  "Facebook Post",
-  "Facebook Reels",
-  "Youtube Shorts",
-  "Tiktok Carousel",
-  "Tiktok Video",
-];
 
 const frequencies: Frequency[] = ["Tháng", "Tuần", "Ngày", "3 ngày/lần"];
 
@@ -172,8 +153,10 @@ export function ScheduleTab({
   };
 
   const handleDelete = async (id: string) => {
+    if (!confirm("Bạn có chắc chắn muốn xóa lịch đăng này?")) return;
+    
+    setIsSaving(true);
     try {
-      setIsSaving(true);
       await deleteSchedule(id);
       onUpdate(schedules.filter((s) => s.id !== id));
       toast.success("Đã xóa lịch đăng!");

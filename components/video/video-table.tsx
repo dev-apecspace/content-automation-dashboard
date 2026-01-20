@@ -283,7 +283,7 @@ export function VideoTable({
                     </td>
                     {/* Ý tưởng */}
                     <td
-                      className="p-4 font-medium text-slate-700 max-w-[250px] truncate"
+                      className="p-4 text-sm font-medium text-slate-700 max-w-[250px] truncate"
                       title={item.idea}
                     >
                       {item.idea}
@@ -354,16 +354,22 @@ export function VideoTable({
                     </td>
                     {/* Thời gian đăng */}
                     <td className="p-4 text-sm tracking-tight">
-                      <span
-                        className={cn(
+                      {(() => {
+                        const isItemOverdue =
                           isOverdue(item.postingTime) &&
-                            item.status !== "posted_successfully" &&
-                            item.status !== "post_removed" &&
-                            "text-red-500 font-medium",
-                        )}
-                      >
-                        {item.postingTime || ""}
-                      </span>
+                          item.status !== "posted_successfully" &&
+                          item.status !== "post_removed";
+
+                        return (
+                          <span
+                            className={cn(
+                              isItemOverdue && "text-red-500 font-medium",
+                            )}
+                          >
+                            {isItemOverdue ? "Quá hạn" : item.postingTime || ""}
+                          </span>
+                        );
+                      })()}
                     </td>
                     <td
                       className="p-4"
@@ -400,7 +406,8 @@ export function VideoTable({
 
                         {/* Phê duyệt ý tưởng */}
                         {hasPermission("videos.edit") &&
-                          item.status === "idea" && (
+                          item.status === "idea" &&
+                          !item.idea.includes("Nội dung được tạo thủ công") && (
                             <Button
                               variant="ghost"
                               size="icon"
@@ -414,7 +421,8 @@ export function VideoTable({
 
                         {/* Phê duyệt nội dung */}
                         {hasPermission("videos.edit") &&
-                          item.status === "awaiting_content_approval" && (
+                          item.status === "awaiting_content_approval" &&
+                          !item.idea.includes("Nội dung được tạo thủ công") && (
                             <Button
                               variant="ghost"
                               size="icon"

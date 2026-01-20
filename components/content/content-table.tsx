@@ -313,7 +313,7 @@ export function ContentTable({
                     {/* Ý tưởng */}
                     <td
                       id={index === 0 ? "tour-row-idea" : undefined}
-                      className="p-4 font-medium text-slate-700 max-w-[250px] truncate"
+                      className="p-4 text-sm font-medium text-slate-700 max-w-[250px] truncate"
                       title={item.idea}
                     >
                       {item.idea}
@@ -374,16 +374,22 @@ export function ContentTable({
                       id={index === 0 ? "tour-row-time" : undefined}
                       className="p-4 text-sm tracking-tight"
                     >
-                      <span
-                        className={cn(
+                      {(() => {
+                        const isItemOverdue =
                           isOverdue(item.postingTime) &&
-                            item.status !== "posted_successfully" &&
-                            item.status !== "post_removed" &&
-                            "text-red-500 font-medium",
-                        )}
-                      >
-                        {item.postingTime || ""}
-                      </span>
+                          item.status !== "posted_successfully" &&
+                          item.status !== "post_removed";
+
+                        return (
+                          <span
+                            className={cn(
+                              isItemOverdue && "text-red-500 font-medium",
+                            )}
+                          >
+                            {isItemOverdue ? "Quá hạn" : item.postingTime || ""}
+                          </span>
+                        );
+                      })()}
                     </td>
                     <td className="p-4">
                       <div
@@ -435,7 +441,8 @@ export function ContentTable({
 
                         {/* Phê duyệt ý tưởng */}
                         {hasPermission("content.approve") &&
-                          item.status === "idea" && (
+                          item.status === "idea" &&
+                          !item.idea.includes("Nội dung được tạo thủ công") && (
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <Button
@@ -456,7 +463,8 @@ export function ContentTable({
 
                         {/* Phê duyệt nội dung */}
                         {hasPermission("content.approve") &&
-                          item.status === "awaiting_content_approval" && (
+                          item.status === "awaiting_content_approval" &&
+                          !item.idea.includes("Nội dung được tạo thủ công") && (
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <Button

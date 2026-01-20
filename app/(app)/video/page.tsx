@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import { VideoTable } from "@/components/video/video-table";
 import { VideoFormModal } from "@/components/video/video-form-modal";
 import { VideoDetailModal } from "@/components/video/video-detail-modal";
+import { ScheduleFormModal } from "@/components/schedule/schedule-form-modal";
+import { MissingScheduleDialog } from "@/components/shared/missing-schedule-dialog";
 import { Button } from "@/components/ui/button";
 import {
   getVideoItems,
@@ -15,7 +17,7 @@ import {
   createActivityLog,
 } from "@/lib/api";
 import { toast } from "sonner";
-import type { Status, VideoItem } from "@/lib/types";
+import type { Platform, Status, VideoItem } from "@/lib/types";
 import { useRealtimeSubscription } from "@/hooks/use-realtime-subscription";
 import { videoPageSteps } from "@/lib/tour-steps";
 import { useTourStore } from "@/hooks/use-tour-store";
@@ -25,6 +27,8 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useScheduleCheck } from "@/hooks/use-schedule-check";
+import type { Schedule } from "@/lib/types";
 
 export default function VideoPage() {
   const [videoItems, setVideoItems] = useState<VideoItem[]>([]);
@@ -41,8 +45,31 @@ export default function VideoPage() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(15);
   const [totalCount, setTotalCount] = useState(0);
+  const [projects, setProjects] = useState<any[]>([]);
+
+  // States for Schedule Check Dialog
+  const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
+  const [scheduleInitialData, setScheduleInitialData] = useState<
+    Partial<Schedule>
+  >({});
+  const [pendingApprovalItem, setPendingApprovalItem] =
+    useState<VideoItem | null>(null);
+
+  const {
+    checkMissingSchedules,
+    isWarningOpen,
+    missingPlatforms,
+    openWarning,
+    closeWarning,
+  } = useScheduleCheck();
 
   const { startTour } = useTourStore();
+
+  useEffect(() => {
+    import("@/lib/api").then(({ getProjects }) => {
+      getProjects().then(setProjects);
+    });
+  }, []);
 
   useEffect(() => {
     loadVideoItems();
@@ -111,9 +138,8 @@ export default function VideoPage() {
     }
   };
 
-  const handleApproveIdea = async (item: VideoItem) => {
-    if (!confirm("Bạn có chắc chắn muốn phê duyệt ý tưởng này?")) return;
-
+  // Phê duyệt ý tưởng Logic Gốc (được gọi sau khi đã pass check)
+  const executeApproveIdea = async (item: VideoItem) => {
     try {
       const updated = await approveVideoIdea(
         item.id,
@@ -129,9 +155,45 @@ export default function VideoPage() {
       setVideoItems((prev) =>
         prev.map((v) => (v.id === item.id ? updated : v)),
       );
+      toast.success("Đã phê duyệt ý tưởng!");
     } catch (error) {
       toast.error("Duyệt ý tưởng thất bại");
       console.error(error);
+    }
+  };
+
+  const handleApproveIdea = async (item: VideoItem) => {
+    // 1. Check schedules
+    const missing = await checkMissingSchedules(item.projectId, item.platform);
+
+    if (missing.length > 0) {
+      setPendingApprovalItem(item);
+      openWarning(missing);
+      return;
+    }
+
+    // 2. No missing schedules -> confirm normally
+    if (!confirm("Bạn có chắc chắn muốn phê duyệt ý tưởng này?")) return;
+    await executeApproveIdea(item);
+  };
+
+  const handleContinueApproval = async () => {
+    if (pendingApprovalItem) {
+      await executeApproveIdea(pendingApprovalItem);
+      setPendingApprovalItem(null);
+    }
+  };
+
+  const handleAddSchedule = () => {
+    if (pendingApprovalItem) {
+      setScheduleInitialData({
+        projectId: pendingApprovalItem.projectId,
+        projectName: pendingApprovalItem.projectName,
+        platform:
+          missingPlatforms[0] || (pendingApprovalItem.platform[0] as Platform),
+      });
+      setIsScheduleModalOpen(true);
+      closeWarning();
     }
   };
 
@@ -308,6 +370,28 @@ export default function VideoPage() {
         onOpenChange={setIsDetailModalOpen}
         content={selectedVideo}
         onEdit={handleEditClick}
+      />
+
+      <MissingScheduleDialog
+        isOpen={isWarningOpen}
+        onClose={() => {
+          closeWarning();
+          setPendingApprovalItem(null);
+        }}
+        missingPlatforms={missingPlatforms as string[]}
+        onAddSchedule={handleAddSchedule}
+        // onContinue={handleContinueApproval}
+      />
+
+      <ScheduleFormModal
+        isOpen={isScheduleModalOpen}
+        onOpenChange={setIsScheduleModalOpen}
+        projects={projects}
+        initialData={scheduleInitialData}
+        onSuccess={() => {
+          setPendingApprovalItem(null);
+          closeWarning();
+        }}
       />
     </div>
   );
