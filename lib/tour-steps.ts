@@ -61,6 +61,12 @@ export const contentPageSteps: TourStep[] = [
     placement: "top",
   },
   {
+    targetId: "tour-row-time",
+    title: "Thời gian đăng",
+    description: "AI tự động xếp lịch dựa trên LỊCH ĐĂNG đã thiết lập.",
+    placement: "top",
+  },
+  {
     targetId: "tour-row-actions-cell",
     title: "Hành động nhanh",
     description:
@@ -243,8 +249,7 @@ export const videoFormSteps: TourStep[] = [
   {
     targetId: "tour-video-caption",
     title: "Caption (Mô tả)",
-    description:
-      "Nội dung văn bản sẽ đăng kèm video.",
+    description: "Nội dung văn bản sẽ đăng kèm video.",
     placement: "left",
   },
   {

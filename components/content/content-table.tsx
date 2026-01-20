@@ -223,7 +223,7 @@ export function ContentTable({
                   <RefreshCw
                     className={cn(
                       "h-4 w-4 text-slate-600",
-                      isLoading && "animate-spin"
+                      isLoading && "animate-spin",
                     )}
                   />
                 </Button>
@@ -294,7 +294,7 @@ export function ContentTable({
                           variant="outline"
                           className={cn(
                             "border shadow-sm bg-white/50 backdrop-blur-sm py-1",
-                            statusConfig[item.status].className
+                            statusConfig[item.status].className,
                           )}
                         >
                           {statusConfig[item.status].label}
@@ -341,7 +341,7 @@ export function ContentTable({
                               variant="outline"
                               className={cn(
                                 "border shadow-sm bg-white/50 backdrop-blur-sm",
-                                platformColors[p]
+                                platformColors[p],
                               )}
                             >
                               {p}
@@ -352,7 +352,7 @@ export function ContentTable({
                             variant="outline"
                             className={cn(
                               "border shadow-sm bg-white/50 backdrop-blur-sm",
-                              platformColors[item.platform as Platform]
+                              platformColors[item.platform as Platform],
                             )}
                           >
                             {item.platform}
@@ -361,7 +361,10 @@ export function ContentTable({
                       </div>
                     </td>
                     {/* Thời gian đăng */}
-                    <td className="p-4 text-sm tracking-tight">
+                    <td
+                      id={index === 0 ? "tour-row-time" : undefined}
+                      className="p-4 text-sm tracking-tight"
+                    >
                       <span>{item.postingTime || ""}</span>
                     </td>
                     <td className="p-4">
@@ -369,7 +372,6 @@ export function ContentTable({
                         id={index === 0 ? "tour-row-actions-cell" : undefined}
                         className="flex gap-1 flex-wrap"
                       >
-                        {/* Xem chi tiết */}
                         {/* Xem chi tiết */}
                         <Tooltip>
                           <TooltipTrigger asChild>
@@ -507,17 +509,17 @@ export function ContentTable({
                                     Reactions:{" "}
                                     {(item.posts || []).reduce(
                                       (acc, p) => acc + (p.reactions || 0),
-                                      0
+                                      0,
                                     )}{" "}
                                     • Comments:{" "}
                                     {(item.posts || []).reduce(
                                       (acc, p) => acc + (p.comments || 0),
-                                      0
+                                      0,
                                     )}{" "}
                                     • Shares:{" "}
                                     {(item.posts || []).reduce(
                                       (acc, p) => acc + (p.shares || 0),
-                                      0
+                                      0,
                                     )}
                                   </div>
                                 </div>
