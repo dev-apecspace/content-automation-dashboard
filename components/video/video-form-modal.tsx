@@ -46,6 +46,7 @@ import { useTourStore } from "@/hooks/use-tour-store";
 import { videoFormSteps } from "@/lib/tour-steps";
 import { Badge } from "@/components/ui/badge";
 import { getProjects, getAIModels } from "@/lib/api";
+import { getSchedulesByProjectId } from "@/lib/api/schedules";
 import {
   VideoItem,
   Project,
@@ -57,6 +58,8 @@ import {
 } from "@/lib/types";
 import { uploadImageFile, uploadVideoFile } from "@/app/api/cloudinary";
 import { AiRequirementDialog } from "@/components/shared/ai-requirement-dialog";
+import { ScheduleFormModal } from "@/components/schedule/schedule-form-modal";
+import { MissingScheduleAlert } from "@/components/shared/missing-schedule-alert";
 import {
   getVideoItemById,
   postVideoNow,
@@ -139,12 +142,23 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
   const [postMode, setPostMode] = useState<"schedule" | "now">("schedule");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isVideoUploading, setIsVideoUploading] = useState(false);
+  const [missingSchedulePlatforms, setMissingSchedulePlatforms] = useState<
+    string[]
+  >([]);
+  const [scheduleUpdateTrigger, setScheduleUpdateTrigger] = useState(0);
+  const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
+  const [scheduleInitialData, setScheduleInitialData] = useState<
+    Partial<VideoItem>
+  >({});
 
   const projectColorMap = React.useMemo(() => {
-    return projects.reduce((acc, p) => {
-      acc[p.id] = p.color;
-      return acc;
-    }, {} as Record<string, string>);
+    return projects.reduce(
+      (acc, p) => {
+        acc[p.id] = p.color;
+        return acc;
+      },
+      {} as Record<string, string>,
+    );
   }, [projects]);
 
   // Permissions Logic
@@ -229,7 +243,7 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
 
   const handleEditWithAI = (
     type: "caption" | "schedule" | "image",
-    content?: string
+    content?: string,
   ) => {
     setAiPromptType(type);
     setAiPromptContent(content || "");
@@ -239,7 +253,7 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
   const handleConfirmAiEdit = async (
     requirement: string,
     imageAction?: "create" | "edit",
-    duration?: number
+    duration?: number,
   ) => {
     if (!aiPromptType) return;
 
@@ -312,10 +326,10 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
 
     const duration = formData.videoDuration;
     const videoModel = modelsList.find(
-      (m) => m.modelType === "video" && m.isActive
+      (m) => m.modelType === "video" && m.isActive,
     );
     const audioModel = modelsList.find(
-      (m) => m.modelType === "audio" && m.isActive
+      (m) => m.modelType === "audio" && m.isActive,
     );
 
     return {
@@ -352,7 +366,7 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
   };
 
   const mapVideoPlatformToAccountPlatform = (
-    videoPlatform: VideoPlatform
+    videoPlatform: VideoPlatform,
   ): AccountPlatform | null => {
     if (videoPlatform === "Facebook Reels") return "Facebook";
     if (videoPlatform === "Youtube Shorts") return "Youtube";
@@ -412,6 +426,45 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
     }
   };
 
+  // ------------------- CHECK SCHEDULE LOGIC -------------------
+  useEffect(() => {
+    const checkSchedules = async () => {
+      // Clear warnings if in manual mode or missing required data
+      if (
+        isManualMode ||
+        !formData.projectId ||
+        !formData.platform ||
+        formData.platform.length === 0
+      ) {
+        setMissingSchedulePlatforms([]);
+        return;
+      }
+
+      try {
+        const schedules = await getSchedulesByProjectId(formData.projectId);
+
+        // Find platforms that are selected but NOT in the schedules list
+        // Note: Schedule 'platform' matches 'ContentPlatform' (and VideoPlatform as 'Platform' union)
+        // We need to ensure we compare correctly.
+        const missing = formData.platform.filter(
+          (p) => !schedules.some((s) => s.platform === p && s.isActive),
+        );
+
+        setMissingSchedulePlatforms(missing);
+      } catch (error) {
+        console.error("Error checking schedules:", error);
+      }
+    };
+
+    checkSchedules();
+    checkSchedules();
+  }, [
+    formData.projectId,
+    formData.platform,
+    isManualMode,
+    scheduleUpdateTrigger,
+  ]);
+
   const handleSubmit = () => {
     onSave(formData);
   };
@@ -419,7 +472,7 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
   const processSingleItem = async (
     id: string | undefined,
     data: Partial<VideoItem>,
-    mode: "now" | "schedule"
+    mode: "now" | "schedule",
   ) => {
     let itemId = id;
     let itemData = { ...data };
@@ -457,7 +510,7 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
 
       if (!scheduleRes.ok) {
         throw new Error(
-          "Lỗi gọi webhook lên lịch: " + (await scheduleRes.text())
+          "Lỗi gọi webhook lên lịch: " + (await scheduleRes.text()),
         );
       }
 
@@ -495,18 +548,18 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
             };
 
             await processSingleItem(targetId, singlePlatformData, mode);
-          })
+          }),
         );
         toast.success(
           mode === "now"
             ? "Đã đăng video lên các nền tảng!"
-            : "Đã lên lịch đăng video cho các nền tảng!"
+            : "Đã lên lịch đăng video cho các nền tảng!",
         );
       } else {
         // --- ORIGINAL SINGLE LOGIC ---
         await processSingleItem(editVideo?.id, formData, mode);
         toast.success(
-          mode === "now" ? "Đang đăng video..." : "Đã lên lịch đăng video!"
+          mode === "now" ? "Đang đăng video..." : "Đã lên lịch đăng video!",
         );
       }
 
@@ -568,7 +621,7 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
                     variant="outline"
                     className={cn(
                       "border-slate-200 bg-white text-slate-700 px-2.5 py-0.5 text-xs font-normal",
-                      statusConfig[editVideo.status]?.className
+                      statusConfig[editVideo.status]?.className,
                     )}
                   >
                     {statusConfig[editVideo.status]?.label}
@@ -645,8 +698,20 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
                         disabled={!canEditIdeaFields}
                         className={cn(
                           "bg-white border-2 border-indigo-200",
-                          !canEditIdeaFields && "bg-slate-100 text-slate-500"
+                          !canEditIdeaFields && "bg-slate-100 text-slate-500",
                         )}
+                      />
+
+                      {/* WARNING FOR MISSING SCHEDULES */}
+                      <MissingScheduleAlert
+                        missingPlatforms={missingSchedulePlatforms}
+                        onAddSchedule={() => {
+                          setScheduleInitialData({
+                            projectId: formData.projectId,
+                            platform: (formData.platform as any)?.[0],
+                          });
+                          setIsScheduleModalOpen(true);
+                        }}
                       />
                     </div>
 
@@ -692,7 +757,7 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
                         className={cn(
                           "bg-white/60 p-3 rounded-lg border-2 border-green-200",
                           (!canEditIdeaFields || !isManualMode) &&
-                            "opacity-60 cursor-not-allowed"
+                            "opacity-60 cursor-not-allowed",
                         )}
                       >
                         <Label className="mb-2 block font-medium text-green-900 text-sm">
@@ -750,7 +815,7 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
                                 onClick={() =>
                                   handleEditWithAI(
                                     "schedule",
-                                    formData.postingTime
+                                    formData.postingTime,
                                   )
                                 }
                                 disabled={
@@ -776,7 +841,7 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
                                   }));
                                   updatePostingTime(
                                     e.target.value,
-                                    formData.postingTime?.split(" ")[1] || ""
+                                    formData.postingTime?.split(" ")[1] || "",
                                   );
                                 }}
                                 disabled={
@@ -797,7 +862,7 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
                                 onChange={(e) =>
                                   updatePostingTime(
                                     formData.expectedPostDate || "",
-                                    e.target.value
+                                    e.target.value,
                                   )
                                 }
                                 disabled={
@@ -866,7 +931,7 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
                             <span className="text-slate-500 text-xs">
                               (~
                               {(estimatedCost.total * 26000).toLocaleString(
-                                "vi-VN"
+                                "vi-VN",
                               )}
                               đ)
                             </span>
@@ -984,7 +1049,7 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
                     <Switch
                       id="manual-mode-video"
                       checked={formData.idea?.includes(
-                        "Nội dung được tạo thủ công"
+                        "Nội dung được tạo thủ công",
                       )}
                       onCheckedChange={(checked) => {
                         if (checked) {
@@ -992,7 +1057,7 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
                           setFormData((prev) => {
                             // Enforce single platform if manual mode is enabled
                             const currentPlatforms = Array.isArray(
-                              prev.platform
+                              prev.platform,
                             )
                               ? prev.platform
                               : [];
@@ -1329,7 +1394,7 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
                       "shadow-md text-white px-6 min-w-[140px]",
                       postMode === "now"
                         ? "bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
-                        : "bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+                        : "bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700",
                     )}
                   >
                     {isSubmitting ? (
@@ -1387,6 +1452,25 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
         hasImage={false}
         onConfirm={handleConfirmAiEdit}
         isLoading={isAiLoading}
+      />
+      <AiRequirementDialog
+        isOpen={aiPromptOpen}
+        onClose={() => setAiPromptOpen(false)}
+        type={aiPromptType}
+        initialRequirement={""}
+        hasImage={false}
+        onConfirm={handleConfirmAiEdit}
+        isLoading={isAiLoading}
+      />
+
+      <ScheduleFormModal
+        isOpen={isScheduleModalOpen}
+        onOpenChange={setIsScheduleModalOpen}
+        projects={projects}
+        initialData={scheduleInitialData as any}
+        onSuccess={() => {
+          setScheduleUpdateTrigger((prev) => prev + 1);
+        }}
       />
     </Dialog>
   );
