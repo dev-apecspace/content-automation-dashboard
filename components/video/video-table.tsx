@@ -22,6 +22,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { isOverdue } from "@/lib/utils/date";
 import type { VideoItem, Project } from "@/lib/types";
 import { platformColors, statusConfig, type Status } from "@/lib/types";
 import { useEffect, useState } from "react";
@@ -41,8 +42,8 @@ interface VideoTableProps {
   onApproveContent?: (item: VideoItem) => void;
   onViewImage?: (item: VideoItem) => void;
   onViewPost?: (item: VideoItem) => void;
-  filterStatus: Status | "all";
-  onFilterChange: (status: Status | "all") => void;
+  filterStatus: Status | "all" | "overdue";
+  onFilterChange: (status: Status | "all" | "overdue") => void;
   filterProject: string;
   onProjectFilterChange: (projectId: string) => void;
   onReload?: () => void;
@@ -131,13 +132,21 @@ export function VideoTable({
             </span>
             <Select
               value={filterStatus}
-              onValueChange={(v) => onFilterChange(v as Status | "all")}
+              onValueChange={(v) =>
+                onFilterChange(v as Status | "all" | "overdue")
+              }
             >
               <SelectTrigger className="w-[220px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Tất cả</SelectItem>
+                <SelectItem
+                  value="overdue"
+                  className="text-red-500 font-medium"
+                >
+                  Quá hạn
+                </SelectItem>
                 {allStatuses.map((s) => (
                   <SelectItem key={s} value={s}>
                     {statusConfig[s].label}
@@ -199,7 +208,7 @@ export function VideoTable({
               <RefreshCw
                 className={cn(
                   "h-4 w-4 text-slate-600",
-                  isLoading && "animate-spin"
+                  isLoading && "animate-spin",
                 )}
               />
             </Button>
@@ -266,7 +275,7 @@ export function VideoTable({
                         variant="outline"
                         className={cn(
                           "border shadow-sm bg-white/50 backdrop-blur-sm py-1",
-                          statusConfig[item.status].className
+                          statusConfig[item.status].className,
                         )}
                       >
                         {statusConfig[item.status].label}
@@ -314,7 +323,7 @@ export function VideoTable({
                               variant="outline"
                               className={cn(
                                 "border shadow-sm bg-white/50 backdrop-blur-sm",
-                                platformColors[p]
+                                platformColors[p],
                               )}
                             >
                               {p}
@@ -325,7 +334,7 @@ export function VideoTable({
                             variant="outline"
                             className={cn(
                               "border shadow-sm bg-white/50 backdrop-blur-sm",
-                              platformColors[item.platform]
+                              platformColors[item.platform],
                             )}
                           >
                             {item.platform}
@@ -345,7 +354,16 @@ export function VideoTable({
                     </td>
                     {/* Thời gian đăng */}
                     <td className="p-4 text-sm tracking-tight">
-                      <span>{item.postingTime || ""}</span>
+                      <span
+                        className={cn(
+                          isOverdue(item.postingTime) &&
+                            item.status !== "posted_successfully" &&
+                            item.status !== "post_removed" &&
+                            "text-red-500 font-medium",
+                        )}
+                      >
+                        {item.postingTime || ""}
+                      </span>
                     </td>
                     <td
                       className="p-4"
@@ -437,16 +455,16 @@ export function VideoTable({
                                 item.posts || []
                               ).reduce(
                                 (acc, p) => acc + (p.views || 0),
-                                0
+                                0,
                               )}\nReactions: ${(item.posts || []).reduce(
                                 (acc, p) => acc + (p.reactions || 0),
-                                0
+                                0,
                               )}\nComments: ${(item.posts || []).reduce(
                                 (acc, p) => acc + (p.comments || 0),
-                                0
+                                0,
                               )}\nShares: ${(item.posts || []).reduce(
                                 (acc, p) => acc + (p.shares || 0),
-                                0
+                                0,
                               )}`}
                             >
                               <ExternalLink className="h-4 w-4" />

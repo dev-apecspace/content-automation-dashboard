@@ -63,7 +63,7 @@ export const contentPageSteps: TourStep[] = [
   {
     targetId: "tour-row-time",
     title: "Thời gian đăng",
-    description: "AI tự động xếp lịch dựa trên LỊCH ĐĂNG đã thiết lập.",
+    description: "AI tự động xếp lịch dựa trên LỊCH ĐĂNG đã thiết lập.\n\nNếu hiện màu đỏ nghĩa là đã quá hạn đăng. Vào chỉnh sửa để thay đổi thời gian đăng.",
     placement: "top",
   },
   {

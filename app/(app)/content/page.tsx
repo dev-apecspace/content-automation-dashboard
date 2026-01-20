@@ -36,9 +36,11 @@ export default function ContentPage() {
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [editContent, setEditContent] = useState<ContentItem | null>(null);
   const [selectedContent, setSelectedContent] = useState<ContentItem | null>(
-    null
+    null,
   );
-  const [filterStatus, setFilterStatus] = useState<Status | "all">("all");
+  const [filterStatus, setFilterStatus] = useState<Status | "all" | "overdue">(
+    "all",
+  );
   const [filterProject, setFilterProject] = useState<string>("all");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(15);
@@ -138,10 +140,10 @@ export default function ContentPage() {
         item.imageLinks || [],
         item.platform,
         item.createdAt || new Date().toISOString(),
-        item.projectName
+        item.projectName,
       );
       setContentItems((prev) =>
-        prev.map((c) => (c.id === item.id ? updated : c))
+        prev.map((c) => (c.id === item.id ? updated : c)),
       );
       toast.success("Đã phê duyệt ý tưởng!");
     } catch (error) {
@@ -190,7 +192,7 @@ export default function ContentPage() {
 
       const updated = await approveContent(item.id, "user_1");
       setContentItems((prev) =>
-        prev.map((c) => (c.id === item.id ? updated : c))
+        prev.map((c) => (c.id === item.id ? updated : c)),
       );
     } catch (error) {
       toast.error("Phê duyệt nội dung thất bại");
@@ -205,7 +207,7 @@ export default function ContentPage() {
       if (editContent) {
         const updated = await updateContentItem(editContent.id, data);
         setContentItems((prev) =>
-          prev.map((c) => (c.id === editContent.id ? updated : c))
+          prev.map((c) => (c.id === editContent.id ? updated : c)),
         );
 
         if (updated.postingTime) {

@@ -29,6 +29,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import { isOverdue } from "@/lib/utils/date";
 import type { ContentItem, Platform, Project } from "@/lib/types";
 import { platformColors, statusConfig, type Status } from "@/lib/types";
 import { useEffect, useState } from "react";
@@ -48,8 +49,8 @@ interface ContentTableProps {
   onApproveContent?: (item: ContentItem) => void;
   onViewImage?: (item: ContentItem) => void;
   onViewPost?: (item: ContentItem) => void;
-  filterStatus: Status | "all";
-  onFilterChange: (status: Status | "all") => void;
+  filterStatus: Status | "all" | "overdue";
+  onFilterChange: (status: Status | "all" | "overdue") => void;
   filterProject: string;
   onProjectFilterChange: (projectId: string) => void;
   onReload?: () => void;
@@ -138,13 +139,21 @@ export function ContentTable({
             </span>
             <Select
               value={filterStatus}
-              onValueChange={(v) => onFilterChange(v as Status | "all")}
+              onValueChange={(v) =>
+                onFilterChange(v as Status | "all" | "overdue")
+              }
             >
               <SelectTrigger className="w-[220px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Tất cả</SelectItem>
+                <SelectItem
+                  value="overdue"
+                  className="text-red-500 font-medium"
+                >
+                  Quá hạn
+                </SelectItem>
                 {allStatuses.map((s) => (
                   <SelectItem key={s} value={s}>
                     {statusConfig[s].label}
@@ -365,7 +374,16 @@ export function ContentTable({
                       id={index === 0 ? "tour-row-time" : undefined}
                       className="p-4 text-sm tracking-tight"
                     >
-                      <span>{item.postingTime || ""}</span>
+                      <span
+                        className={cn(
+                          isOverdue(item.postingTime) &&
+                            item.status !== "posted_successfully" &&
+                            item.status !== "post_removed" &&
+                            "text-red-500 font-medium",
+                        )}
+                      >
+                        {item.postingTime || ""}
+                      </span>
                     </td>
                     <td className="p-4">
                       <div

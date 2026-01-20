@@ -34,7 +34,9 @@ export default function VideoPage() {
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [editVideo, setEditVideo] = useState<VideoItem | null>(null);
   const [selectedVideo, setSelectedVideo] = useState<VideoItem | null>(null);
-  const [filterStatus, setFilterStatus] = useState<Status | "all">("all");
+  const [filterStatus, setFilterStatus] = useState<Status | "all" | "overdue">(
+    "all",
+  );
   const [filterProject, setFilterProject] = useState<string>("all");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(15);
@@ -122,10 +124,10 @@ export default function VideoPage() {
         item.platform,
         item.videoDuration,
         item.existingVideoLink,
-        item.imageLink
+        item.imageLink,
       );
       setVideoItems((prev) =>
-        prev.map((v) => (v.id === item.id ? updated : v))
+        prev.map((v) => (v.id === item.id ? updated : v)),
       );
     } catch (error) {
       toast.error("Duyệt ý tưởng thất bại");
@@ -140,7 +142,7 @@ export default function VideoPage() {
 
       const updated = await approveVideoContent(item.id);
       setVideoItems((prev) =>
-        prev.map((v) => (v.id === item.id ? updated : v))
+        prev.map((v) => (v.id === item.id ? updated : v)),
       );
     } catch (error) {
       toast.error("Duyệt nội dung thất bại");
@@ -183,7 +185,7 @@ export default function VideoPage() {
       if (editVideo) {
         const updated = await updateVideoItem(editVideo.id, data);
         setVideoItems((prev) =>
-          prev.map((v) => (v.id === editVideo.id ? updated : v))
+          prev.map((v) => (v.id === editVideo.id ? updated : v)),
         );
 
         if (updated.postingTime) {

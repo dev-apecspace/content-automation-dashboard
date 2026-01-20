@@ -7,7 +7,7 @@ import { requirePermission, getCurrentUser } from "@/lib/auth/permissions";
 import { createActivityLog } from "@/lib/api/activity-logs";
 
 export async function getContentItems(filters?: {
-  status?: Status | "all";
+  status?: Status | "all" | "overdue";
   projectId?: string;
   page?: number;
   pageSize?: number;
@@ -15,7 +15,12 @@ export async function getContentItems(filters?: {
   await requirePermission("content.view");
   let query = supabase.from("content_items").select("*", { count: "exact" });
 
-  if (filters?.status && filters.status !== "all") {
+  if (filters?.status === "overdue") {
+    query = query
+      .lt("posting_time", new Date().toISOString())
+      .neq("status", "posted_successfully")
+      .neq("status", "post_removed");
+  } else if (filters?.status && filters.status !== "all") {
     query = query.eq("status", filters.status);
   }
 
@@ -61,7 +66,7 @@ export async function getContentItems(filters?: {
 }
 
 export async function getContentItemById(
-  id: string
+  id: string,
 ): Promise<ContentItem | null> {
   await requirePermission("content.view");
   const { data, error } = await supabase
@@ -94,7 +99,7 @@ export async function getContentItemById(
 }
 
 export async function createContentItem(
-  content: Omit<ContentItem, "id" | "createdAt" | "updatedAt">
+  content: Omit<ContentItem, "id" | "createdAt" | "updatedAt">,
 ): Promise<ContentItem> {
   await requirePermission("content.create");
   const dbData = {
@@ -140,7 +145,7 @@ export async function createContentItem(
 
 export async function updateContentItem(
   id: string,
-  updates: Partial<ContentItem>
+  updates: Partial<ContentItem>,
 ): Promise<ContentItem> {
   await requirePermission("content.edit");
 
@@ -229,7 +234,7 @@ export async function deleteContentItem(id: string): Promise<void> {
 // Hàm cập nhật trạng thái chung (dùng cho các bước chuyển status)
 export async function updateContentStatus(
   id: string,
-  status: Status
+  status: Status,
 ): Promise<ContentItem> {
   await requirePermission("content.edit");
   const updates: Record<string, any> = {
@@ -280,7 +285,7 @@ export async function approveIdea(
   imageLinks: string[],
   platform: string[],
   createdAt: string,
-  projectName: string
+  projectName: string,
 ): Promise<ContentItem> {
   await requirePermission("content.approve");
 
@@ -361,7 +366,7 @@ export async function approveIdea(
 // Phê duyệt nội dung (từ awaiting_content_approval → content_approved)
 export async function approveContent(
   id: string,
-  approvedBy?: string
+  approvedBy?: string,
 ): Promise<ContentItem> {
   await requirePermission("content.approve");
 
