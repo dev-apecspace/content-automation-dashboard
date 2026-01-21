@@ -32,6 +32,12 @@ export default function AccountsPage() {
   const [selectedPlatform, setSelectedPlatform] = useState<
     AccountPlatform | "all"
   >("all");
+  const [selectedStatus, setSelectedStatus] = useState<
+    "all" | "active" | "inactive"
+  >("all");
+  const [selectedExpiry, setSelectedExpiry] = useState<
+    "all" | "has_expiry" | "no_expiry"
+  >("all");
 
   const fetchAccounts = async () => {
     setIsLoading(true);
@@ -80,12 +86,23 @@ export default function AccountsPage() {
     fetchAccounts();
   };
 
+  const uniquePlatforms = Array.from(
+    new Set(accounts.map((acc) => acc.platform)),
+  );
+
   const filteredAccounts = accounts.filter((acc) => {
     const matchesProject =
       selectedProject === "all" || acc.projectId === selectedProject;
     const matchesPlatform =
       selectedPlatform === "all" || acc.platform === selectedPlatform;
-    return matchesProject && matchesPlatform;
+    const matchesStatus =
+      selectedStatus === "all" ||
+      (selectedStatus === "active" ? acc.isActive : !acc.isActive);
+    const matchesExpiry =
+      selectedExpiry === "all" ||
+      (selectedExpiry === "has_expiry" ? !!acc.expires_in : !acc.expires_in);
+
+    return matchesProject && matchesPlatform && matchesStatus && matchesExpiry;
   });
 
   return (
@@ -137,9 +154,11 @@ export default function AccountsPage() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Tất cả nền tảng</SelectItem>
-            <SelectItem value="Facebook">Facebook</SelectItem>
-            <SelectItem value="Youtube">Youtube</SelectItem>
-            <SelectItem value="Tiktok">Tiktok</SelectItem>
+            {uniquePlatforms.map((platform) => (
+              <SelectItem key={platform} value={platform}>
+                {platform}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
 
@@ -156,6 +175,34 @@ export default function AccountsPage() {
             ))}
           </SelectContent>
         </Select>
+
+        <Select
+          value={selectedStatus}
+          onValueChange={(val: any) => setSelectedStatus(val)}
+        >
+          <SelectTrigger className="w-[180px] bg-white/60 border-white/40 rounded-lg focus:ring-indigo-100">
+            <SelectValue placeholder="Trạng thái" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tất cả trạng thái</SelectItem>
+            <SelectItem value="active">Active</SelectItem>
+            <SelectItem value="inactive">Inactive</SelectItem>
+          </SelectContent>
+        </Select>
+
+        {/* <Select
+          value={selectedExpiry}
+          onValueChange={(val: any) => setSelectedExpiry(val)}
+        >
+          <SelectTrigger className="w-[180px] bg-white/60 border-white/40 rounded-lg focus:ring-indigo-100">
+            <SelectValue placeholder="Thời hạn" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tất cả thời hạn</SelectItem>
+            <SelectItem value="has_expiry">Có thời hạn</SelectItem>
+            <SelectItem value="no_expiry">Không thời hạn</SelectItem>
+          </SelectContent>
+        </Select> */}
       </div>
 
       <div className="flex-1 overflow-auto custom-scrollbar pb-6">

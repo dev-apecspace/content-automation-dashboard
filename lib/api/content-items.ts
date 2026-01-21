@@ -7,7 +7,7 @@ import { requirePermission, getCurrentUser } from "@/lib/auth/permissions";
 import { createActivityLog } from "@/lib/api/activity-logs";
 
 export async function getContentItems(filters?: {
-  status?: Status | "all";
+  status?: Status | "all" | "overdue";
   projectId?: string;
   page?: number;
   pageSize?: number;
@@ -15,7 +15,12 @@ export async function getContentItems(filters?: {
   await requirePermission("content.view");
   let query = supabase.from("content_items").select("*", { count: "exact" });
 
-  if (filters?.status && filters.status !== "all") {
+  if (filters?.status === "overdue") {
+    query = query
+      .lt("posting_time", new Date().toISOString())
+      .neq("status", "posted_successfully")
+      .neq("status", "post_removed");
+  } else if (filters?.status && filters.status !== "all") {
     query = query.eq("status", filters.status);
   }
 
@@ -61,7 +66,7 @@ export async function getContentItems(filters?: {
 }
 
 export async function getContentItemById(
-  id: string
+  id: string,
 ): Promise<ContentItem | null> {
   await requirePermission("content.view");
   const { data, error } = await supabase
@@ -94,7 +99,7 @@ export async function getContentItemById(
 }
 
 export async function createContentItem(
-  content: Omit<ContentItem, "id" | "createdAt" | "updatedAt">
+  content: Omit<ContentItem, "id" | "createdAt" | "updatedAt">,
 ): Promise<ContentItem> {
   await requirePermission("content.create");
   const dbData = {
@@ -131,7 +136,7 @@ export async function createContentItem(
     await createActivityLog("create", "content", data.id, {
       userId: user.userId,
       newValues: data,
-      description: `Tạo nội dung mới ${data.idea}`,
+      description: `Tạo nội dung mới "${data.idea}"`,
     });
   }
 
@@ -140,7 +145,7 @@ export async function createContentItem(
 
 export async function updateContentItem(
   id: string,
-  updates: Partial<ContentItem>
+  updates: Partial<ContentItem>,
 ): Promise<ContentItem> {
   await requirePermission("content.edit");
 
@@ -195,7 +200,7 @@ export async function updateContentItem(
       userId: user.userId,
       oldValues: oldData,
       newValues: dbData,
-      description: `Cập nhật nội dung ${oldData.idea}`,
+      description: `Cập nhật nội dung "${oldData.idea}"`,
     });
   }
 
@@ -221,7 +226,7 @@ export async function deleteContentItem(id: string): Promise<void> {
   if (user && oldData) {
     await createActivityLog("delete", "content", id, {
       userId: user.userId,
-      description: `Xóa nội dung ${oldData.idea}`,
+      description: `Xóa nội dung "${oldData.idea}"`,
     });
   }
 }
@@ -229,7 +234,7 @@ export async function deleteContentItem(id: string): Promise<void> {
 // Hàm cập nhật trạng thái chung (dùng cho các bước chuyển status)
 export async function updateContentStatus(
   id: string,
-  status: Status
+  status: Status,
 ): Promise<ContentItem> {
   await requirePermission("content.edit");
   const updates: Record<string, any> = {
@@ -263,7 +268,7 @@ export async function updateContentStatus(
       userId: user.userId,
       oldValues: oldData,
       newValues: updates,
-      description: `Cập nhật trạng thái nội dung ${oldData.idea} sang ${status}`,
+      description: `Cập nhật trạng thái nội dung "${oldData.idea}" sang ${status}`,
     });
   }
 
@@ -280,7 +285,7 @@ export async function approveIdea(
   imageLinks: string[],
   platform: string[],
   createdAt: string,
-  projectName: string
+  projectName: string,
 ): Promise<ContentItem> {
   await requirePermission("content.approve");
 
@@ -351,7 +356,7 @@ export async function approveIdea(
         createdAt,
         projectName,
       },
-      description: `Phê duyệt ý tưởng ${oldData.idea}`,
+      description: `Phê duyệt ý tưởng "${oldData.idea}"`,
     });
   }
 
@@ -361,7 +366,7 @@ export async function approveIdea(
 // Phê duyệt nội dung (từ awaiting_content_approval → content_approved)
 export async function approveContent(
   id: string,
-  approvedBy?: string
+  approvedBy?: string,
 ): Promise<ContentItem> {
   await requirePermission("content.approve");
 
@@ -406,7 +411,7 @@ export async function approveContent(
         status: "content_approved",
         approvedBy: finalApprovedBy,
       },
-      description: `Phê duyệt nội dung ${oldData.idea}`,
+      description: `Phê duyệt nội dung "${oldData.idea}"`,
     });
   }
 
@@ -468,7 +473,7 @@ export async function postContentNow(id: string): Promise<ContentItem> {
       userId: user.userId,
       oldValues: oldData,
       newValues: { status: "content_approved", action: "post_now" },
-      description: `Đăng ngay nội dung ${oldData.idea}`,
+      description: `Đăng ngay nội dung "${oldData.idea}"`,
     });
   }
 

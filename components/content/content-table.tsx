@@ -29,6 +29,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import { isOverdue } from "@/lib/utils/date";
 import type { ContentItem, Platform, Project } from "@/lib/types";
 import { platformColors, statusConfig, type Status } from "@/lib/types";
 import { useEffect, useState } from "react";
@@ -48,8 +49,8 @@ interface ContentTableProps {
   onApproveContent?: (item: ContentItem) => void;
   onViewImage?: (item: ContentItem) => void;
   onViewPost?: (item: ContentItem) => void;
-  filterStatus: Status | "all";
-  onFilterChange: (status: Status | "all") => void;
+  filterStatus: Status | "all" | "overdue";
+  onFilterChange: (status: Status | "all" | "overdue") => void;
   filterProject: string;
   onProjectFilterChange: (projectId: string) => void;
   onReload?: () => void;
@@ -138,13 +139,21 @@ export function ContentTable({
             </span>
             <Select
               value={filterStatus}
-              onValueChange={(v) => onFilterChange(v as Status | "all")}
+              onValueChange={(v) =>
+                onFilterChange(v as Status | "all" | "overdue")
+              }
             >
               <SelectTrigger className="w-[220px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Tất cả</SelectItem>
+                <SelectItem
+                  value="overdue"
+                  className="text-red-500 font-medium"
+                >
+                  Quá hạn
+                </SelectItem>
                 {allStatuses.map((s) => (
                   <SelectItem key={s} value={s}>
                     {statusConfig[s].label}
@@ -223,7 +232,7 @@ export function ContentTable({
                   <RefreshCw
                     className={cn(
                       "h-4 w-4 text-slate-600",
-                      isLoading && "animate-spin"
+                      isLoading && "animate-spin",
                     )}
                   />
                 </Button>
@@ -294,7 +303,7 @@ export function ContentTable({
                           variant="outline"
                           className={cn(
                             "border shadow-sm bg-white/50 backdrop-blur-sm py-1",
-                            statusConfig[item.status].className
+                            statusConfig[item.status].className,
                           )}
                         >
                           {statusConfig[item.status].label}
@@ -304,7 +313,7 @@ export function ContentTable({
                     {/* Ý tưởng */}
                     <td
                       id={index === 0 ? "tour-row-idea" : undefined}
-                      className="p-4 font-medium text-slate-700 max-w-[250px] truncate"
+                      className="p-4 text-sm font-medium text-slate-700 max-w-[250px] truncate"
                       title={item.idea}
                     >
                       {item.idea}
@@ -341,7 +350,7 @@ export function ContentTable({
                               variant="outline"
                               className={cn(
                                 "border shadow-sm bg-white/50 backdrop-blur-sm",
-                                platformColors[p]
+                                platformColors[p],
                               )}
                             >
                               {p}
@@ -352,7 +361,7 @@ export function ContentTable({
                             variant="outline"
                             className={cn(
                               "border shadow-sm bg-white/50 backdrop-blur-sm",
-                              platformColors[item.platform as Platform]
+                              platformColors[item.platform as Platform],
                             )}
                           >
                             {item.platform}
@@ -361,15 +370,32 @@ export function ContentTable({
                       </div>
                     </td>
                     {/* Thời gian đăng */}
-                    <td className="p-4 text-sm tracking-tight">
-                      <span>{item.postingTime || ""}</span>
+                    <td
+                      id={index === 0 ? "tour-row-time" : undefined}
+                      className="p-4 text-sm tracking-tight"
+                    >
+                      {(() => {
+                        const isItemOverdue =
+                          isOverdue(item.postingTime) &&
+                          item.status !== "posted_successfully" &&
+                          item.status !== "post_removed";
+
+                        return (
+                          <span
+                            className={cn(
+                              isItemOverdue && "text-red-500 font-medium",
+                            )}
+                          >
+                            {isItemOverdue ? "Quá hạn" : item.postingTime || ""}
+                          </span>
+                        );
+                      })()}
                     </td>
                     <td className="p-4">
                       <div
                         id={index === 0 ? "tour-row-actions-cell" : undefined}
                         className="flex gap-1 flex-wrap"
                       >
-                        {/* Xem chi tiết */}
                         {/* Xem chi tiết */}
                         <Tooltip>
                           <TooltipTrigger asChild>
@@ -415,7 +441,8 @@ export function ContentTable({
 
                         {/* Phê duyệt ý tưởng */}
                         {hasPermission("content.approve") &&
-                          item.status === "idea" && (
+                          item.status === "idea" &&
+                          !item.idea.includes("Nội dung được tạo thủ công") && (
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <Button
@@ -436,7 +463,8 @@ export function ContentTable({
 
                         {/* Phê duyệt nội dung */}
                         {hasPermission("content.approve") &&
-                          item.status === "awaiting_content_approval" && (
+                          item.status === "awaiting_content_approval" &&
+                          !item.idea.includes("Nội dung được tạo thủ công") && (
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <Button
@@ -507,17 +535,17 @@ export function ContentTable({
                                     Reactions:{" "}
                                     {(item.posts || []).reduce(
                                       (acc, p) => acc + (p.reactions || 0),
-                                      0
+                                      0,
                                     )}{" "}
                                     • Comments:{" "}
                                     {(item.posts || []).reduce(
                                       (acc, p) => acc + (p.comments || 0),
-                                      0
+                                      0,
                                     )}{" "}
                                     • Shares:{" "}
                                     {(item.posts || []).reduce(
                                       (acc, p) => acc + (p.shares || 0),
-                                      0
+                                      0,
                                     )}
                                   </div>
                                 </div>
