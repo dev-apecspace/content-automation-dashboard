@@ -21,6 +21,7 @@ ENV SUPABASE_SERVICE_ROLE_KEY=$SUPABASE_SERVICE_ROLE_KEY
 
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+COPY .env .env
 RUN pnpm build
 
 # ---------- Runtime ----------
@@ -29,6 +30,7 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 
+# ?? B?T BU?C C�I PNPM L?I
 RUN corepack enable && corepack prepare pnpm@9.0.0 --activate
 
 COPY --from=build /app/.next ./.next
