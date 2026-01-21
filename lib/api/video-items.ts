@@ -7,7 +7,7 @@ import { requirePermission, getCurrentUser } from "@/lib/auth/permissions";
 import { createActivityLog } from "@/lib/api/activity-logs";
 
 export async function getVideoItems(filters?: {
-  status?: Status | "all";
+  status?: Status | "all" | "overdue";
   projectId?: string;
   platform?: Platform;
   page?: number;
@@ -16,7 +16,12 @@ export async function getVideoItems(filters?: {
   await requirePermission("videos.view");
   let query = supabase.from("video_items").select("*", { count: "exact" });
 
-  if (filters?.status && filters.status !== "all") {
+  if (filters?.status === "overdue") {
+    query = query
+      .lt("posting_time", new Date().toISOString())
+      .neq("status", "posted_successfully")
+      .neq("status", "post_removed");
+  } else if (filters?.status && filters.status !== "all") {
     query = query.eq("status", filters.status);
   }
 
@@ -98,7 +103,7 @@ export async function getVideoItemById(id: string): Promise<VideoItem | null> {
 }
 
 export async function createVideoItem(
-  video: Omit<VideoItem, "id" | "createdAt" | "updatedAt">
+  video: Omit<VideoItem, "id" | "createdAt" | "updatedAt">,
 ): Promise<VideoItem> {
   await requirePermission("videos.create");
   const dbData = {
@@ -149,7 +154,7 @@ export async function createVideoItem(
 
 export async function updateVideoItem(
   id: string,
-  updates: Partial<VideoItem>
+  updates: Partial<VideoItem>,
 ): Promise<VideoItem> {
   await requirePermission("videos.edit");
 
@@ -205,7 +210,7 @@ export async function updateVideoItem(
       userId: user.userId,
       oldValues: oldData,
       newValues: dbData,
-      description: `Cập nhật video ${oldData.idea}`,
+      description: `Cập nhật video "${oldData.idea}"`,
     });
   }
 
@@ -233,14 +238,14 @@ export async function deleteVideoItem(id: string): Promise<void> {
   if (user && oldData) {
     await createActivityLog("delete", "video", id, {
       userId: user.userId,
-      description: `Xóa video ${oldData.idea}`,
+      description: `Xóa video "${oldData.idea}"`,
     });
   }
 }
 
 export async function updateVideoStatus(
   id: string,
-  status: Status
+  status: Status,
 ): Promise<VideoItem> {
   await requirePermission("videos.edit");
   return updateVideoItem(id, { status });
@@ -256,7 +261,7 @@ export async function approveVideoIdea(
   platform: Platform[],
   videoDuration?: number,
   existingVideoLink?: string,
-  imageLink?: string
+  imageLink?: string,
 ): Promise<VideoItem> {
   await requirePermission("videos.edit");
   const user = await getCurrentUser();
@@ -327,7 +332,7 @@ export async function approveVideoIdea(
         approvedBy: user.userId,
         idea,
       },
-      description: `Phê duyệt ý tưởng video ${oldData.idea}`,
+      description: `Phê duyệt ý tưởng video "${oldData.idea}"`,
     });
   }
 
@@ -373,7 +378,7 @@ export async function approveVideoContent(id: string): Promise<VideoItem> {
         status: "content_approved",
         approvedBy: user.userId,
       },
-      description: `Phê duyệt nội dung video ${oldData.idea}`,
+      description: `Phê duyệt nội dung video "${oldData.idea}"`,
     });
   }
 
@@ -434,7 +439,7 @@ export async function postVideoNow(id: string): Promise<VideoItem> {
       userId: user.userId,
       oldValues: oldData,
       newValues: { status: "content_approved", action: "post_now" },
-      description: `Đăng ngay video ${oldData.idea}`,
+      description: `Đăng ngay video "${oldData.idea}"`,
     });
   }
 

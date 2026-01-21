@@ -58,11 +58,14 @@ import {
   BookOpen,
 } from "lucide-react";
 import { getProjects, getAIModels } from "@/lib/api";
+import { getSchedulesByProjectId } from "@/lib/api/schedules";
+import { ScheduleFormModal } from "@/components/schedule/schedule-form-modal";
 import { AccountService } from "@/lib/services/account-service";
 import { useTourStore } from "@/hooks/use-tour-store";
 import { contentFormSteps } from "@/lib/tour-steps";
 import {
   ContentItem,
+  Schedule,
   contentTypes,
   Project,
   AIModel,
@@ -85,6 +88,7 @@ import { BackgroundStyle } from "@/components/ui/background-style";
 import { cn, countCharacters } from "@/lib/utils";
 import { MultiSelect, Option } from "@/components/ui/multi-select";
 import { contentPlatformIcons } from "@/components/shared/platform-icons";
+import { MissingScheduleAlert } from "@/components/shared/missing-schedule-alert";
 
 interface ContentFormModalProps {
   isOpen: boolean;
@@ -101,7 +105,7 @@ interface ContentFormModalProps {
 // ==================== HELPER ====================
 
 const mapPlatformToAccountPlatform = (
-  platform: string
+  platform: string,
 ): AccountPlatform | null => {
   if (platform.includes("Facebook")) return "Facebook";
   if (platform.includes("Youtube")) return "Youtube";
@@ -153,12 +157,24 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [postMode, setPostMode] = useState<"schedule" | "now">("schedule"); // Chế độ đăng
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isImageUploading, setIsImageUploading] = useState(false);
+  const [missingSchedulePlatforms, setMissingSchedulePlatforms] = useState<
+    string[]
+  >([]);
+  const [scheduleUpdateTrigger, setScheduleUpdateTrigger] = useState(0);
+  const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
+  const [scheduleInitialData, setScheduleInitialData] = useState<
+    Partial<Schedule>
+  >({});
 
   const projectColorMap = React.useMemo(() => {
-    return projects.reduce((acc, p) => {
-      acc[p.id] = p.color;
-      return acc;
-    }, {} as Record<string, string>);
+    return projects.reduce(
+      (acc, p) => {
+        acc[p.id] = p.color;
+        return acc;
+      },
+      {} as Record<string, string>,
+    );
   }, [projects]);
   const [showGuide, setShowGuide] = useState(false);
   const { startTour, isOpen: isTourOpen } = useTourStore();
@@ -289,19 +305,29 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
-    // Upload từng file
-    const newLinks: string[] = [];
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
-      const url = await uploadImageFile(file);
-      if (url) newLinks.push(url);
-    }
+    setIsImageUploading(true);
+    try {
+      // Upload từng file
+      const newLinks: string[] = [];
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const url = await uploadImageFile(file);
+        if (url) newLinks.push(url);
+      }
 
-    if (newLinks.length > 0) {
-      setFormData((prev) => ({
-        ...prev,
-        imageLinks: [...(prev.imageLinks || []), ...newLinks],
-      }));
+      if (newLinks.length > 0) {
+        setFormData((prev) => ({
+          ...prev,
+          imageLinks: [...(prev.imageLinks || []), ...newLinks],
+        }));
+      }
+    } catch (error) {
+      console.error("Upload failed:", error);
+      toast.error("Tải ảnh thất bại");
+    } finally {
+      setIsImageUploading(false);
+      // Reset input value to allow selecting same files again if needed
+      e.target.value = "";
     }
   };
 
@@ -319,7 +345,7 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
     setFormData((prev) => ({
       ...prev,
       imageLinks: (prev.imageLinks || []).filter(
-        (_, index) => index !== indexToRemove
+        (_, index) => index !== indexToRemove,
       ),
     }));
   };
@@ -357,7 +383,7 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
     if (!canEditIdeaFields && !canEditContentApprovalFields) return null;
 
     const imageModel = modelsList.find(
-      (m) => m.modelType === "image" && m.isActive
+      (m) => m.modelType === "image" && m.isActive,
     );
 
     if (!imageModel) return null;
@@ -395,10 +421,48 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
     }
   };
 
+  // ------------------- CHECK SCHEDULE LOGIC -------------------
+  useEffect(() => {
+    const checkSchedules = async () => {
+      // Clear warnings if in manual mode or missing required data
+      if (
+        isManualMode ||
+        !formData.projectId ||
+        !formData.platform ||
+        formData.platform.length === 0
+      ) {
+        setMissingSchedulePlatforms([]);
+        return;
+      }
+
+      try {
+        const schedules = await getSchedulesByProjectId(formData.projectId);
+
+        // Find platforms that are selected but NOT in the schedules list
+        // Note: Schedule 'platform' matches 'ContentPlatform' types
+        const missing = formData.platform.filter(
+          (p) => !schedules.some((s) => s.platform === p && s.isActive),
+        );
+
+        setMissingSchedulePlatforms(missing);
+      } catch (error) {
+        console.error("Error checking schedules:", error);
+      }
+    };
+
+    checkSchedules();
+    checkSchedules();
+  }, [
+    formData.projectId,
+    formData.platform,
+    isManualMode,
+    scheduleUpdateTrigger,
+  ]);
+
   // ------------------- GỌI AI CHỈNH SỬA (OPEN DIALOG) -------------------
   const handleEditWithAI = (
     type: "caption" | "schedule" | "image",
-    content?: string
+    content?: string,
   ) => {
     setAiPromptType(type);
     setAiPromptContent(content || "");
@@ -408,7 +472,7 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
   const handleConfirmAiEdit = async (
     requirement: string,
     imageAction?: "create" | "edit",
-    duration?: number
+    duration?: number,
   ) => {
     if (!aiPromptType) return;
 
@@ -541,7 +605,7 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
 
           if (!scheduleRes.ok) {
             throw new Error(
-              "Lỗi gọi webhook lên lịch: " + (await scheduleRes.text())
+              "Lỗi gọi webhook lên lịch: " + (await scheduleRes.text()),
             );
           }
 
@@ -553,7 +617,7 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
       // Helper to filter accounts for a specific platform
       const filterAccountsForPlatform = (
         targetPlatform: ContentPlatform,
-        allAccountIds: string[]
+        allAccountIds: string[],
       ) => {
         const targetAccountPlatform =
           mapPlatformToAccountPlatform(targetPlatform);
@@ -573,7 +637,7 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
           const p = platforms[i];
           const filteredAccountIds = filterAccountsForPlatform(
             p,
-            formData.accountIds || []
+            formData.accountIds || [],
           );
 
           // Clone base data
@@ -631,7 +695,7 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
 
         await processSingleItem(itemId, itemData);
         toast.success(
-          mode === "now" ? "Đang đăng bài..." : "Đã lên lịch đăng bài!"
+          mode === "now" ? "Đang đăng bài..." : "Đã lên lịch đăng bài!",
         );
       }
 
@@ -682,7 +746,7 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
                       variant="outline"
                       className={cn(
                         "border-slate-200 bg-white text-slate-700 px-2.5 py-0.5 text-xs font-normal",
-                        statusConfig[editContent.status].className
+                        statusConfig[editContent.status].className,
                       )}
                     >
                       {statusConfig[editContent.status].label}
@@ -748,51 +812,62 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
                         </Select>
                       </div>
 
-                      {/* Nền tảng & Loại Content */}
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <SectionLabel className="mb-1.5 text-indigo-900">
-                            Nền tảng
-                          </SectionLabel>
-                          <MultiSelect
-                            options={platformOptions}
-                            selected={(formData.platform as string[]) || []}
-                            onChange={handlePlatformChange}
-                            placeholder="Chọn nền tảng"
-                            disabled={!canEditIdeaFields}
-                            className={cn(
-                              "bg-white border-2 border-indigo-200",
-                              !canEditIdeaFields &&
-                                "bg-slate-100 text-slate-500"
-                            )}
-                          />
-                        </div>
-                        <div>
-                          <SectionLabel className="mb-1.5 text-indigo-900">
-                            Loại Content
-                          </SectionLabel>
-                          <Select
-                            value={formData.contentType}
-                            onValueChange={(v) =>
-                              setFormData((prev) => ({
-                                ...prev,
-                                contentType: v,
-                              }))
-                            }
-                            disabled={!canEditIdeaFields}
-                          >
-                            <SelectTrigger className="bg-white border-indigo-200 text-indigo-900 focus:ring-indigo-500/20 disabled:bg-slate-100 disabled:text-slate-500">
-                              <SelectValue placeholder="Loại" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {contentTypes.map((type) => (
-                                <SelectItem key={type.value} value={type.value}>
-                                  {type.label}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
+                      {/* Nền tảng */}
+                      <div>
+                        <SectionLabel className="mb-1.5 text-indigo-900">
+                          Nền tảng
+                        </SectionLabel>
+                        <MultiSelect
+                          options={platformOptions}
+                          selected={(formData.platform as string[]) || []}
+                          onChange={handlePlatformChange}
+                          placeholder="Chọn nền tảng"
+                          disabled={!canEditIdeaFields}
+                          className={cn(
+                            "bg-white border-2 border-indigo-200",
+                            !canEditIdeaFields && "bg-slate-100 text-slate-500",
+                          )}
+                        />
+
+                        {/* WARNING FOR MISSING SCHEDULES */}
+                        <MissingScheduleAlert
+                          missingPlatforms={missingSchedulePlatforms}
+                          onAddSchedule={() => {
+                            setScheduleInitialData({
+                              projectId: formData.projectId,
+                              platform: formData.platform?.[0], // Default to first selected, user can change
+                            });
+                            setIsScheduleModalOpen(true);
+                          }}
+                        />
+                      </div>
+
+                      {/* Loại Content */}
+                      <div>
+                        <SectionLabel className="mb-1.5 text-indigo-900">
+                          Loại Content
+                        </SectionLabel>
+                        <Select
+                          value={formData.contentType}
+                          onValueChange={(v) =>
+                            setFormData((prev) => ({
+                              ...prev,
+                              contentType: v,
+                            }))
+                          }
+                          disabled={!canEditIdeaFields}
+                        >
+                          <SelectTrigger className="bg-white border-indigo-200 text-indigo-900 focus:ring-indigo-500/20 disabled:bg-slate-100 disabled:text-slate-500">
+                            <SelectValue placeholder="Loại" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {contentTypes.map((type) => (
+                              <SelectItem key={type.value} value={type.value}>
+                                {type.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
                     </div>
 
@@ -809,7 +884,7 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
                         className={cn(
                           "bg-white/60 p-3 rounded-lg border-2 border-green-200",
                           (!canEditIdeaFields || !isManualMode) &&
-                            "opacity-60 cursor-not-allowed"
+                            "opacity-60 cursor-not-allowed",
                         )}
                       >
                         <Label className="mb-2 block font-medium text-green-900 text-sm">
@@ -871,7 +946,7 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
                                 onClick={() =>
                                   handleEditWithAI(
                                     "schedule",
-                                    formData.postingTime
+                                    formData.postingTime,
                                   )
                                 }
                                 disabled={
@@ -897,7 +972,7 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
                                   }));
                                   updatePostingTime(
                                     e.target.value,
-                                    formData.postingTime?.split(" ")[1] || ""
+                                    formData.postingTime?.split(" ")[1] || "",
                                   );
                                 }}
                                 disabled={
@@ -916,7 +991,7 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
                                 onChange={(e) =>
                                   updatePostingTime(
                                     formData.expectedPostDate || "",
-                                    e.target.value
+                                    e.target.value,
                                   )
                                 }
                                 disabled={
@@ -1051,7 +1126,7 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
                         <div className="font-medium text-slate-900 truncate text-sm">
                           {editContent.createdAt
                             ? new Date(
-                                editContent.createdAt
+                                editContent.createdAt,
                               ).toLocaleDateString("vi-VN")
                             : "-"}
                         </div>
@@ -1068,7 +1143,7 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
                         <div className="font-medium text-slate-900 truncate text-sm">
                           {editContent.updatedAt
                             ? new Date(
-                                editContent.updatedAt
+                                editContent.updatedAt,
                               ).toLocaleDateString("vi-VN")
                             : "-"}
                         </div>
@@ -1098,7 +1173,7 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
                         <Switch
                           id="manual-mode"
                           checked={formData.idea?.includes(
-                            "Nội dung được tạo thủ công"
+                            "Nội dung được tạo thủ công",
                           )}
                           onCheckedChange={(checked) => {
                             if (checked) {
@@ -1263,7 +1338,9 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
                         onChange={handleImageUpload}
                         className="hidden"
                         disabled={
-                          !(canEditIdeaFields || canEditContentApprovalFields)
+                          !(
+                            canEditIdeaFields || canEditContentApprovalFields
+                          ) || isImageUploading
                         }
                       />
                     </div>
@@ -1312,15 +1389,26 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
 
                     {/* Empty State */}
                     {(!formData.imageLinks ||
-                      formData.imageLinks.length === 0) && (
-                      <div className="col-span-full py-8 text-center text-slate-400 italic border border-dashed border-slate-200 rounded-xl bg-slate-50/50">
-                        Chưa có hình ảnh nào
+                      formData.imageLinks.length === 0) &&
+                      !isImageUploading && (
+                        <div className="col-span-full py-8 text-center text-slate-400 italic border border-dashed border-slate-200 rounded-xl bg-slate-50/50">
+                          Chưa có hình ảnh nào
+                        </div>
+                      )}
+
+                    {/* Uploading Skeleton */}
+                    {isImageUploading && (
+                      <div className="relative rounded-xl overflow-hidden border border-slate-200 aspect-video bg-slate-50 flex flex-col items-center justify-center gap-2">
+                        <RefreshCw className="w-6 h-6 text-blue-500 animate-spin" />
+                        <span className="text-xs text-slate-500 font-medium">
+                          Đang tải lên...
+                        </span>
                       </div>
                     )}
                   </div>
 
                   {/* Image Edit Request (Idea Phase) */}
-                  <div className="mt-4 pt-4 border-t border-slate-100">
+                  {/* <div className="mt-4 pt-4 border-t border-slate-100">
                     <SectionLabel className="mb-2">
                       Yêu cầu sửa ảnh (Tùy chọn)
                     </SectionLabel>
@@ -1332,7 +1420,7 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
                       disabled={!canEditIdeaFields}
                       className="bg-white border-slate-200 text-sm disabled:bg-slate-100 disabled:text-slate-500"
                     />
-                  </div>
+                  </div> */}
                 </FeatureCard>
               </div>
             </div>
@@ -1407,7 +1495,7 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
                       "shadow-md text-white px-6 min-w-[140px]",
                       postMode === "now"
                         ? "bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
-                        : "bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+                        : "bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700",
                     )}
                   >
                     {isSubmitting ? (
@@ -1458,6 +1546,16 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
         hasImage={!!formData.imageLinks}
         onConfirm={handleConfirmAiEdit}
         isLoading={isAiLoading}
+      />
+
+      <ScheduleFormModal
+        isOpen={isScheduleModalOpen}
+        onOpenChange={setIsScheduleModalOpen}
+        projects={projects}
+        initialData={scheduleInitialData}
+        onSuccess={() => {
+          setScheduleUpdateTrigger((prev) => prev + 1);
+        }}
       />
     </>
   );

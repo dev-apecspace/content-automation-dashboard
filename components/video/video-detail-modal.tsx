@@ -94,7 +94,7 @@ export function VideoDetailModal({
   const [isSpinning, setIsSpinning] = useState(false);
   const [deletingPostId, setDeletingPostId] = useState<string | null>(null);
   const [currentItem, setCurrentItem] = useState<VideoItem | null>(
-    content ?? item ?? null
+    content ?? item ?? null,
   );
   const [modelsList, setModelsList] = useState<AIModel[]>([]);
   const [costLogs, setCostLogs] = useState<CostLog[]>([]);
@@ -292,7 +292,7 @@ export function VideoDetailModal({
                 variant="outline"
                 className={cn(
                   "border-slate-200 bg-white text-slate-700 px-3 py-1",
-                  statusConfig[currentItem.status].className
+                  statusConfig[currentItem.status].className,
                 )}
               >
                 {statusConfig[currentItem.status].label}
@@ -321,7 +321,7 @@ export function VideoDetailModal({
                       className={cn(
                         "backdrop-blur-sm px-3 py-1 flex items-center gap-1",
                         platformColors[p] ||
-                          "bg-slate-50 text-slate-700 border-slate-200"
+                          "bg-slate-50 text-slate-700 border-slate-200",
                       )}
                     >
                       {p}
@@ -380,7 +380,7 @@ export function VideoDetailModal({
                       <div className="flex flex-wrap gap-2 mt-1">
                         {allAccounts
                           .filter((acc) =>
-                            (currentItem.accountIds || []).includes(acc.id)
+                            (currentItem.accountIds || []).includes(acc.id),
                           )
                           .map((acc) => (
                             <Button
@@ -435,7 +435,7 @@ export function VideoDetailModal({
                         <span className="text-slate-500 text-sm">
                           (~
                           {(estimatedCost.total * 26000).toLocaleString(
-                            "vi-VN"
+                            "vi-VN",
                           )}
                           đ)
                         </span>
@@ -450,7 +450,7 @@ export function VideoDetailModal({
                                 <span>
                                   $
                                   {estimatedCost.breakdown.generateCost.toFixed(
-                                    3
+                                    3,
                                   )}
                                 </span>
                               </div>
@@ -465,7 +465,7 @@ export function VideoDetailModal({
                                     estimatedCost.breakdown.details.video
                                       .editCount,
                                     estimatedCost.breakdown.details.audio
-                                      .editCount
+                                      .editCount,
                                   )}{" "}
                                   lần):
                                 </span>
@@ -514,7 +514,7 @@ export function VideoDetailModal({
                           <div className="flex items-center justify-between gap-2">
                             {(() => {
                               const account = allAccounts.find(
-                                (a) => a.id === post.accountId
+                                (a) => a.id === post.accountId,
                               );
                               return (
                                 <span className="font-semibold text-sm text-slate-900 flex-1 truncate">
@@ -926,27 +926,29 @@ export function VideoDetailModal({
           </Button>
 
           <div className="flex gap-2">
-            {currentItem.status === "idea" && (
-              <Button
-                onClick={() => onApprove?.(currentItem)}
-                disabled={isLoading}
-                className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-white border-none shadow-lg shadow-cyan-500/20"
-              >
-                <CheckCircle className="h-4 w-4 mr-2" />
-                {isLoading ? "Đang duyệt..." : "Duyệt ý tưởng"}
-              </Button>
-            )}
+            {currentItem.status === "idea" &&
+              !currentItem.idea.includes("Nội dung được tạo thủ công") && (
+                <Button
+                  onClick={() => onApprove?.(currentItem)}
+                  disabled={isLoading}
+                  className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-white border-none shadow-lg shadow-cyan-500/20"
+                >
+                  <CheckCircle className="h-4 w-4 mr-2" />
+                  {isLoading ? "Đang duyệt..." : "Duyệt ý tưởng"}
+                </Button>
+              )}
 
-            {currentItem.status === "awaiting_content_approval" && (
-              <Button
-                onClick={() => onApprove?.(currentItem)}
-                disabled={isLoading}
-                className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white border-none shadow-lg shadow-emerald-500/20"
-              >
-                <CheckCircle className="h-4 w-4 mr-2" />
-                {isLoading ? "Đang duyệt..." : "Duyệt video"}
-              </Button>
-            )}
+            {currentItem.status === "awaiting_content_approval" &&
+              !currentItem.idea.includes("Nội dung được tạo thủ công") && (
+                <Button
+                  onClick={() => onApprove?.(currentItem)}
+                  disabled={isLoading}
+                  className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white border-none shadow-lg shadow-emerald-500/20"
+                >
+                  <CheckCircle className="h-4 w-4 mr-2" />
+                  {isLoading ? "Đang duyệt..." : "Duyệt video"}
+                </Button>
+              )}
           </div>
         </DialogFooter>
       </DialogContent>
