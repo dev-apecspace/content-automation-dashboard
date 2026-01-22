@@ -38,7 +38,10 @@ export function isOverdue(dateStr?: string): boolean {
     const [hour, minute] = timePart.split(":").map(Number);
 
     const date = new Date(year, month - 1, day, hour, minute);
-    return date < new Date();
+    const now = new Date();
+    now.setSeconds(0, 0);
+
+    return date < now;
   } catch {
     return false;
   }

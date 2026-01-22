@@ -8,7 +8,7 @@ import { createActivityLog } from "@/lib/api/activity-logs";
 
 // Helper to mask sensitive data
 const maskAccount = (acc: any): Account => ({
-  ...acc,
+  id: acc.id,
   platform: acc.platform,
   channelId: acc.channel_id,
   channelName: acc.channel_name,
@@ -19,6 +19,7 @@ const maskAccount = (acc: any): Account => ({
   projectId: acc.project_id,
   projectName: acc.projects?.name,
   isActive: acc.is_active,
+  expiresIn: acc.expires_in,
   createdAt: acc.created_at,
   updatedAt: acc.updated_at,
 });
@@ -38,7 +39,7 @@ export async function getAccounts(): Promise<Account[]> {
 }
 
 export async function createAccount(
-  account: Omit<Account, "id" | "createdAt" | "updatedAt">
+  account: Omit<Account, "id" | "createdAt" | "updatedAt">,
 ): Promise<Account> {
   await requirePermission("accounts.create");
   const {
@@ -102,7 +103,7 @@ export async function createAccount(
 
 export async function updateAccount(
   id: string,
-  updates: Partial<Omit<Account, "id" | "createdAt" | "updatedAt">>
+  updates: Partial<Omit<Account, "id" | "createdAt" | "updatedAt">>,
 ): Promise<Account> {
   await requirePermission("accounts.edit");
 

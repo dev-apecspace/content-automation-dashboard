@@ -37,7 +37,7 @@ export const VIDEO_PLATFORMS: VideoPlatform[] = [
   "Tiktok Video",
   "Zalo Video",
   "LinkedIn Video",
-  // "X Tweet Video",
+  "X Tweet Video",
 ];
 
 export type Platform = ContentPlatform | VideoPlatform;
@@ -105,7 +105,7 @@ export interface Account {
   projectId?: string;
   projectName?: string;
   isActive: boolean;
-  expires_in?: string;
+  expiresIn?: string;
   createdAt: string;
   updatedAt: string;
 }

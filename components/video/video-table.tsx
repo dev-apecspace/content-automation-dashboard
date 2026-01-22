@@ -30,6 +30,7 @@ import { getProjects } from "@/lib/api";
 import { toast } from "sonner";
 import { usePermissions } from "@/hooks/use-permissions";
 import { PaginationControl } from "@/components/ui/pagination-control";
+import { TableLoading } from "@/components/shared/table-loading";
 
 interface VideoTableProps {
   data: VideoItem[];
@@ -246,7 +247,9 @@ export function VideoTable({
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200">
-              {data.length === 0 ? (
+              {isLoading ? (
+                <TableLoading colSpan={7} />
+              ) : data.length === 0 ? (
                 <tr>
                   <td
                     colSpan={7}

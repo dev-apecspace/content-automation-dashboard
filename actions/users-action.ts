@@ -5,6 +5,7 @@ import {
   updateUser as apiUpdateUser,
   deactivateUser as apiDeactivateUser,
   getUsers as apiGetUsers,
+  deleteUser as apiDeleteUser,
 } from "@/lib/api/users";
 import { revalidatePath } from "next/cache";
 
@@ -35,4 +36,10 @@ export async function deactivateUser(id: string) {
   const user = await apiDeactivateUser(id);
   revalidatePath("/users");
   return user;
+}
+
+export async function deleteUser(id: string) {
+  await requirePermission("users.delete");
+  await apiDeleteUser(id);
+  revalidatePath("/users");
 }

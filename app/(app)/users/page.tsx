@@ -1,18 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { Switch } from "@/components/ui/switch";
 import {
   Loader2,
   Plus,
@@ -31,6 +24,7 @@ import {
   createUser,
   updateUser,
   deactivateUser,
+  deleteUser,
 } from "@/actions/users-action";
 import { UserFormModal } from "@/components/users/user-form-modal";
 import { format } from "date-fns";
@@ -99,7 +93,7 @@ export default function UsersPage() {
 
       const updatedUser = await updateUser(editingUser.id, updateData);
       setUsers((prev) =>
-        prev.map((u) => (u.id === updatedUser.id ? updatedUser : u))
+        prev.map((u) => (u.id === updatedUser.id ? updatedUser : u)),
       );
       setIsModalOpen(false);
       setEditingUser(null);
@@ -111,13 +105,50 @@ export default function UsersPage() {
     }
   };
 
+  const handleDeactivate = async (id: string) => {
+    if (!confirm("Bạn có chắc chắn muốn vô hiệu hóa người dùng này?")) return;
+    try {
+      await deactivateUser(id);
+      setUsers((prev) =>
+        prev.map((u) => (u.id === id ? { ...u, is_active: false } : u)),
+      );
+      toast.success("Đã vô hiệu hóa người dùng");
+    } catch (error) {
+      toast.error("Vô hiệu hóa thất bại");
+    }
+  };
+
+  const handleActivate = async (id: string) => {
+    try {
+      await updateUser(id, { is_active: true });
+      setUsers((prev) =>
+        prev.map((u) => (u.id === id ? { ...u, is_active: true } : u)),
+      );
+      toast.success("Đã kích hoạt người dùng");
+    } catch (error) {
+      toast.error("Kích hoạt thất bại");
+    }
+  };
+
+  const handleToggleStatus = (user: User) => {
+    if (user.is_active) {
+      handleDeactivate(user.id);
+    } else {
+      handleActivate(user.id);
+    }
+  };
+
   const handleDelete = async (id: string) => {
-    if (!confirm("Bạn có chắc chắn muốn xóa (vô hiệu hóa) người dùng này?"))
+    if (
+      !confirm(
+        "Bạn có chắc chắn muốn xóa vĩnh viễn người dùng này? Hành động này không thể hoàn tác.",
+      )
+    )
       return;
     try {
-      await deactivateUser(id); // Using deactivate logically as "delete" from Active view
+      await deleteUser(id);
       setUsers((prev) => prev.filter((u) => u.id !== id));
-      toast.success("Đã xóa người dùng");
+      toast.success("Đã xóa vĩnh viễn người dùng");
     } catch (error) {
       toast.error("Xóa thất bại");
     }
@@ -126,7 +157,7 @@ export default function UsersPage() {
   const filteredUsers = users.filter(
     (user) =>
       user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchTerm.toLowerCase())
+      user.email.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
   return (
@@ -183,6 +214,9 @@ export default function UsersPage() {
                   Vai trò
                 </th>
                 <th className="text-left p-4 font-semibold text-sm text-slate-600">
+                  Trạng thái
+                </th>
+                <th className="text-left p-4 font-semibold text-sm text-slate-600">
                   Ngày tạo
                 </th>
                 <th className="text-right p-4 font-semibold text-sm text-slate-600">
@@ -193,14 +227,14 @@ export default function UsersPage() {
             <tbody className="divide-y divide-white/40">
               {isLoading ? (
                 <tr>
-                  <td colSpan={5} className="p-8 text-center text-slate-500">
+                  <td colSpan={6} className="p-8 text-center text-slate-500">
                     <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
                     Đang tải dữ liệu...
                   </td>
                 </tr>
               ) : filteredUsers.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="p-8 text-center text-slate-500">
+                  <td colSpan={6} className="p-8 text-center text-slate-500">
                     Không tìm thấy người dùng nào.
                   </td>
                 </tr>
@@ -231,11 +265,29 @@ export default function UsersPage() {
                         variant="outline"
                         className={cn(
                           "uppercase text-xs font-bold shadow-sm backdrop-blur-sm",
-                          roleColors[user.role] || roleColors.viewer
+                          roleColors[user.role] || roleColors.viewer,
                         )}
                       >
                         {user.role}
                       </Badge>
+                    </td>
+                    <td className="p-4">
+                      <div className="flex items-center gap-2">
+                        <Switch
+                          checked={user.is_active}
+                          onCheckedChange={() => handleToggleStatus(user)}
+                        />
+                        <span
+                          className={cn(
+                            "text-xs font-medium",
+                            user.is_active
+                              ? "text-emerald-600"
+                              : "text-slate-500",
+                          )}
+                        >
+                          {user.is_active ? "Active" : "Inactive"}
+                        </span>
+                      </div>
                     </td>
                     <td className="p-4">
                       <div className="flex items-center gap-2 text-slate-500 text-sm">
@@ -266,6 +318,7 @@ export default function UsersPage() {
                             size="icon"
                             onClick={() => handleDelete(user.id)}
                             className="text-red-400 hover:text-red-600 hover:bg-white/60"
+                            title="Xóa vĩnh viễn"
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>

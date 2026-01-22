@@ -20,10 +20,12 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { usePermissions } from "@/hooks/use-permissions";
 import { Link } from "lucide-react";
+import { TableLoading } from "@/components/shared/table-loading";
 
 interface AccountsTableProps {
   accounts: Account[];
   projects?: Project[];
+  isLoading?: boolean;
   onEdit: (account: Account) => void;
   onDelete: (id: string) => void;
 }
@@ -31,6 +33,7 @@ interface AccountsTableProps {
 export const AccountsTable: React.FC<AccountsTableProps> = ({
   accounts,
   projects = [],
+  isLoading,
   onEdit,
   onDelete,
 }) => {
@@ -67,7 +70,9 @@ export const AccountsTable: React.FC<AccountsTableProps> = ({
           </TableRow>
         </TableHeader>
         <TableBody>
-          {accounts.length === 0 ? (
+          {isLoading ? (
+            <TableLoading colSpan={7} />
+          ) : accounts.length === 0 ? (
             <TableRow>
               <TableCell
                 colSpan={6}
@@ -156,7 +161,7 @@ export const AccountsTable: React.FC<AccountsTableProps> = ({
                   </div>
                 </TableCell>
                 <TableCell className="text-slate-500 text-sm">
-                  {account.expires_in || "-"}
+                  {account.expiresIn || "-"}
                 </TableCell>
                 <TableCell className="text-slate-500 text-sm">
                   {account.createdAt

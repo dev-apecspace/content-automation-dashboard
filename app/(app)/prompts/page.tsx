@@ -127,16 +127,11 @@ export default function PromptsPage() {
       </div>
 
       <div className="flex-1 overflow-auto custom-scrollbar pb-6">
-        {isLoading ? (
-          <div className="flex h-[200px] items-center justify-center">
-            <div className="flex flex-col items-center gap-2">
-              <Sparkles className="h-8 w-8 animate-pulse text-muted-foreground" />
-              <p className="text-muted-foreground">Đang tải dữ liệu...</p>
-            </div>
-          </div>
-        ) : (
-          <PromptsTable prompts={filteredPrompts} onEdit={handleEdit} />
-        )}
+        <PromptsTable
+          prompts={filteredPrompts}
+          onEdit={handleEdit}
+          isLoading={isLoading}
+        />
       </div>
 
       <PromptFormModal

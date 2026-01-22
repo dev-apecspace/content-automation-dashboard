@@ -37,6 +37,7 @@ import { getProjects } from "@/lib/api";
 import { toast } from "sonner";
 import { usePermissions } from "@/hooks/use-permissions";
 import { PaginationControl } from "@/components/ui/pagination-control";
+import { TableLoading } from "@/components/shared/table-loading";
 
 interface ContentTableProps {
   data: ContentItem[];
@@ -276,7 +277,9 @@ export function ContentTable({
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200">
-              {data.length === 0 ? (
+              {isLoading ? (
+                <TableLoading colSpan={6} />
+              ) : data.length === 0 ? (
                 <tr>
                   <td
                     colSpan={6}

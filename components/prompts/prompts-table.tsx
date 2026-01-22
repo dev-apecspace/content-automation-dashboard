@@ -9,7 +9,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Edit, Trash2, CheckCircle2, XCircle } from "lucide-react";
+import { Edit, Trash2, CheckCircle2, XCircle, Loader2 } from "lucide-react";
 import { Prompt } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -26,13 +26,19 @@ import { useDeletePrompt } from "@/hooks/use-prompts";
 import { usePermissions } from "@/hooks/use-permissions";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
+import { TableLoading } from "@/components/shared/table-loading";
 
 interface PromptsTableProps {
   prompts: Prompt[];
+  isLoading?: boolean;
   onEdit: (prompt: Prompt) => void;
 }
 
-export function PromptsTable({ prompts, onEdit }: PromptsTableProps) {
+export function PromptsTable({
+  prompts,
+  isLoading,
+  onEdit,
+}: PromptsTableProps) {
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const deletePrompt = useDeletePrompt();
   const { hasPermission } = usePermissions();
@@ -74,7 +80,9 @@ export function PromptsTable({ prompts, onEdit }: PromptsTableProps) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {prompts.length === 0 ? (
+            {isLoading ? (
+              <TableLoading colSpan={7} />
+            ) : prompts.length === 0 ? (
               <TableRow>
                 <TableCell
                   colSpan={7}
