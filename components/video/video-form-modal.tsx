@@ -41,6 +41,7 @@ import {
   CalendarClock,
   Folder,
   BookOpen,
+  Info,
 } from "lucide-react";
 import { useTourStore } from "@/hooks/use-tour-store";
 import { videoFormSteps } from "@/lib/tour-steps";
@@ -56,6 +57,9 @@ import {
   VideoPlatform,
   VIDEO_PLATFORMS,
 } from "@/lib/types";
+
+const EDITABLE_POSTED_PLATFORMS: VideoPlatform[] = ["Youtube Shorts"];
+
 import { uploadImageFile, uploadVideoFile } from "@/app/api/cloudinary";
 import { AiRequirementDialog } from "@/components/shared/ai-requirement-dialog";
 import { ScheduleFormModal } from "@/components/schedule/schedule-form-modal";
@@ -170,6 +174,15 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
     currentStatus === "post_removed";
 
   const isManualMode = formData.idea?.includes("Nội dung được tạo thủ công");
+
+  // Post-posting editing logic
+  const canUpdatePostedContent = currentStatus === "posted_successfully";
+  const isEditablePlatform =
+    !!formData.platform &&
+    formData.platform.some((p) =>
+      EDITABLE_POSTED_PLATFORMS.includes(p as VideoPlatform),
+    );
+  const canEditPostedMetadata = canUpdatePostedContent && isEditablePlatform;
 
   const isReadyToPostOrSchedule =
     !!formData.idea?.trim() &&
@@ -572,6 +585,34 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
     }
   };
 
+  const handleUpdateMetadata = async () => {
+    if (!editVideo?.id) return;
+
+    setIsSubmitting(true);
+    try {
+      const res = await fetch("/api/webhook/update-post", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: editVideo.id,
+          title: formData.title,
+          caption: formData.caption,
+          platform: (formData.platform as VideoPlatform[])?.[0],
+        }),
+      });
+
+      if (!res.ok) throw new Error("Update failed");
+
+      toast.success("Cập nhật bài đăng thành công!");
+      handleClose();
+    } catch (error) {
+      console.error(error);
+      toast.error("Lỗi khi cập nhật bài đăng");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const handleClose = () => {
     onClose?.() || onOpenChange?.(false);
   };
@@ -886,7 +927,8 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
                       </SectionLabel>
                       <div
                         className={
-                          !canEditContentApprovalFields && !isManualMode
+                          (!canEditContentApprovalFields && !isManualMode) ||
+                          canUpdatePostedContent
                             ? "opacity-70 pointer-events-none"
                             : ""
                         }
@@ -903,7 +945,8 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
                           currentProjectId={formData.projectId}
                           placeholder="Chọn tài khoản..."
                           disabled={
-                            !canEditContentApprovalFields && !isManualMode
+                            (!canEditContentApprovalFields && !isManualMode) ||
+                            canUpdatePostedContent
                           }
                           projectColors={projectColorMap}
                         />
@@ -1122,7 +1165,11 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
                       }))
                     }
                     placeholder="Nhập tiêu đề video..."
-                    disabled={!canEditContentApprovalFields && !isManualMode}
+                    disabled={
+                      !canEditContentApprovalFields &&
+                      !isManualMode &&
+                      !canEditPostedMetadata
+                    }
                     className="bg-white disabled:bg-slate-100 disabled:text-slate-500"
                   />
                 </FeatureCard>
@@ -1150,6 +1197,14 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
                   )
                 }
               >
+                {canUpdatePostedContent && !isEditablePlatform && (
+                  <div className="bg-orange-50 text-orange-800 text-xs px-3 py-1.5 rounded-md border border-orange-200 flex items-center gap-2 mb-2">
+                    <Info className="w-3.5 h-3.5 shrink-0" />
+                    <span>
+                      Nền tảng này chưa hỗ trợ cập nhật bài đăng sau khi đăng
+                    </span>
+                  </div>
+                )}
                 <Textarea
                   value={formData.caption || ""}
                   onChange={(e) =>
@@ -1159,7 +1214,11 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
                     }))
                   }
                   placeholder="Nhập caption..."
-                  disabled={!canEditContentApprovalFields && !isManualMode}
+                  disabled={
+                    !canEditContentApprovalFields &&
+                    !isManualMode &&
+                    !canEditPostedMetadata
+                  }
                   className="bg-white min-h-[200px] disabled:bg-slate-100 disabled:text-slate-500"
                 />
                 <div className="text-right text-xs text-slate-600  font-medium pt-2">
@@ -1348,98 +1407,164 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
             <div className="mr-auto"></div>
           )}
 
-          <div id="tour-video-actions" className="flex gap-2">
-            <Button
-              variant="outline"
-              onClick={handleClose}
-              disabled={isSaving || isLoading || isSubmitting}
-            >
-              Hủy
-            </Button>
+          <div className="flex flex-col items-end gap-2">
+            <div id="tour-video-actions" className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={handleClose}
+                disabled={isSaving || isLoading || isSubmitting}
+              >
+                Hủy
+              </Button>
 
-            {canEditIdeaFields ? (
-              <>
-                {/* Nút Cập nhật / Lưu nháp */}
-                <Button
-                  id="tour-video-save-btn"
-                  onClick={handleSubmit}
-                  disabled={
-                    isSaving ||
-                    !formData.idea ||
-                    !formData.projectId ||
-                    !formData.videoDuration
-                  }
-                  className="bg-white border-2 border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-slate-900 shadow-sm transition-all"
-                >
-                  {isSaving ? (
-                    <>
-                      <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                      Đang lưu...
-                    </>
-                  ) : (
-                    <>
-                      <FileText className="w-4 h-4 mr-2" />
-                      Lưu nháp
-                    </>
-                  )}
-                </Button>
-
-                {/* Nút Action chính (Post Now, Schedule, Approve Idea) */}
-                {isReadyToPostOrSchedule ? (
+              {canEditIdeaFields ? (
+                <>
+                  {/* Nút Cập nhật / Lưu nháp */}
                   <Button
-                    id="tour-video-process-btn"
-                    onClick={() => handleProcessContent(postMode)}
-                    disabled={isSubmitting}
-                    className={cn(
-                      "shadow-md text-white px-6 min-w-[140px]",
-                      postMode === "now"
-                        ? "bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
-                        : "bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700",
-                    )}
+                    id="tour-video-save-btn"
+                    onClick={handleSubmit}
+                    disabled={
+                      isSaving ||
+                      !formData.idea ||
+                      !formData.projectId ||
+                      !formData.videoDuration
+                    }
+                    className="bg-white border-2 border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-slate-900 shadow-sm transition-all"
                   >
-                    {isSubmitting ? (
+                    {isSaving ? (
                       <>
                         <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                        {postMode === "now" ? "Đang đăng..." : "Đang xử lý..."}
+                        Đang lưu...
                       </>
                     ) : (
-                      <>{postMode === "now" ? "Đăng ngay" : "Lên lịch đăng"}</>
+                      <>
+                        <FileText className="w-4 h-4 mr-2" />
+                        Lưu nháp
+                      </>
                     )}
                   </Button>
-                ) : (
-                  onApproveIdea && (
+
+                  {/* Nút Action chính (Post Now, Schedule, Approve Idea) */}
+                  {/* 
+                    Logic mới: 
+                    1. Nếu là Manual Mode: Luôn hiện nút Post/Schedule (disabled nếu chưa ready).
+                    2. Nếu không phải Manual Mode:
+                       - Nếu chưa ready -> Hiện nút Duyệt ý tưởng (nếu có quyền)
+                       - Nếu ready -> Hiện nút Post/Schedule
+                */}
+
+                  {isManualMode ? (
                     <Button
                       id="tour-video-process-btn"
-                      onClick={() => editVideo && onApproveIdea(editVideo)}
-                      variant="default"
-                      className="bg-gradient-to-r from-emerald-500 to-teal-500 text-white"
+                      onClick={() => handleProcessContent(postMode)}
+                      disabled={isSubmitting || !isReadyToPostOrSchedule}
+                      className={cn(
+                        "shadow-md text-white px-6 min-w-[140px]",
+                        postMode === "now"
+                          ? "bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
+                          : "bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700",
+                      )}
                     >
-                      Duyệt ý tưởng
+                      {isSubmitting ? (
+                        <>
+                          <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                          {postMode === "now"
+                            ? "Đang đăng..."
+                            : "Đang xử lý..."}
+                        </>
+                      ) : (
+                        <>
+                          {postMode === "now" ? "Đăng ngay" : "Lên lịch đăng"}
+                        </>
+                      )}
                     </Button>
-                  )
-                )}
-              </>
-            ) : (
-              <>
-                <Button
-                  onClick={handleSubmit}
-                  disabled={isSaving}
-                  className="bg-blue-600 hover:bg-blue-700 text-white"
-                >
-                  {isSaving ? "Đang cập nhật..." : "Cập nhật"}
-                </Button>
+                  ) : isReadyToPostOrSchedule ? (
+                    <Button
+                      id="tour-video-process-btn"
+                      onClick={() => handleProcessContent(postMode)}
+                      disabled={isSubmitting}
+                      className={cn(
+                        "shadow-md text-white px-6 min-w-[140px]",
+                        postMode === "now"
+                          ? "bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
+                          : "bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700",
+                      )}
+                    >
+                      {isSubmitting ? (
+                        <>
+                          <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                          {postMode === "now"
+                            ? "Đang đăng..."
+                            : "Đang xử lý..."}
+                        </>
+                      ) : (
+                        <>
+                          {postMode === "now" ? "Đăng ngay" : "Lên lịch đăng"}
+                        </>
+                      )}
+                    </Button>
+                  ) : (
+                    onApproveIdea && (
+                      <Button
+                        id="tour-video-process-btn"
+                        onClick={() => editVideo && onApproveIdea(editVideo)}
+                        variant="default"
+                        className="bg-gradient-to-r from-emerald-500 to-teal-500 text-white"
+                      >
+                        Duyệt ý tưởng
+                      </Button>
+                    )
+                  )}
+                </>
+              ) : (
+                <>
+                  {!canUpdatePostedContent && (
+                    <Button
+                      onClick={handleSubmit}
+                      disabled={isSaving}
+                      className="bg-blue-600 hover:bg-blue-700 text-white"
+                    >
+                      {isSaving ? "Đang chỉnh sửa..." : "Chỉnh sửa"}
+                    </Button>
+                  )}
 
-                {onApprove && canEditContentApprovalFields && (
-                  <Button
-                    onClick={() => editVideo && onApprove(editVideo)}
-                    disabled={isLoading}
-                    className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-lg shadow-emerald-500/25"
-                  >
-                    {isLoading ? "Đang xử lý..." : "Duyệt Video"}
-                  </Button>
-                )}
-              </>
-            )}
+                  {onApprove &&
+                    canEditContentApprovalFields &&
+                    !isManualMode &&
+                    editVideo?.status === "awaiting_content_approval" && (
+                      <Button
+                        onClick={() => editVideo && onApprove(editVideo)}
+                        disabled={isLoading}
+                        className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-lg shadow-emerald-500/25"
+                      >
+                        {isLoading ? "Đang xử lý..." : "Duyệt Video"}
+                      </Button>
+                    )}
+                </>
+              )}
+
+              {canUpdatePostedContent && (
+                <Button
+                  onClick={handleUpdateMetadata}
+                  disabled={isSubmitting || !isEditablePlatform}
+                  className={cn(
+                    "text-white shadow-md",
+                    isEditablePlatform
+                      ? "bg-indigo-600 hover:bg-indigo-700"
+                      : "bg-slate-400 cursor-not-allowed",
+                  )}
+                >
+                  {isSubmitting ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                      Đang cập nhật...
+                    </>
+                  ) : (
+                    "Cập nhật Bài đăng"
+                  )}
+                </Button>
+              )}
+            </div>
           </div>
         </DialogFooter>
       </DialogContent>

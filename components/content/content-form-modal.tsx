@@ -187,6 +187,12 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
     currentStatus === "content_approved" ||
     currentStatus === "post_removed";
 
+  const canUpdatePostedContent = currentStatus === "posted_successfully";
+
+  const isPlatformRestrictedForCaptionEdit = formData.platform?.some(
+    (p) => p.includes("Instagram") || p.includes("Threads") || p === "X Tweet",
+  );
+
   const isManualMode = formData.idea?.includes("Nội dung được tạo thủ công");
 
   const isIdeaValid =
@@ -704,6 +710,32 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
     } catch (error: any) {
       console.error(error);
       toast.error(`Thất bại: ${error.message}`);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // ------------------- UPDATE CAPTION (POSTED) -------------------
+  const handleUpdateCaption = async () => {
+    setIsSubmitting(true);
+    try {
+      const res = await fetch("/api/webhook/update-post", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: editContent?.id,
+          caption: formData.caption,
+          platform: formData.platform?.[0],
+        }),
+      });
+
+      if (!res.ok) throw new Error("Update failed");
+
+      toast.success("Đã gửi yêu cầu cập nhật caption!");
+      handleClose();
+    } catch (error) {
+      console.error(error);
+      toast.error("Lỗi khi cập nhật caption");
     } finally {
       setIsSubmitting(false);
     }
@@ -1250,6 +1282,17 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
                     <Label htmlFor="caption" className="sr-only">
                       Caption
                     </Label>
+                    {canUpdatePostedContent &&
+                      isPlatformRestrictedForCaptionEdit && (
+                        <div className="bg-orange-50 text-orange-800 text-sm px-3 py-2 rounded-md border border-orange-200 flex items-start gap-2 mb-2">
+                          <InfoCard className="w-4 h-4 mt-0.5 shrink-0" />
+                          <span>
+                            Các nền tảng Instagram, Threads và X không hỗ trợ
+                            chỉnh sửa caption ở đây. Vui lòng vào trực tiếp bài
+                            đăng để sửa.
+                          </span>
+                        </div>
+                      )}
                     <Textarea
                       id="caption"
                       value={formData.caption || ""}
@@ -1261,8 +1304,14 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
                       }
                       placeholder="Nhập nội dung caption cho bài đăng..."
                       rows={12}
-                      disabled={!canEditContentApprovalFields && !isManualMode}
-                      className="bg-slate-50 border-slate-200 resize-none focus:bg-white custom-scrollbar"
+                      disabled={
+                        (!canEditContentApprovalFields &&
+                          !canUpdatePostedContent &&
+                          !isManualMode) ||
+                        (canUpdatePostedContent &&
+                          isPlatformRestrictedForCaptionEdit)
+                      }
+                      className="bg-slate-50 border-slate-200 resize-none focus:bg-white custom-scrollbar disabled:bg-slate-100 disabled:text-slate-500"
                     />
                     <div className="text-right text-xs text-slate-600  font-medium pt-2">
                       {countCharacters(formData.caption)} ký tự
@@ -1526,9 +1575,30 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
                       Đang lưu...
                     </>
                   ) : editContent ? (
-                    "Cập nhật"
+                    "Chỉnh sửa"
                   ) : (
                     "Tạo mới"
+                  )}
+                </Button>
+              )}
+
+              {canUpdatePostedContent && (
+                <Button
+                  onClick={handleUpdateCaption}
+                  disabled={
+                    isSubmitting ||
+                    !formData.caption?.trim() ||
+                    isPlatformRestrictedForCaptionEdit
+                  }
+                  className="bg-orange-600 hover:bg-orange-700 text-white shadow-md min-w-[120px] disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                      Đang xử lý...
+                    </>
+                  ) : (
+                    "Cập nhật Bài đăng"
                   )}
                 </Button>
               )}

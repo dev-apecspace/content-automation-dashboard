@@ -100,7 +100,7 @@ export default function AccountsPage() {
       (selectedStatus === "active" ? acc.isActive : !acc.isActive);
     const matchesExpiry =
       selectedExpiry === "all" ||
-      (selectedExpiry === "has_expiry" ? !!acc.expires_in : !acc.expires_in);
+      (selectedExpiry === "has_expiry" ? !!acc.expiresIn : !acc.expiresIn);
 
     return matchesProject && matchesPlatform && matchesStatus && matchesExpiry;
   });
@@ -209,6 +209,7 @@ export default function AccountsPage() {
         <AccountsTable
           accounts={filteredAccounts}
           projects={projects}
+          isLoading={isLoading}
           onEdit={handleEdit}
           onDelete={handleDelete}
         />

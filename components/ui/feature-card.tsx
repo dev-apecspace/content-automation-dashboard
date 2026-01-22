@@ -107,7 +107,7 @@ export function FeatureCard({
       className={cn(
         "bg-white border border-slate-200 rounded-[20px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] transition-all duration-300 overflow-hidden group border-b-3 border-slate-300",
         theme.hoverShadow,
-        className
+        className,
       )}
       {...props}
     >
@@ -119,7 +119,7 @@ export function FeatureCard({
               theme.iconBg,
               theme.iconColor,
               theme.iconHoverBg,
-              "group-hover:text-white"
+              "group-hover:text-white",
             )}
           >
             <Icon className="w-5 h-5" />
@@ -127,7 +127,7 @@ export function FeatureCard({
           <h3
             className={cn(
               "text-lg font-bold bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-700 transition-all duration-300",
-              theme.titleGradient
+              theme.titleGradient,
             )}
           >
             {title}
