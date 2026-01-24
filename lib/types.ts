@@ -107,6 +107,7 @@ export interface Account {
   isActive: boolean;
   expiresIn?: string;
   logoUrl?: string; // Tạm thời thêm field này, cần migration DB tương ứng
+  customFields?: Record<string, string>; // Personalized parameters
   createdAt: string;
   updatedAt: string;
 }

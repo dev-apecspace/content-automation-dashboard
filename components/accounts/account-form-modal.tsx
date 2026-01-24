@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Dialog,
   DialogContent,
@@ -39,6 +39,8 @@ import {
   EyeOff,
   Image as ImageIcon,
   Upload,
+  Plus,
+  Trash2,
 } from "lucide-react"; // Icons
 import { BackgroundStyle } from "../ui/background-style";
 
@@ -64,10 +66,14 @@ export const AccountFormModal: React.FC<AccountFormModalProps> = ({
     clientSecret: "",
     isActive: true,
     logoUrl: "",
+    customFields: {},
   });
   const [isUploading, setIsUploading] = useState(false);
   const [showToken, setShowToken] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [customFieldsList, setCustomFieldsList] = useState<
+    { id: string; key: string; value: string }[]
+  >([]);
   const [projects, setProjects] = useState<Project[]>([]);
 
   useEffect(() => {
@@ -97,7 +103,24 @@ export const AccountFormModal: React.FC<AccountFormModalProps> = ({
         clientSecret: "",
         isActive: true,
         logoUrl: "",
+        customFields: {},
       });
+    }
+  }, [editAccount, isOpen]);
+
+  // Sync formData.customFields to customFieldsList only when valid and list is empty (initial load)
+  // or when we reset form.
+  useEffect(() => {
+    if (isOpen) {
+      const initialFields = editAccount?.customFields || {};
+      const list = Object.entries(initialFields).map(([key, value]) => ({
+        id: Math.random().toString(36).substr(2, 9),
+        key,
+        value,
+      }));
+      setCustomFieldsList(list);
+    } else {
+        setCustomFieldsList([]);
     }
   }, [editAccount, isOpen]);
 
@@ -178,10 +201,12 @@ export const AccountFormModal: React.FC<AccountFormModalProps> = ({
           clientSecret: formData.clientSecret,
           projectId: formData.projectId,
           projectName: formData.projectName,
-          projectId: formData.projectId,
-          projectName: formData.projectName,
           isActive: formData.isActive,
           logoUrl: formData.logoUrl,
+          customFields: customFieldsList.reduce(
+            (acc, curr) => ({ ...acc, [curr.key]: curr.value }),
+            {}
+          ),
         });
         toast.success("Cập nhật tài khoản thành công!");
       } else {
@@ -215,6 +240,29 @@ export const AccountFormModal: React.FC<AccountFormModalProps> = ({
     } finally {
       setIsUploading(false);
     }
+  };
+
+  const handleAddCustomField = () => {
+    setCustomFieldsList((prev) => [
+      ...prev,
+      { id: Math.random().toString(36).substr(2, 9), key: "", value: "" },
+    ]);
+  };
+
+  const handleCustomFieldChange = (
+    id: string,
+    field: "key" | "value",
+    newValue: string
+  ) => {
+    setCustomFieldsList((prev) =>
+      prev.map((item) =>
+        item.id === id ? { ...item, [field]: newValue } : item
+      )
+    );
+  };
+
+  const handleDeleteCustomField = (id: string) => {
+    setCustomFieldsList((prev) => prev.filter((item) => item.id !== id));
   };
 
   return (
@@ -376,6 +424,68 @@ export const AccountFormModal: React.FC<AccountFormModalProps> = ({
                   />
                 </div>
               )}
+            </div>
+
+            {/* Custom Parameters */}
+            <div className="space-y-3">
+              <Label className="flex items-center justify-between text-slate-700 font-medium">
+                <span className="flex items-center gap-2">
+                  <Hash className="w-4 h-4 text-purple-500" /> Tham số cá nhân
+                  hóa
+                </span>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleAddCustomField}
+                  className="h-7 text-xs flex items-center gap-1 bg-white/50 border-white/60 hover:bg-white/80"
+                >
+                  <Plus className="w-3 h-3" /> Thêm tham số
+                </Button>
+              </Label>
+              <div className="space-y-2">
+                {customFieldsList.map((item) => (
+                  <div
+                    key={item.id}
+                    className="flex items-center gap-2"
+                  >
+                    <Input
+                      value={item.key}
+                      onChange={(e) =>
+                        handleCustomFieldChange(item.id, "key", e.target.value)
+                      }
+                      placeholder="Mã (vd: title, phone)"
+                      className="flex-[1] bg-white/50 border-white/60 text-sm font-mono"
+                    />
+                    <Input
+                      value={item.value}
+                      onChange={(e) =>
+                        handleCustomFieldChange(item.id, "value", e.target.value)
+                      }
+                      placeholder="Giá trị thay thế"
+                      className="flex-[2] bg-white/50 border-white/60 text-sm"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleDeleteCustomField(item.id)}
+                      className="h-9 w-9 text-slate-400 hover:text-red-500"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                ))}
+                {customFieldsList.length === 0 && (
+                  <div className="text-center py-4 bg-white/30 rounded-lg border border-dashed border-white/50 text-slate-500 text-sm italic">
+                    Chưa có tham số nào. Thêm tham số để sử dụng trong nội dung
+                    mẫu.
+                    <br />
+                    Ví dụ: [brand_name] sẽ được thay thế bằng tên Brand của tài
+                    khoản này.
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* OAuth Fields for Youtube & X */}

@@ -57,6 +57,9 @@ import {
   Eye,
   BookOpen,
   Stamp,
+  Braces,
+  AlertTriangle,
+  Settings,
 } from "lucide-react";
 import { getProjects, getAIModels } from "@/lib/api";
 import { getSchedulesByProjectId } from "@/lib/api/schedules";
@@ -92,6 +95,7 @@ import { contentPlatformIcons } from "@/components/shared/platform-icons";
 import { MissingScheduleAlert } from "@/components/shared/missing-schedule-alert";
 import { WatermarkEditor } from "@/components/content/watermark-editor";
 import { generateWatermarkedUrl, WatermarkSettings } from "@/lib/services/watermark-service";
+import { ParameterManagerDialog } from "@/components/content/parameter-manager-dialog";
 
 interface ContentFormModalProps {
   isOpen: boolean;
@@ -177,6 +181,32 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
   const [isWatermarkOpen, setIsWatermarkOpen] = useState(false);
   const [watermarkImageIndex, setWatermarkImageIndex] = useState<number | null>(null);
   const [watermarkLogoUrl, setWatermarkLogoUrl] = useState<string>("");
+  const [isParamManagerOpen, setIsParamManagerOpen] = useState(false);
+  const textareaRef = React.useRef<HTMLTextAreaElement>(null);
+
+  const insertParameter = (param: string) => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const text = formData.caption || "";
+    const before = text.substring(0, start);
+    const after = text.substring(end, text.length);
+    const newText = `${before}[${param}]${after}`;
+
+    setFormData((prev) => ({ ...prev, caption: newText }));
+
+    // Restore focus and cursor position
+    setTimeout(() => {
+      textarea.focus();
+      textarea.setSelectionRange(
+        start + param.length + 2,
+        start + param.length + 2
+      );
+    }, 0);
+  };
+
 
   const projectColorMap = React.useMemo(() => {
     return projects.reduce(
@@ -796,6 +826,87 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
                 imageLinks: groupImageLinks
             };
 
+            // CHECK FOR PERSONALIZED CAPTIONS
+            // If caption contains [...], we must split by individual account to replace parameters
+            const caption = formData.caption || "";
+            const hasParameters = /\[.*?\]/.test(caption);
+
+            if (hasParameters && logoKey !== 'none') {
+                // If we have parameters, we need to iterate EACH account in this group
+                // to create a customized content item for it.
+                // NOTE: This might create many content items!
+                
+                for (const accId of groupAccountIds) {
+                   const acc = accounts.find(a => a.id === accId);
+                   let personalizedCaption = caption;
+                   
+                   // Replace parameters
+                   if (acc?.customFields) {
+                      Object.entries(acc.customFields).forEach(([key, value]) => {
+                          const regex = new RegExp(`\\[${key}\\]`, 'g');
+                          personalizedCaption = personalizedCaption.replace(regex, value);
+                      });
+                   }
+                   
+                   // Also replace [brand_name] or [channel_name] as default shortcuts
+                   personalizedCaption = personalizedCaption.replace(/\[channel_name\]/g, acc?.channelName || "");
+                   
+                   // Create individual item
+                   const singleItemData = {
+                       ...itemData,
+                       accountIds: [accId],
+                       caption: personalizedCaption
+                   };
+                   
+                    if (mode === "now") {
+                       // ... (Wait for ID logic same as below, but for single item)
+                       // Since we need an ID to post, we must traverse same creation path or assume createContentItem returns ID
+                       // For consistency, let's treat this loop same as the outer loop logic implies:
+                       // But the outer loop logic is "Post Now" calls `postContentNow(id)`.
+                       // We need to CREATE the item first.
+                       
+                       // Refactor strategy: 
+                       // 1. Create content item
+                       // 2. Add to results
+                       // 3. Process
+                       
+                       // Re-using logic below might be tricky inside nested loop.
+                       // Let's call the detailed creation here.
+                        let newItemId = editContent?.id;
+                        if (!newItemId || shouldSplit) {
+                            const created = await createContentItem({
+                            ...singleItemData,
+                            status: "content_approved", // Post Now implies approved
+                            projectId: formData.projectId || "", 
+                            platform: [p], // Ensure correct type
+                            } as any);
+                            if (created && created.id) {
+                                newItemId = created.id;
+                                await processSingleItem(newItemId!, singleItemData);
+                                results.push(newItemId!);
+                            }
+                        }
+                   } else {
+                       // SCHEDULE MODE
+                       const created = await createContentItem({
+                           ...singleItemData,
+                           status: "awaiting_content_approval",
+                           projectId: formData.projectId || "",
+                           platform: [p],
+                        } as any);
+                        
+                         if (created && created.id) {
+                             await processSingleItem(created.id, singleItemData);
+                             results.push(created.id);
+                         }
+                   }
+                }
+                
+                // Skip the standard group processing since we handled individuals
+                continue; 
+            }
+
+            // STANDARD GROUP PROCESSING (No tailored captions)
             // Handle "Post Now" time logic
             if (mode === "now") {
                 itemData.postingTime = formatPostDate();
@@ -1429,9 +1540,94 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
                   }
                 >
                   <div className="space-y-2">
-                    <Label htmlFor="caption" className="sr-only">
-                      Caption
-                    </Label>
+                    <div className="flex justify-between items-center mb-1">
+                      <Label
+                        htmlFor="caption"
+                        className="text-slate-700 font-medium"
+                      >
+                        Nội dung bài viết
+                      </Label>
+                      <div className="flex gap-1 flex-wrap justify-end items-center">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setIsParamManagerOpen(true)}
+                          className="h-6 text-[10px] px-2 text-slate-500 hover:text-indigo-600 hover:bg-slate-100 mr-1"
+                          title="Xem và quản lý tham số"
+                        >
+                            <Settings className="w-3 h-3 mr-1" /> Quản lý
+                        </Button>
+                        {Array.from(
+                          new Set([
+                            "channel_name",
+                            ...accounts
+                              .filter((acc) =>
+                                formData.accountIds?.includes(acc.id)
+                              )
+                              .flatMap((acc) =>
+                                acc.customFields
+                                  ? Object.keys(acc.customFields)
+                                  : []
+                              ),
+                          ])
+                        ).map((param) => (
+                          <Button
+                            key={param}
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => insertParameter(param)}
+                            className="h-6 text-[10px] px-2 bg-indigo-50 text-indigo-600 border-indigo-200 hover:bg-indigo-100"
+                          >
+                            + [{param}]
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+                    {/* Missing Parameters Warning */}
+                    {(() => {
+                        const caption = formData.caption || "";
+                        const usedParams = Array.from(caption.matchAll(/\[(.*?)\]/g)).map(m => m[1]);
+                        const uniqueUsedParams = Array.from(new Set(usedParams));
+                        
+                        if (uniqueUsedParams.length === 0) return null;
+
+                        const missingDetails: string[] = [];
+                        
+                        const selectedAccountIds = formData.accountIds || [];
+                        const selectedAccounts = accounts.filter(a => selectedAccountIds.includes(a.id));
+
+                        selectedAccounts.forEach(acc => {
+                            const missingForAcc: string[] = [];
+                            uniqueUsedParams.forEach(param => {
+                                if (param === 'channel_name') return; // Always valid
+                                if (!acc.customFields || !acc.customFields[param]) {
+                                    missingForAcc.push(param);
+                                }
+                            });
+                            if (missingForAcc.length > 0) {
+                                missingDetails.push(`${acc.channelName} (${acc.platform}): thiếu [${missingForAcc.join(', ')}]`);
+                            }
+                        });
+
+                        if (missingDetails.length > 0) {
+                            return (
+                                <div className="bg-yellow-50 text-yellow-800 text-sm px-3 py-2 rounded-md border border-yellow-200 mb-2">
+                                    <div className="flex items-center gap-2 font-medium mb-1">
+                                        <AlertTriangle className="w-4 h-4 text-yellow-600" />
+                                        Cảnh báo thiếu tham số:
+                                    </div>
+                                    <ul className="list-disc list-inside space-y-0.5 text-xs text-yellow-700 pl-1">
+                                        {missingDetails.map((msg, idx) => (
+                                            <li key={idx}>{msg}</li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            );
+                        }
+                        return null;
+                    })()}
                     {canUpdatePostedContent &&
                       isPlatformRestrictedForCaptionEdit && (
                         <div className="bg-orange-50 text-orange-800 text-sm px-3 py-2 rounded-md border border-orange-200 flex items-start gap-2 mb-2">
@@ -1444,6 +1640,7 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
                         </div>
                       )}
                     <Textarea
+                      ref={textareaRef}
                       id="caption"
                       value={formData.caption || ""}
                       onChange={(e) =>
@@ -1800,6 +1997,16 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
           initialSettings={watermarkSettings[watermarkImageIndex]}
         />
       )}
+      <ParameterManagerDialog 
+        isOpen={isParamManagerOpen}
+        onClose={() => setIsParamManagerOpen(false)}
+        selectedAccountIds={formData.accountIds || []}
+        accounts={accounts}
+        onAccountsUpdated={async () => {
+             const updatedAccounts = await AccountService.getAccounts();
+             setAccounts(updatedAccounts);
+        }}
+      />
     </>
   );
 };

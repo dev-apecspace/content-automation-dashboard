@@ -21,6 +21,7 @@ const maskAccount = (acc: any): Account => ({
   isActive: acc.is_active,
   expiresIn: acc.expires_in,
   logoUrl: acc.logo_url || acc.watermark_url, // Fallback check
+  customFields: acc.custom_fields || {},
   createdAt: acc.created_at,
   updatedAt: acc.updated_at,
 });
@@ -54,6 +55,7 @@ export async function createAccount(
     isActive,
     projectId,
     logoUrl,
+    customFields,
   } = account;
 
   // Validate
@@ -79,6 +81,7 @@ export async function createAccount(
         project_id: projectId,
         is_active: isActive,
         logo_url: logoUrl,
+        custom_fields: customFields,
       },
     ])
     .select("*, projects(name)")
@@ -129,6 +132,7 @@ export async function updateAccount(
   if (updates.projectId !== undefined) dbUpdates.project_id = updates.projectId;
   if (updates.isActive !== undefined) dbUpdates.is_active = updates.isActive;
   if (updates.logoUrl !== undefined) dbUpdates.logo_url = updates.logoUrl;
+  if (updates.customFields !== undefined) dbUpdates.custom_fields = updates.customFields;
 
   if (updates.token && updates.token !== "******") {
     dbUpdates.token = encrypt(updates.token);
