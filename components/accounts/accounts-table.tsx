@@ -51,6 +51,9 @@ export const AccountsTable: React.FC<AccountsTableProps> = ({
             <TableHead className="w-[60px] font-semibold text-slate-700">
               Nền tảng
             </TableHead>
+            <TableHead className="w-[60px] font-semibold text-slate-700">
+              Logo
+            </TableHead>
             <TableHead className="font-semibold text-slate-700">
               Dự án
             </TableHead>
@@ -90,6 +93,23 @@ export const AccountsTable: React.FC<AccountsTableProps> = ({
                 <TableCell>
                   <div className="p-2 bg-white/60 rounded-lg shadow-sm w-fit">
                     {getPlatformIcon(account.platform)}
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <div className="w-10 h-10 rounded-lg border border-slate-100 bg-white flex items-center justify-center overflow-hidden">
+                    {account.logoUrl ? (
+                      <img
+                        src={account.logoUrl}
+                        alt={account.channelName}
+                        className="w-full h-full object-contain p-1"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src =
+                            "https://placehold.co/40x40?text=Logo";
+                        }}
+                      />
+                    ) : (
+                      <span className="text-xs text-slate-300">N/A</span>
+                    )}
                   </div>
                 </TableCell>
                 <TableCell>

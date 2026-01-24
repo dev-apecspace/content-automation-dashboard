@@ -26,6 +26,7 @@ import { accountPlatformIcons } from "@/components/shared/platform-icons";
 import { AccountService } from "@/lib/services/account-service";
 import { toast } from "sonner";
 import { getProjects } from "@/lib/api"; // Ensure this exists or mock if needed
+import { uploadImageFile } from "@/app/api/cloudinary";
 import {
   Hash,
   User,
@@ -36,6 +37,8 @@ import {
   Youtube,
   Eye,
   EyeOff,
+  Image as ImageIcon,
+  Upload,
 } from "lucide-react"; // Icons
 import { BackgroundStyle } from "../ui/background-style";
 
@@ -60,7 +63,9 @@ export const AccountFormModal: React.FC<AccountFormModalProps> = ({
     clientId: "",
     clientSecret: "",
     isActive: true,
+    logoUrl: "",
   });
+  const [isUploading, setIsUploading] = useState(false);
   const [showToken, setShowToken] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [projects, setProjects] = useState<Project[]>([]);
@@ -91,6 +96,7 @@ export const AccountFormModal: React.FC<AccountFormModalProps> = ({
         clientId: "",
         clientSecret: "",
         isActive: true,
+        logoUrl: "",
       });
     }
   }, [editAccount, isOpen]);
@@ -172,7 +178,10 @@ export const AccountFormModal: React.FC<AccountFormModalProps> = ({
           clientSecret: formData.clientSecret,
           projectId: formData.projectId,
           projectName: formData.projectName,
+          projectId: formData.projectId,
+          projectName: formData.projectName,
           isActive: formData.isActive,
+          logoUrl: formData.logoUrl,
         });
         toast.success("Cập nhật tài khoản thành công!");
       } else {
@@ -186,6 +195,25 @@ export const AccountFormModal: React.FC<AccountFormModalProps> = ({
       toast.error(error.message || "Có lỗi xảy ra");
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    try {
+      const url = await uploadImageFile(file);
+      if (url) {
+        setFormData((prev) => ({ ...prev, logoUrl: url }));
+        toast.success("Tải logo thành công");
+      }
+    } catch (error) {
+      console.error("Upload failed", error);
+      toast.error("Tải logo thất bại");
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -305,6 +333,49 @@ export const AccountFormModal: React.FC<AccountFormModalProps> = ({
                 placeholder="https://..."
                 className="bg-white/50 border-white/60 focus:bg-white/80 rounded-xl shadow-sm text-sm"
               />
+            </div>
+
+            {/* Logo URL */}
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2 text-slate-700 font-medium">
+                <ImageIcon className="w-4 h-4 text-gray-500" /> Logo (Watermark)
+              </Label>
+              <div className="flex gap-2">
+                <Input
+                  value={formData.logoUrl || ""}
+                  onChange={(e) =>
+                    setFormData({ ...formData, logoUrl: e.target.value })
+                  }
+                  placeholder="URL logo hoặc tải lên..."
+                  className="bg-white/50 border-white/60 focus:bg-white/80 rounded-xl shadow-sm text-sm"
+                />
+                <div className="relative">
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleLogoUpload}
+                    className="absolute inset-0 opacity-0 cursor-pointer z-10"
+                    disabled={isUploading}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="bg-white/50 border-white/60 hover:bg-white/80 px-3"
+                    disabled={isUploading}
+                  >
+                    <Upload className="w-4 h-4 text-slate-600" />
+                  </Button>
+                </div>
+              </div>
+              {formData.logoUrl && (
+                <div className="mt-2 p-2 bg-white/40 rounded-lg border border-white/50 inline-block">
+                  <img
+                    src={formData.logoUrl}
+                    alt="Logo Preview"
+                    className="h-16 w-auto object-contain"
+                  />
+                </div>
+              )}
             </div>
 
             {/* OAuth Fields for Youtube & X */}

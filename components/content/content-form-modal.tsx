@@ -56,6 +56,7 @@ import {
   Captions,
   Eye,
   BookOpen,
+  Stamp,
 } from "lucide-react";
 import { getProjects, getAIModels } from "@/lib/api";
 import { getSchedulesByProjectId } from "@/lib/api/schedules";
@@ -89,6 +90,8 @@ import { cn, countCharacters } from "@/lib/utils";
 import { MultiSelect, Option } from "@/components/ui/multi-select";
 import { contentPlatformIcons } from "@/components/shared/platform-icons";
 import { MissingScheduleAlert } from "@/components/shared/missing-schedule-alert";
+import { WatermarkEditor } from "@/components/content/watermark-editor";
+import { generateWatermarkedUrl, WatermarkSettings } from "@/lib/services/watermark-service";
 
 interface ContentFormModalProps {
   isOpen: boolean;
@@ -145,6 +148,9 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
     accountIds: [],
   });
 
+  const [rawImageLinks, setRawImageLinks] = useState<string[]>([]);
+  const [watermarkSettings, setWatermarkSettings] = useState<Record<number, WatermarkSettings>>({});
+
   const [newImageLink, setNewImageLink] = useState(""); // Dán link thủ công
   const [imageEditRequest, setImageEditRequest] = useState(""); // Yêu cầu sửa ảnh (idea phase)
 
@@ -166,6 +172,11 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
   const [scheduleInitialData, setScheduleInitialData] = useState<
     Partial<Schedule>
   >({});
+  
+  // Watermark State
+  const [isWatermarkOpen, setIsWatermarkOpen] = useState(false);
+  const [watermarkImageIndex, setWatermarkImageIndex] = useState<number | null>(null);
+  const [watermarkLogoUrl, setWatermarkLogoUrl] = useState<string>("");
 
   const projectColorMap = React.useMemo(() => {
     return projects.reduce(
@@ -259,6 +270,13 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
                 .join("-")
             : "",
       });
+      // Initialize raw links from existing if editing (assuming current are raw or we can't recover raw easily)
+      // Ideally we should store raw links in DB but schema doesn't support it yet.
+      // We assume if editing, the links are "current". 
+      // If user re-applies watermark, they start from current.
+      if (editContent.imageLinks) {
+         setRawImageLinks(editContent.imageLinks);
+      }
     } else {
       // Reset form khi tạo mới
       setFormData({
@@ -272,6 +290,8 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
         caption: "",
         accountIds: [],
       });
+      setRawImageLinks([]);
+      setWatermarkSettings({});
       setImageEditRequest("");
     }
     setNewImageLink("");
@@ -326,6 +346,7 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
           ...prev,
           imageLinks: [...(prev.imageLinks || []), ...newLinks],
         }));
+        setRawImageLinks((prev) => [...prev, ...newLinks]);
       }
     } catch (error) {
       console.error("Upload failed:", error);
@@ -343,9 +364,11 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
         ...prev,
         imageLinks: [...(prev.imageLinks || []), newImageLink.trim()],
       }));
+      setRawImageLinks((prev) => [...prev, newImageLink.trim()]);
       setNewImageLink("");
     }
   };
+
 
   const handleRemoveImage = (indexToRemove: number) => {
     setFormData((prev) => ({
@@ -354,6 +377,84 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
         (_, index) => index !== indexToRemove,
       ),
     }));
+    setRawImageLinks((prev) => prev.filter((_, index) => index !== indexToRemove));
+    // Clean up settings for removed index? 
+    // Indices shift, this is tricky. 
+    // Simply resetting settings might be safer or complex index shifting logic needed.
+    // For MVP, if we delete, we might lose watermark settings for subsequent images or apply wrong ones.
+    // Let's try to shift settings.
+    setWatermarkSettings((prev) => {
+        const next = { ...prev };
+        delete next[indexToRemove];
+        // Shift keys > indexToRemove down by 1
+        const corrected: Record<number, WatermarkSettings> = {};
+        Object.keys(next).forEach(k => {
+            const key = Number(k);
+            if (key < indexToRemove) corrected[key] = next[key];
+            else if (key > indexToRemove) corrected[key - 1] = next[key];
+        });
+        return corrected;
+    });
+  };
+
+  const handleOpenWatermark = (index: number) => {
+    // 1. Check if ANY accounts selected
+    const selectedAccountIds = formData.accountIds || [];
+    if (selectedAccountIds.length === 0) {
+      toast.error("Vui lòng chọn tài khoản trước để lấy logo!");
+      return;
+    }
+
+    const selectedAccounts = accounts.filter(acc => selectedAccountIds.includes(acc.id));
+    
+    // 2. Validate ALL selected accounts have logoUrl
+    const accountsMissingLogo = selectedAccounts.filter(acc => !acc.logoUrl);
+    
+    if (accountsMissingLogo.length > 0) {
+      const names = accountsMissingLogo.map(a => a.channelName).join(', ');
+      toast.error(`Không thể mở Watermark vì các tài khoản sau chưa có Logo: ${names}`);
+      return;
+    }
+
+    // 3. Open Editor
+    // Show logo of the FIRST account as preview (since they all have valid logos now)
+    setWatermarkImageIndex(index);
+    setWatermarkLogoUrl(selectedAccounts[0].logoUrl!);
+    setIsWatermarkOpen(true);
+  };
+
+  const handleApplyWatermarkSettings = (settings: WatermarkSettings) => {
+    if (watermarkImageIndex === null) return;
+
+    // 1. Save Settings
+    setWatermarkSettings(prev => ({
+        ...prev,
+        [watermarkImageIndex]: settings
+    }));
+
+    // 2. Update Image Preview ?
+    // We can generate a preview URL using the current (or first) logo just so user sees something changed.
+    // The REAL unique URLs will be generated on Save/Post.
+    // Use the raw image as base.
+    const rawUrl = rawImageLinks[watermarkImageIndex] || formData.imageLinks?.[watermarkImageIndex];
+    
+    if (rawUrl && watermarkLogoUrl) {
+         const previewUrl = generateWatermarkedUrl(rawUrl, watermarkLogoUrl, settings);
+         setFormData((prev) => {
+            const newLinks = [...(prev.imageLinks || [])];
+            newLinks[watermarkImageIndex] = previewUrl;
+            return {
+                ...prev,
+                imageLinks: newLinks,
+            };
+        });
+    }
+  };
+
+  // Legacy handler kept if needed, but we use settings now.
+  const handleApplyWatermark = (newUrl: string) => {
+    // This might be called if we didn't update Editor prop, but we did.
+    // We can just ignore or treat as manual override.
   };
 
   // ------------------- XỬ LÝ ACCOUNT SELECTION -------------------
@@ -592,7 +693,11 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
     try {
       const platforms = formData.platform || [];
       const isManual = formData.idea?.includes("Nội dung được tạo thủ công");
-      const shouldSplit = isManual && platforms.length > 1;
+      const hasWatermark = Object.keys(watermarkSettings).length > 0;
+      
+      // Always split if multiple platforms OR multiple accounts are selected
+      // This ensures each account gets its own content item and correct webhook payload.
+      const shouldSplit = platforms.length > 1 || (formData.accountIds && formData.accountIds.length > 1);
 
       // Helper to process a single item (Post Now or Schedule)
       const processSingleItem = async (id: string, itemData: any) => {
@@ -638,41 +743,86 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
       if (shouldSplit) {
         // --- SPLIT ITEMS LOGIC ---
         const results: string[] = [];
-
+        
+        toast.info(`Đang tạo ${platforms.length * (formData.accountIds?.length || 1)} bài viết riêng biệt cho từng tài khoản...`);
+        
+        // Strategy: Iterate Platforms -> Then Group Accounts by Logo
         for (let i = 0; i < platforms.length; i++) {
           const p = platforms[i];
           const filteredAccountIds = filterAccountsForPlatform(
             p,
             formData.accountIds || [],
           );
+          
+          if (filteredAccountIds.length === 0) continue;
 
-          // Clone base data
-          let itemData = {
-            ...formData,
-            platform: [p],
-            accountIds: filteredAccountIds,
-          };
+          // Group Accounts by Logo URL
+          // Key: LogoURL (or 'none'), Value: AccountIDs[]
+          const groups: Record<string, string[]> = {};
+          
+          filteredAccountIds.forEach(accId => {
+             const acc = accounts.find(a => a.id === accId);
+             const logo = acc?.logoUrl || 'none';
+             if (!groups[logo]) groups[logo] = [];
+             groups[logo].push(accId);
+          });
+          
+          // Iterate Groups and Create Items
+          const groupKeys = Object.keys(groups);
+          for (let g = 0; g < groupKeys.length; g++) {
+             const logoKey = groupKeys[g];
+             const groupAccountIds = groups[logoKey];
+             
+             // Generate Images for this group
+             let groupImageLinks = formData.imageLinks || []; // Default to current (preview or original)
+             
+             if (logoKey !== 'none' && hasWatermark) {
+                 // Regenerate images using this specific logoUrl
+                 // Use rawImageLinks as source
+                 groupImageLinks = (rawImageLinks.length > 0 ? rawImageLinks : (formData.imageLinks || [])).map((url, idx) => {
+                     const settings = watermarkSettings[idx];
+                     if (settings) {
+                         return generateWatermarkedUrl(url, logoKey, settings);
+                     }
+                     return url;
+                 });
+             }
+             
+             // Clone base data
+            let itemData = {
+                ...formData,
+                platform: [p],
+                accountIds: groupAccountIds,
+                imageLinks: groupImageLinks
+            };
 
-          // Handle "Post Now" time logic
-          if (mode === "now") {
-            itemData.postingTime = formatPostDate();
-          }
+            // Handle "Post Now" time logic
+            if (mode === "now") {
+                itemData.postingTime = formatPostDate();
+            }
 
-          let currentItemId: string | undefined;
+            // Create Item
+            // Always CREATE new items for splits to avoid overwriting the "Master" draft if we want to keep it?
+            // Or if verifying "Master" item, update it for the first group and create for others?
+            // Let's stick to: First Platform + First Group -> Update (if exists), Others -> Create.
+            // This preserves one item ID as the "original".
+            
+            let currentItemId: string | undefined;
+            const isFirst = (i === 0 && g === 0);
+            
+            if (isFirst && editContent?.id) {
+                const updated = await updateContentItem(editContent.id, itemData);
+                currentItemId = updated.id;
+            } else {
+                const { id, ...dataToCreate } = itemData as any;
+                const created = await createContentItem(dataToCreate);
+                currentItemId = created.id;
+            }
 
-          // First platform: Update existing if check editing, else Create
-          if (i === 0 && editContent?.id) {
-            const updated = await updateContentItem(editContent.id, itemData);
-            currentItemId = updated.id;
-          } else {
-            const { id, ...dataToCreate } = itemData as any;
-            const created = await createContentItem(dataToCreate);
-            currentItemId = created.id;
-          }
-
-          if (currentItemId) {
-            await processSingleItem(currentItemId, itemData);
-            results.push(currentItemId);
+            if (currentItemId) {
+                await processSingleItem(currentItemId, itemData);
+                results.push(currentItemId);
+            }
           }
         }
 
@@ -1426,6 +1576,16 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
                           >
                             <Sparkles className="w-4 h-4" />
                           </button>
+                          
+                          <button
+                            onClick={() => handleOpenWatermark(index)}
+                            className="p-1.5 bg-white/20 hover:bg-white/40 backdrop-blur rounded-full text-white"
+                            title="Chèn Logo"
+                            disabled={!(canEditIdeaFields || canEditContentApprovalFields)}
+                          >
+                            <Stamp className="w-4 h-4" />
+                          </button>
+
                           <button
                             onClick={() => handleRemoveImage(index)}
                             className="p-1.5 bg-red-500/80 hover:bg-red-500 backdrop-blur rounded-full text-white"
@@ -1627,6 +1787,19 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
           setScheduleUpdateTrigger((prev) => prev + 1);
         }}
       />
+      
+      {/* Watermark Editor */}
+      {isWatermarkOpen && watermarkImageIndex !== null && formData.imageLinks && (
+        <WatermarkEditor
+          isOpen={isWatermarkOpen}
+          onClose={() => setIsWatermarkOpen(false)}
+          imageUrl={rawImageLinks[watermarkImageIndex] || formData.imageLinks[watermarkImageIndex]}
+          logoUrl={watermarkLogoUrl}
+          onApply={handleApplyWatermark}
+          onApplySettings={handleApplyWatermarkSettings}
+          initialSettings={watermarkSettings[watermarkImageIndex]}
+        />
+      )}
     </>
   );
 };
