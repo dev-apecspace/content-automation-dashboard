@@ -39,8 +39,8 @@ export default function AccountsPage() {
     "all" | "has_expiry" | "no_expiry"
   >("all");
 
-  const fetchAccounts = async () => {
-    setIsLoading(true);
+  const fetchAccounts = async (showLoading = true) => {
+    if (showLoading) setIsLoading(true);
     try {
       const [accountsData, projectsData] = await Promise.all([
         AccountService.getAccounts(),
@@ -52,7 +52,7 @@ export default function AccountsPage() {
       console.error("Failed to load data", error);
       toast.error("Không thể tải dữ liệu");
     } finally {
-      setIsLoading(false);
+      if (showLoading) setIsLoading(false);
     }
   };
 
@@ -120,7 +120,7 @@ export default function AccountsPage() {
           <Button
             variant="outline"
             size="icon"
-            onClick={fetchAccounts}
+            onClick={() => fetchAccounts()}
             className="bg-white/50 border-white/60 hover:bg-white/80 transition-colors shadow-sm text-slate-600"
             title="Tải lại"
           >

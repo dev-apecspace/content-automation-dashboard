@@ -82,12 +82,12 @@ export default function ContentPage() {
 
   // Subscribe to realtime changes
   useRealtimeSubscription("content_items", () => {
-    loadContentItems();
+    loadContentItems(false);
   });
 
-  const loadContentItems = async () => {
+  const loadContentItems = async (showLoading = true) => {
     try {
-      setIsLoading(true);
+      if (showLoading) setIsLoading(true);
       const { data, total } = await getContentItems({
         status: filterStatus !== "all" ? filterStatus : undefined,
         projectId: filterProject !== "all" ? filterProject : undefined,
@@ -100,7 +100,7 @@ export default function ContentPage() {
       toast.error("Không tải được danh sách bài viết");
       console.error(error);
     } finally {
-      setIsLoading(false);
+      if (showLoading) setIsLoading(false);
     }
   };
 
@@ -363,7 +363,7 @@ export default function ContentPage() {
         onViewImage={handleViewImage}
         onViewPost={handleViewPost}
         onAdd={handleCreateClick}
-        onReload={loadContentItems}
+        onReload={() => loadContentItems()}
         page={page}
         pageSize={pageSize}
         totalCount={totalCount}

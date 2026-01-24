@@ -10,7 +10,7 @@ export function TableLoading({ colSpan = 1 }: TableLoadingProps) {
     <TableRow>
       <TableCell colSpan={colSpan} className="h-24 text-center">
         <div className="flex justify-center items-center">
-          <Loader2 className="animate-spin h-6 w-6 text-indigo-600 mr-2" />
+          <Loader2 className="animate-spin h-6 w-6 text-slate-600 mr-2" />
           <span className="text-slate-600 font-medium">
             Đang tải dữ liệu...
           </span>

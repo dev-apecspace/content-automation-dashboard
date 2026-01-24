@@ -77,12 +77,12 @@ export default function VideoPage() {
 
   // Subscribe to realtime changes
   useRealtimeSubscription("video_items", () => {
-    loadVideoItems();
+    loadVideoItems(false);
   });
 
-  const loadVideoItems = async () => {
+  const loadVideoItems = async (showLoading = true) => {
     try {
-      setIsLoading(true);
+      if (showLoading) setIsLoading(true);
       const { data, total } = await getVideoItems({
         status: filterStatus !== "all" ? filterStatus : undefined,
         projectId: filterProject !== "all" ? filterProject : undefined,
@@ -95,7 +95,7 @@ export default function VideoPage() {
       toast.error("Có lỗi khi tải lên danh sách video");
       console.error(error);
     } finally {
-      setIsLoading(false);
+      if (showLoading) setIsLoading(false);
     }
   };
 
@@ -341,7 +341,7 @@ export default function VideoPage() {
         onApproveIdea={handleApproveIdea}
         onApproveContent={handleApproveContent}
         onAdd={handleCreateClick}
-        onReload={loadVideoItems}
+        onReload={() => loadVideoItems()}
         isLoading={isLoading}
         page={page}
         pageSize={pageSize}
