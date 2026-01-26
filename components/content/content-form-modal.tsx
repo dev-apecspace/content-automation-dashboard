@@ -831,7 +831,7 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
             const caption = formData.caption || "";
             const hasParameters = /\[.*?\]/.test(caption);
 
-            if (hasParameters && logoKey !== 'none') {
+            if (hasParameters) {
                 // If we have parameters, we need to iterate EACH account in this group
                 // to create a customized content item for it.
                 // NOTE: This might create many content items!
@@ -859,6 +859,9 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
                    };
                    
                     if (mode === "now") {
+                       // Handle "Post Now" time logic for single item
+                       singleItemData.postingTime = formatPostDate();
+
                        // ... (Wait for ID logic same as below, but for single item)
                        // Since we need an ID to post, we must traverse same creation path or assume createContentItem returns ID
                        // For consistency, let's treat this loop same as the outer loop logic implies:
