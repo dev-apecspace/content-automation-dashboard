@@ -66,13 +66,10 @@ export function PromptsTable({
                 Loại
               </TableHead>
               <TableHead className="font-semibold text-slate-700">
-                Mô tả
+                Template
               </TableHead>
               <TableHead className="w-[120px] font-semibold text-slate-700">
                 Trạng thái
-              </TableHead>
-              <TableHead className="font-semibold text-slate-700">
-                Ngày tạo
               </TableHead>
               <TableHead className="w-[100px] text-right font-semibold text-slate-700">
                 Hành động
@@ -113,9 +110,9 @@ export function PromptsTable({
                   </TableCell>
                   <TableCell
                     className="max-w-[300px] truncate text-slate-600"
-                    title={prompt.description}
+                    title={prompt.template}
                   >
-                    {prompt.description || "-"}
+                    {prompt.template || "-"}
                   </TableCell>
                   <TableCell>
                     <div
@@ -136,11 +133,6 @@ export function PromptsTable({
                         </>
                       )}
                     </div>
-                  </TableCell>
-                  <TableCell className="text-slate-500 text-sm">
-                    {prompt.createdAt
-                      ? format(new Date(prompt.createdAt), "dd/MM/yyyy")
-                      : "-"}
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
