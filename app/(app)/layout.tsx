@@ -12,7 +12,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
-      <div className="flex h-screen bg-gradient-to-br from-slate-50 via-white to-cyan-50/50">
+      <div className="flex h-screen bg-slate-50 dark:bg-slate-950 isolate overflow-hidden relative">
+        {/* Background Gradients */}
+        <div className="absolute inset-0 z-[-1] pointer-events-none">
+          <div className="absolute top-[-10%] right-[-5%] w-[600px] h-[600px] bg-blue-200/40 rounded-full blur-[80px] mix-blend-multiply dark:mix-blend-normal dark:bg-purple-900/20" />
+          <div className="absolute bottom-[-10%] left-[-10%] w-[500px] h-[500px] bg-green-200/40 rounded-full blur-[80px] mix-blend-multiply dark:mix-blend-normal dark:bg-blue-900/20" />
+          <div className="absolute top-[20%] left-[15%] w-[400px] h-[400px] bg-purple-200/30 rounded-full blur-[100px] mix-blend-multiply dark:mix-blend-normal dark:bg-pink-900/20" />
+        </div>
+
         <Sidebar
           isOpen={sidebarOpen}
           onClose={() => setSidebarOpen(false)}

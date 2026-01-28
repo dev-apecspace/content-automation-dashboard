@@ -284,7 +284,7 @@ export function RoleFormModal({
               )}
             </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="bg-slate-500/10 border-gray-200/20">
             <Button
               type="button"
               variant="ghost"

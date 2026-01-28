@@ -107,8 +107,8 @@ export function PromptFormModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="w-[600px] p-0 gap-0 overflow-hidden flex flex-col max-h-[90vh]">
-        <DialogHeader className="border-b border-white/40 pb-5 pt-6 px-6 bg-gray-200/50 sticky top-0 z-10 backdrop-blur-md shrink-0">
+      <DialogContent className="w-[750px] p-0 gap-0 overflow-hidden flex flex-col max-h-[90vh]">
+        <DialogHeader className="border-b border-gray/70 py-4 px-6 bg-gray-100 sticky top-0 z-10 backdrop-blur-md shrink-0">
           <DialogTitle className="text-xl font-bold flex items-center gap-2 text-slate-900 tracking-wide">
             <FilePenLine className="w-5 h-5 text-indigo-600" />
             {prompt ? "Chỉnh sửa Prompt" : "Thêm mới Prompt"}
@@ -198,7 +198,7 @@ export function PromptFormModal({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className="flex items-center gap-2 text-slate-700 font-medium">
-                      <Info className="w-4 h-4 text-slate-500" /> Mô tả{" "}
+                      <Info className="w-4 h-4 text-slate-500" /> Ghi chú{" "}
                       <span className="text-slate-400 font-normal text-xs">
                         (Tùy chọn)
                       </span>
@@ -235,7 +235,7 @@ export function PromptFormModal({
               />
             </div>
 
-            <div className="flex justify-end gap-3 pt-6 p-6 border-t border-white/40 bg-white/50 backdrop-blur-md shrink-0">
+            <div className="flex justify-end gap-3 py-3 px-6 border-t border-gray/70 bg-gray-100 backdrop-blur-md shrink-0">
               <Button
                 type="button"
                 variant="outline"

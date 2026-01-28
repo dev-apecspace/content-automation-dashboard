@@ -48,21 +48,24 @@ export function ScheduleStatsGrid({ stats, loading }: ScheduleStatsGridProps) {
         value={stats?.week || 0}
         icon={Calendar}
         description="Số bài đăng theo lịch"
-        className="bg-indigo-50"
+        className="bg-gradient-to-br from-sky-200/40 via-sky-100/20 to-sky-200/40"
+        variant="gradient"
       />
       <StatsCard
         label="Đăng tháng này"
         value={stats?.month || 0}
         icon={Calendar}
         description="Số bài đăng theo lịch"
-        className="bg-purple-50"
+        className="bg-gradient-to-br from-yellow-200/30 via-yellow-100/20 to-yellow-100/20"
+        variant="gradient"
       />
       <StatsCard
         label="Đăng năm nay"
         value={stats?.year || 0}
         icon={Calendar}
         description="Số bài đăng theo lịch"
-        className="bg-sky-50"
+        className="bg-gradient-to-br from-indigo-200/30 via-indigo-100/20 to-indigo-100/20"
+        variant="gradient"
       />
     </div>
   );
@@ -97,24 +100,32 @@ export function StatsGrid({ stats, loading }: StatsGridProps) {
         value={stats.totalProjects}
         icon={LayoutGrid}
         description="Tổng số dự án đang chạy"
+        className="bg-gradient-to-br from-green-200/40 via-green-100/20 to-green-200/40"
+        variant="gradient"
       />
       <StatsCard
         label="Tổng số bài viết"
         value={stats.totalPosts}
         icon={FileText}
         description="Tổng content và video"
+        className="bg-gradient-to-br from-violet-200/40 via-violet-100/20 to-violet-200/40"
+        variant="gradient"
       />
       <StatsCard
         label="Chờ Duyệt"
         value={stats.pendingApprovals}
         icon={Clock}
         description="Idea, content, media đã sửa"
+        className="bg-gradient-to-br from-orange-200/40 via-orange-100/20 to-orange-200/40"
+        variant="gradient"
       />
       <StatsCard
         label="Tổng Tương Tác"
         value={stats.totalReactions.toLocaleString()}
         icon={Users}
         description="Reactions, comments, shares"
+        className="bg-gradient-to-br from-blue-200/40 via-blue-100/20 to-blue-200/40"
+        variant="gradient"
       />
     </div>
   );

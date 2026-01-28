@@ -17,7 +17,8 @@ import {
 } from "recharts";
 import { PieChart as PieIcon, BarChart3 } from "lucide-react";
 
-const COLORS = ["#3d6effff", "#ef4444", "#111413ff", "#f59e0b", "#8b5cf6"];
+// Pastel: Indigo 400, Emerald 400, Amber 400, Sky 400, Rose 400
+const COLORS = ["#818cf8", "#34d399", "#fbbf24", "#38bdf8", "#fb7185"];
 
 interface PlatformPieChartProps {
   data: PlatformDistribution[];
@@ -65,7 +66,7 @@ export function PlatformPieChart({ data, loading }: PlatformPieChartProps) {
                   boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
                 }}
               />
-              <Legend verticalAlign="bottom" height={36} />
+              <Legend verticalAlign="bottom" height={80} />
             </PieChart>
           </ResponsiveContainer>
         )}

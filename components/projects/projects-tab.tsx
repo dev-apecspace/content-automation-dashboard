@@ -300,8 +300,8 @@ export function ProjectsTab({
 
       {/* Add/Edit Modal */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="w-[600px] p-0 gap-0 overflow-hidden">
-          <DialogHeader className="p-8 pb-0 shrink-0">
+        <DialogContent className="w-[700px] p-0 gap-0 overflow-hidden">
+          <DialogHeader className="px-8 py-4 shrink-0 bg-gray-100 sticky top-0 z-10 backdrop-blur-md">
             <DialogTitle>
               {editItem ? "Chỉnh sửa dự án" : "Thêm dự án mới"}
             </DialogTitle>
@@ -357,7 +357,7 @@ export function ProjectsTab({
             </div>
           </div>
 
-          <DialogFooter>
+          <DialogFooter className="bg-gray-100 py-4 px-6 border-t border-gray/70">
             <Button
               variant="outline"
               onClick={() => setIsModalOpen(false)}

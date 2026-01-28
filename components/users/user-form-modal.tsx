@@ -21,6 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Loader2 } from "lucide-react";
 import { User } from "@/lib/api/users"; // Import type only
 
@@ -51,6 +52,7 @@ export function UserFormModal({
   isSubmitting,
 }: UserFormModalProps) {
   const [roles, setRoles] = useState<Role[]>([]);
+
   const {
     register,
     handleSubmit,
@@ -169,9 +171,8 @@ export function UserFormModal({
                   ? "Mật khẩu mới (Để trống nếu không đổi)"
                   : "Mật khẩu"}
               </Label>
-              <Input
+              <PasswordInput
                 id="password"
-                type="password"
                 {...register("password")}
                 placeholder={initialData ? "••••••••" : "Nhập mật khẩu..."}
                 className="bg-black/20 border-white/10 text-white focus:border-indigo-500/50"
@@ -179,7 +180,7 @@ export function UserFormModal({
             </div>
           </div>
 
-          <DialogFooter>
+          <DialogFooter className="bg-slate-900/10 border-gray-200/10">
             <Button
               type="button"
               variant="ghost"

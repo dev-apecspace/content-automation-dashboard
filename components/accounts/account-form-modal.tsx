@@ -267,8 +267,8 @@ export const AccountFormModal: React.FC<AccountFormModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="w-[600px] p-0 gap-0 overflow-hidden flex flex-col">
-        <DialogHeader className="border-b border-white/40 pb-5 pt-6 px-6 bg-gray-200/50 sticky top-0 z-10 backdrop-blur-md shrink-0">
+      <DialogContent className="w-[600px] p-0 gap-0 overflow-hidden flex flex-col bg-slate-50">
+        <DialogHeader className="border-b border-slate-400 py-3 px-6 bg-white sticky top-0 z-10 shrink-0">
           <DialogTitle className="text-xl font-bold flex items-center gap-2 text-slate-900 tracking-wide">
             {editAccount ? "Chỉnh sửa tài khoản" : "Thêm tài khoản liên kết"}
           </DialogTitle>
@@ -278,8 +278,11 @@ export const AccountFormModal: React.FC<AccountFormModalProps> = ({
           <div className="flex-1 overflow-y-auto p-6 space-y-5">
             {/* Project */}
             <div className="space-y-2">
-              <Label className="flex items-center gap-2 text-slate-700 font-medium">
-                <Folder className="w-4 h-4 text-blue-500" /> Dự án
+              <Label className="flex items-center gap-2 text-slate-700 text-sm uppercase tracking-wider font-bold">
+                <div className="p-1.5 rounded-md bg-blue-50 text-blue-600">
+                  <Folder className="w-3.5 h-3.5" />
+                </div>
+                Dự án
               </Label>
               <Select
                 value={formData.projectId}
@@ -292,7 +295,7 @@ export const AccountFormModal: React.FC<AccountFormModalProps> = ({
                   });
                 }}
               >
-                <SelectTrigger className="bg-white/50 border-white/60 focus:bg-white/80 rounded-xl shadow-sm">
+                <SelectTrigger className="bg-white border-slate-300 focus:border-indigo-500 focus:ring-indigo-500/20 rounded-xl shadow-sm">
                   <SelectValue placeholder="Chọn dự án (Tùy chọn)" />
                 </SelectTrigger>
                 <SelectContent className="rounded-xl border-white/60 bg-white/90 backdrop-blur-xl">
@@ -307,7 +310,7 @@ export const AccountFormModal: React.FC<AccountFormModalProps> = ({
 
             {/* Platform */}
             <div className="space-y-2">
-              <Label className="flex items-center gap-2 text-slate-700 font-medium">
+              <Label className="flex items-center gap-2 text-slate-700 text-sm uppercase tracking-wider font-bold">
                 Nền tảng <span className="text-red-500">*</span>
               </Label>
               <Select
@@ -316,7 +319,7 @@ export const AccountFormModal: React.FC<AccountFormModalProps> = ({
                   setFormData({ ...formData, platform: val })
                 }
               >
-                <SelectTrigger className="bg-white/50 border-white/60 focus:bg-white/80 rounded-xl shadow-sm">
+                <SelectTrigger className="bg-white border-slate-300 focus:border-indigo-500 focus:ring-indigo-500/20 rounded-xl shadow-sm">
                   <SelectValue placeholder="Chọn nền tảng" />
                 </SelectTrigger>
                 <SelectContent className="rounded-xl border-white/60 bg-white/90 backdrop-blur-xl">
@@ -333,9 +336,11 @@ export const AccountFormModal: React.FC<AccountFormModalProps> = ({
 
             {/* Channel Name */}
             <div className="space-y-2">
-              <Label className="flex items-center gap-2 text-slate-700 font-medium">
-                <User className="w-4 h-4 text-gray-500" /> Tên kênh / Page{" "}
-                <span className="text-red-500">*</span>
+              <Label className="flex items-center gap-2 text-slate-700 text-sm uppercase tracking-wider font-bold">
+                <div className="p-1.5 rounded-md bg-emerald-50 text-emerald-600">
+                  <User className="w-3.5 h-3.5" />
+                </div>
+                Tên kênh / Page <span className="text-red-500">*</span>
               </Label>
               <Input
                 value={formData.channelName}
@@ -344,15 +349,17 @@ export const AccountFormModal: React.FC<AccountFormModalProps> = ({
                 }
                 placeholder="Ví dụ: Apec Group Official"
                 required
-                className="bg-white/50 border-white/60 focus:bg-white/80 rounded-xl shadow-sm"
+                className="bg-white border-slate-300 focus:border-indigo-500 focus:ring-indigo-500/20 rounded-xl shadow-sm"
               />
             </div>
 
             {/* Channel ID */}
             <div className="space-y-2">
-              <Label className="flex items-center gap-2 text-slate-700 font-medium">
-                <Hash className="w-4 h-4 text-gray-500" /> ID Kênh{" "}
-                <span className="text-red-500">*</span>
+              <Label className="flex items-center gap-2 text-slate-700 text-sm uppercase tracking-wider font-bold">
+                <div className="p-1.5 rounded-md bg-orange-50 text-orange-600">
+                  <Hash className="w-3.5 h-3.5" />
+                </div>
+                ID Kênh <span className="text-red-500">*</span>
               </Label>
               <Input
                 value={formData.channelId}
@@ -361,15 +368,18 @@ export const AccountFormModal: React.FC<AccountFormModalProps> = ({
                 }
                 placeholder="Nhập ID kênh..."
                 required
-                className="bg-white/50 border-white/60 focus:bg-white/80 rounded-xl shadow-sm font-mono text-sm"
+                className="bg-white border-slate-300 focus:border-indigo-500 focus:ring-indigo-500/20 rounded-xl shadow-sm font-mono text-sm"
               />
             </div>
 
             {/* Channel Link */}
             <div className="space-y-2">
-              <Label className="flex items-center gap-2 text-slate-700 font-medium">
-                <Link className="w-4 h-4 text-gray-500" /> Link Kênh{" "}
-                <span className="text-xs text-slate-400 font-normal">
+              <Label className="flex items-center gap-2 text-slate-700 text-sm uppercase tracking-wider font-bold">
+                <div className="p-1.5 rounded-md bg-cyan-50 text-cyan-600">
+                  <Link className="w-3.5 h-3.5" />
+                </div>
+                Link Kênh{" "}
+                <span className="text-[10px] text-slate-500 font-normal normal-case">
                   (Tùy chọn)
                 </span>
               </Label>
@@ -379,14 +389,17 @@ export const AccountFormModal: React.FC<AccountFormModalProps> = ({
                   setFormData({ ...formData, channelLink: e.target.value })
                 }
                 placeholder="https://..."
-                className="bg-white/50 border-white/60 focus:bg-white/80 rounded-xl shadow-sm text-sm"
+                className="bg-white border-slate-300 focus:border-indigo-500 focus:ring-indigo-500/20 rounded-xl shadow-sm text-sm"
               />
             </div>
 
             {/* Logo URL */}
             <div className="space-y-2">
-              <Label className="flex items-center gap-2 text-slate-700 font-medium">
-                <ImageIcon className="w-4 h-4 text-gray-500" /> Logo (Watermark)
+              <Label className="flex items-center gap-2 text-slate-700 text-sm uppercase tracking-wider font-bold">
+                <div className="p-1.5 rounded-md bg-purple-50 text-purple-600">
+                  <ImageIcon className="w-3.5 h-3.5" />
+                </div>
+                Logo (Watermark)
               </Label>
               <div className="flex gap-2">
                 <Input
@@ -395,7 +408,7 @@ export const AccountFormModal: React.FC<AccountFormModalProps> = ({
                     setFormData({ ...formData, logoUrl: e.target.value })
                   }
                   placeholder="URL logo hoặc tải lên..."
-                  className="bg-white/50 border-white/60 focus:bg-white/80 rounded-xl shadow-sm text-sm"
+                  className="bg-white border-slate-300 focus:border-indigo-500 focus:ring-indigo-500/20 rounded-xl shadow-sm text-sm"
                 />
                 <div className="relative">
                   <Input
@@ -408,7 +421,7 @@ export const AccountFormModal: React.FC<AccountFormModalProps> = ({
                   <Button
                     type="button"
                     variant="outline"
-                    className="bg-white/50 border-white/60 hover:bg-white/80 px-3"
+                    className="bg-white border-slate-300 hover:bg-slate-50 px-3"
                     disabled={isUploading}
                   >
                     <Upload className="w-4 h-4 text-slate-600" />
@@ -428,17 +441,19 @@ export const AccountFormModal: React.FC<AccountFormModalProps> = ({
 
             {/* Custom Parameters */}
             <div className="space-y-3">
-              <Label className="flex items-center justify-between text-slate-700 font-medium">
+              <Label className="flex items-center justify-between text-slate-700 text-sm uppercase tracking-wider font-bold">
                 <span className="flex items-center gap-2">
-                  <Hash className="w-4 h-4 text-purple-500" /> Tham số cá nhân
-                  hóa
+                  <div className="p-1.5 rounded-md bg-pink-50 text-pink-600">
+                    <Hash className="w-3.5 h-3.5" />
+                  </div>
+                  Tham số cá nhân hóa
                 </span>
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
                   onClick={handleAddCustomField}
-                  className="h-7 text-xs flex items-center gap-1 bg-white/50 border-white/60 hover:bg-white/80"
+                  className="h-7 text-sm flex items-center gap-1 bg-white/50 border-white/60 hover:bg-white/80"
                 >
                   <Plus className="w-3 h-3" /> Thêm tham số
                 </Button>
@@ -455,7 +470,7 @@ export const AccountFormModal: React.FC<AccountFormModalProps> = ({
                         handleCustomFieldChange(item.id, "key", e.target.value)
                       }
                       placeholder="Mã (vd: title, phone)"
-                      className="flex-[1] bg-white/50 border-white/60 text-sm font-mono"
+                      className="flex-[1] bg-white border-slate-300 text-sm font-mono"
                     />
                     <Input
                       value={item.value}
@@ -463,7 +478,7 @@ export const AccountFormModal: React.FC<AccountFormModalProps> = ({
                         handleCustomFieldChange(item.id, "value", e.target.value)
                       }
                       placeholder="Giá trị thay thế"
-                      className="flex-[2] bg-white/50 border-white/60 text-sm"
+                      className="flex-[2] bg-white border-slate-300 text-sm"
                     />
                     <Button
                       type="button"
@@ -492,9 +507,9 @@ export const AccountFormModal: React.FC<AccountFormModalProps> = ({
             {(formData.platform === "Youtube" || formData.platform === "X") && (
               <>
                 <div className="space-y-2">
-                  <Label className="flex items-center gap-2 text-slate-700 font-medium">
+                  <Label className="flex items-center gap-2 text-slate-700 text-sm uppercase tracking-wider font-bold">
                     Client ID{" "}
-                    <span className="text-xs text-slate-400 font-normal">
+                    <span className="text-[10px] text-slate-400 font-normal normal-case">
                       ({formData.platform})
                     </span>
                   </Label>
@@ -504,13 +519,13 @@ export const AccountFormModal: React.FC<AccountFormModalProps> = ({
                       setFormData({ ...formData, clientId: e.target.value })
                     }
                     placeholder="Nhập Client ID..."
-                    className="bg-white/50 border-white/60 focus:bg-white/80 rounded-xl shadow-sm font-mono text-sm"
+                    className="bg-white border-slate-300 focus:border-indigo-500 focus:ring-indigo-500/20 rounded-xl shadow-sm font-mono text-sm"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label className="flex items-center gap-2 text-slate-700 font-medium">
+                  <Label className="flex items-center gap-2 text-slate-700 text-sm uppercase tracking-wider font-bold">
                     Client Secret{" "}
-                    <span className="text-xs text-slate-400 font-normal">
+                    <span className="text-[10px] text-slate-500 font-normal normal-case">
                       ({formData.platform})
                     </span>
                   </Label>
@@ -521,7 +536,7 @@ export const AccountFormModal: React.FC<AccountFormModalProps> = ({
                       setFormData({ ...formData, clientSecret: e.target.value })
                     }
                     placeholder="Nhập Client Secret..."
-                    className="bg-white/50 border-white/60 focus:bg-white/80 rounded-xl shadow-sm font-mono text-sm"
+                    className="bg-white border-slate-300 focus:border-indigo-500 focus:ring-indigo-500/20 rounded-xl shadow-sm font-mono text-sm"
                   />
                 </div>
               </>
@@ -529,9 +544,11 @@ export const AccountFormModal: React.FC<AccountFormModalProps> = ({
 
             {/* Access Token */}
             <div className="space-y-2">
-              <Label className="flex items-center justify-between text-slate-700 font-medium">
+              <Label className="flex items-center justify-between text-slate-700 text-sm uppercase tracking-wider font-bold">
                 <div className="flex items-center gap-2">
-                  <Key className="w-4 h-4 text-gray-500" />
+                  <div className="p-1.5 rounded-md bg-yellow-50 text-yellow-600">
+                    <Key className="w-3.5 h-3.5" />
+                  </div>
                   {formData.platform === "Youtube" || formData.platform === "X"
                     ? "Refresh Token"
                     : "Access Token"}{" "}
@@ -544,7 +561,7 @@ export const AccountFormModal: React.FC<AccountFormModalProps> = ({
                     variant="outline"
                     size="sm"
                     onClick={handleGetOAuthToken}
-                    className="h-7 text-xs bg-red-50 text-red-600 hover:bg-red-100 border-red-200"
+                    className="h-7 text-sm bg-red-50 text-red-600 hover:bg-red-100 border-red-200"
                   >
                     Lấy Token
                   </Button>
@@ -566,7 +583,7 @@ export const AccountFormModal: React.FC<AccountFormModalProps> = ({
                       : "Access Token..."
                   }
                   required={!editAccount} // Required only on create
-                  className="bg-white/50 border-white/60 focus:bg-white/80 rounded-xl shadow-sm font-mono text-sm pr-10"
+                  className="bg-white border-slate-300 focus:border-indigo-500 focus:ring-indigo-500/20 rounded-xl shadow-sm font-mono text-sm pr-10"
                 />
                 <Button
                   type="button"
@@ -582,15 +599,15 @@ export const AccountFormModal: React.FC<AccountFormModalProps> = ({
                   )}
                 </Button>
               </div>
-              <p className="text-xs text-slate-500 italic">
+              <p className="text-sm text-slate-500 italic">
                 Token sẽ được mã hoá bảo mật trước khi lưu.
               </p>
             </div>
 
             {/* Active Switch */}
-            <div className="flex items-center justify-between p-4 bg-white/40 backdrop-blur-sm rounded-xl border border-white/50 shadow-sm">
+            <div className="flex items-center justify-between p-4 bg-white rounded-xl border border-slate-300 shadow-sm">
               <Label
-                className="flex items-center gap-2 text-slate-700 font-medium cursor-pointer"
+                className="flex items-center gap-2 text-slate-700 font-bold cursor-pointer"
                 htmlFor="active-mode"
               >
                 <CheckCircle className="w-4 h-4 text-green-500" /> Hoạt động
@@ -605,13 +622,13 @@ export const AccountFormModal: React.FC<AccountFormModalProps> = ({
             </div>
           </div>
 
-          <div className="flex justify-end gap-3 pt-6 p-6 border-t border-white/40 bg-white/50 backdrop-blur-md shrink-0">
+          <div className="flex justify-end gap-3 py-3 p-6 border-t border-slate-400 bg-white shrink-0">
             <Button
               type="button"
               variant="outline"
               onClick={onClose}
               disabled={isLoading}
-              className="rounded-xl border-white/60 bg-white/50 hover:bg-white/80"
+              className="rounded-xl border-slate-300 bg-white hover:bg-slate-50 text-slate-700"
             >
               Hủy
             </Button>

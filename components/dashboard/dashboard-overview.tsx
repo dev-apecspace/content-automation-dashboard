@@ -118,7 +118,8 @@ export function DashboardOverview() {
               label="Tổng Bài Viết"
               value={contentStats?.totalItems || 0}
               icon={FileText}
-              className="bg-indigo-50 col-span-2"
+              className="bg-gradient-to-br from-indigo-200/40 via-purple-100/20 to-blue-200/40 col-span-2"
+              variant="gradient"
             />
             <StatsCard
               label="Đã Đăng"
@@ -128,25 +129,29 @@ export function DashboardOverview() {
                 )?.count || 0
               }
               icon={CheckCircle2}
-              className="bg-green-50"
+              className="bg-gradient-to-br from-emerald-200/40 via-teal-100/20 to-green-200/40"
+              variant="gradient"
             />
             <StatsCard
               label="Chờ Duyệt"
               value={contentStats?.pendingApproval || 0}
               icon={Clock}
-              className="bg-orange-50"
+              className="bg-gradient-to-br from-orange-200/40 via-amber-100/20 to-yellow-200/40"
+              variant="gradient"
             />
             <StatsCard
               label="Chờ Đăng"
               value={contentStats?.readyToPost || 0}
               icon={BarChart3}
-              className="bg-blue-50"
+              className="bg-gradient-to-br from-sky-200/40 via-cyan-100/20 to-blue-200/40"
+              variant="gradient"
             />
             <StatsCard
               label="Quá Hạn"
               value={contentStats?.overdue || 0}
               icon={AlertTriangle}
-              className="bg-red-50"
+              className="bg-gradient-to-br from-rose-200/40 via-pink-100/20 to-red-200/40"
+              variant="gradient"
             />
           </div>
 
@@ -181,46 +186,53 @@ export function DashboardOverview() {
               label="Tổng Video"
               value={videoStats?.totalVideos || 0}
               icon={PlayCircle}
-              className="bg-purple-50 col-span-2"
+              className="bg-gradient-to-br from-purple-200/40 via-fuchsia-100/20 to-pink-200/40 col-span-2"
+              variant="gradient"
             />
             <StatsCard
               label="Đã Đăng"
               value={videoStats?.posted || 0}
               icon={CheckCircle2}
-              className="bg-green-50"
+              className="bg-gradient-to-br from-emerald-200/40 via-teal-100/20 to-green-200/40"
+              variant="gradient"
             />
             <StatsCard
               label="Chờ Duyệt"
               value={videoStats?.pendingApproval || 0}
               icon={Clock}
-              className="bg-orange-50"
+              className="bg-gradient-to-br from-orange-200/40 via-amber-100/20 to-yellow-200/40"
+              variant="gradient"
             />
             <StatsCard
               label="Chờ Đăng"
               value={videoStats?.readyToPost || 0}
               icon={BarChart3}
-              className="bg-blue-50"
+              className="bg-gradient-to-br from-sky-200/40 via-cyan-100/20 to-blue-200/40"
+              variant="gradient"
             />
             <StatsCard
               label="Quá Hạn"
               value={videoStats?.overdue || 0}
               icon={AlertTriangle}
-              className="bg-red-50"
+              className="bg-gradient-to-br from-rose-200/40 via-pink-100/20 to-red-200/40"
+              variant="gradient"
             />
 
             {/* Grouped Engagement Stats */}
-            <div className="col-span-2 grid grid-cols-2 gap-4 pt-2 border-t border-slate-200">
+            <div className="col-span-2 grid grid-cols-2 gap-4 pt-2">
               <StatsCard
                 label="Tổng Lượt Xem"
                 value={(videoStats?.totalViews || 0).toLocaleString()}
                 icon={PlayCircle}
-                className="bg-indigo-50"
+                className="bg-gradient-to-br from-indigo-200/40 via-blue-100/20 to-violet-200/40"
+                variant="gradient"
               />
               <StatsCard
                 label="Thời Lượng TB"
                 value={`${Math.round(videoStats?.avgDuration || 0)}s`}
                 icon={Activity}
-                className="bg-sky-50"
+                className="bg-gradient-to-br from-sky-200/40 via-cyan-100/20 to-blue-200/40"
+                variant="gradient"
               />
             </div>
           </div>
