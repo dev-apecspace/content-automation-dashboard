@@ -11,7 +11,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const WEBHOOK_URL = process.env.NEXT_PUBLIC_UPDATE_POST_WEBHOOK;
+    const WEBHOOK_URL = "https://n8n.apecglobal.net/webhook/update-post";
 
     if (!WEBHOOK_URL) {
       console.warn("NEXT_PUBLIC_UPDATE_POST_WEBHOOK is not set");
