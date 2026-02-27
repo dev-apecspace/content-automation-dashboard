@@ -17,7 +17,7 @@ export async function POST(request: Request) {
       console.warn("NEXT_PUBLIC_UPDATE_POST_WEBHOOK is not set");
       // For now, we return success to simulate the feature if env is missing,
       // or we can error. Usually strictly better to error if real functionality is needed.
-      // But based on "edit-media", it returns 500.
+      // But based on "edit-media", it returns 500. 
       return NextResponse.json(
         { error: "Update Post Webhook URL not configured" },
         { status: 500 },
