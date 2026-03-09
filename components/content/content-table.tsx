@@ -317,9 +317,17 @@ export function ContentTable({
                     <td
                       id={index === 0 ? "tour-row-idea" : undefined}
                       className="p-4 text-sm font-medium text-slate-700 max-w-[250px] truncate"
-                      title={item.idea}
+                      title={
+                        item.idea?.includes("Nội dung được tạo thủ công") &&
+                        item.caption
+                          ? item.caption
+                          : item.idea
+                      }
                     >
-                      {item.idea}
+                      {item.idea?.includes("Nội dung được tạo thủ công") &&
+                      item.caption
+                        ? item.caption
+                        : item.idea}
                     </td>
                     {/* Dự án */}
                     <td className="p-4">
