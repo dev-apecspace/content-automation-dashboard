@@ -7,6 +7,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -40,11 +41,11 @@ export const ParameterManagerDialog: React.FC<ParameterManagerDialogProps> = ({
   onAccountsUpdated,
 }) => {
   const selectedAccounts = accounts.filter((a) =>
-    selectedAccountIds.includes(a.id)
+    selectedAccountIds.includes(a.id),
   );
 
   const [addingToAccountId, setAddingToAccountId] = useState<string | null>(
-    null
+    null,
   );
   const [newParamKey, setNewParamKey] = useState("");
   const [newParamValue, setNewParamValue] = useState("");
@@ -83,10 +84,10 @@ export const ParameterManagerDialog: React.FC<ParameterManagerDialogProps> = ({
   };
 
   const handleStartAdd = (accountId: string) => {
-      setAddingToAccountId(accountId);
-      setNewParamKey("");
-      setNewParamValue("");
-  }
+    setAddingToAccountId(accountId);
+    setNewParamKey("");
+    setNewParamValue("");
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -98,6 +99,13 @@ export const ParameterManagerDialog: React.FC<ParameterManagerDialogProps> = ({
           </DialogTitle>
           <p className="text-sm text-slate-500 mt-1">
             Xem và thêm nhanh tham số cho các tài khoản đang chọn.
+            <br />
+            <span className="text-xs italic text-indigo-600">
+              * Lưu ý: Mã tham số viết liền, không dấu. Ví dụ:{" "}
+            </span>
+            <span className="text-xs font-semibold px-1 bg-slate-100 rounded">
+              brand_name
+            </span>
           </p>
         </DialogHeader>
 
@@ -124,14 +132,14 @@ export const ParameterManagerDialog: React.FC<ParameterManagerDialogProps> = ({
                     </span>
                   </div>
                   {addingToAccountId !== acc.id && (
-                     <Button
-                        variant="ghost" 
-                        size="sm"
-                        className="h-7 text-xs text-indigo-600 hover:bg-indigo-50 hover:text-indigo-700"
-                        onClick={() => handleStartAdd(acc.id)}
-                     >
-                         <Plus className="w-3.5 h-3.5 mr-1"/> Thêm tham số
-                     </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 text-xs text-indigo-600 hover:bg-indigo-50 hover:text-indigo-700"
+                      onClick={() => handleStartAdd(acc.id)}
+                    >
+                      <Plus className="w-3.5 h-3.5 mr-1" /> Thêm tham số
+                    </Button>
                   )}
                 </div>
 
@@ -167,57 +175,57 @@ export const ParameterManagerDialog: React.FC<ParameterManagerDialogProps> = ({
                   {/* Add Form */}
                   {addingToAccountId === acc.id && (
                     <div className="mt-3 p-3 bg-indigo-50/50 border border-indigo-100 rounded-lg animate-in fade-in zoom-in-95 duration-200">
-                        <div className="flex items-center gap-2 text-xs font-semibold text-indigo-800 mb-2">
-                            Thêm tham số mới
+                      <div className="flex items-center gap-2 text-xs font-semibold text-indigo-800 mb-2">
+                        Thêm tham số mới
+                      </div>
+                      <div className="flex gap-2">
+                        <div className="flex-1">
+                          <Input
+                            placeholder="Mã (vd: phone)"
+                            className="h-8 text-xs bg-white"
+                            value={newParamKey}
+                            onChange={(e) => setNewParamKey(e.target.value)}
+                            autoFocus
+                          />
                         </div>
-                        <div className="flex gap-2">
-                            <div className="flex-1">
-                                <Input 
-                                    placeholder="Mã (vd: phone)" 
-                                    className="h-8 text-xs bg-white"
-                                    value={newParamKey}
-                                    onChange={e => setNewParamKey(e.target.value)}
-                                    autoFocus
-                                />
-                            </div>
-                            <div className="flex-[2]">
-                                <Input 
-                                    placeholder="Giá trị (vd: 0912...)" 
-                                    className="h-8 text-xs bg-white"
-                                    value={newParamValue}
-                                    onChange={e => setNewParamValue(e.target.value)}
-                                    onKeyDown={e => {
-                                        if (e.key === 'Enter') handleSaveParam(acc);
-                                    }}
-                                />
-                            </div>
-                            <Button 
-                                size="sm" 
-                                className="h-8 w-8 p-0 bg-indigo-600 hover:bg-indigo-700 text-white"
-                                onClick={() => handleSaveParam(acc)}
-                                disabled={isSaving}
-                            >
-                                <Save className="w-3.5 h-3.5"/>
-                            </Button>
-                             <Button 
-                                size="sm" 
-                                variant="ghost"
-                                className="h-8 w-8 p-0 text-slate-400 hover:text-slate-600"
-                                onClick={() => setAddingToAccountId(null)}
-                            >
-                                <X className="w-4 h-4"/>
-                            </Button>
+                        <div className="flex-[2]">
+                          <Textarea
+                            placeholder="Giá trị (vd: 0912...)"
+                            className="min-h-[32px] text-xs bg-white resize-y py-1.5"
+                            value={newParamValue}
+                            onChange={(e) => setNewParamValue(e.target.value)}
+                            rows={1}
+                          />
                         </div>
-                    </div>  
+                        <Button
+                          size="sm"
+                          className="h-8 w-8 p-0 bg-indigo-600 hover:bg-indigo-700 text-white"
+                          onClick={() => handleSaveParam(acc)}
+                          disabled={isSaving}
+                        >
+                          <Save className="w-3.5 h-3.5" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-8 w-8 p-0 text-slate-400 hover:text-slate-600"
+                          onClick={() => setAddingToAccountId(null)}
+                        >
+                          <X className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
                   )}
                 </div>
               </div>
             ))
           )}
         </div>
-        
+
         <div className="p-4 border-t bg-white flex justify-end">
-            <Button variant="outline" onClick={onClose}>Đóng</Button>
+          <Button variant="outline" onClick={onClose}>
+            Đóng
+          </Button>
         </div>
       </DialogContent>
     </Dialog>
