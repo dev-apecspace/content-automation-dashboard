@@ -7,6 +7,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -43,6 +44,7 @@ import {
   Trash2,
 } from "lucide-react"; // Icons
 import { BackgroundStyle } from "../ui/background-style";
+import { usePermissions } from "@/hooks/use-permissions";
 
 interface AccountFormModalProps {
   isOpen: boolean;
@@ -75,6 +77,9 @@ export const AccountFormModal: React.FC<AccountFormModalProps> = ({
     { id: string; key: string; value: string }[]
   >([]);
   const [projects, setProjects] = useState<Project[]>([]);
+
+  const { hasPermission } = usePermissions();
+  const canEditSensitive = hasPermission("accounts.edit_id_token");
 
   useEffect(() => {
     async function fetchProjects() {
@@ -120,7 +125,7 @@ export const AccountFormModal: React.FC<AccountFormModalProps> = ({
       }));
       setCustomFieldsList(list);
     } else {
-        setCustomFieldsList([]);
+      setCustomFieldsList([]);
     }
   }, [editAccount, isOpen]);
 
@@ -157,7 +162,7 @@ export const AccountFormModal: React.FC<AccountFormModalProps> = ({
     const popup = window.open(
       authUrl,
       "Youtube OAuth",
-      `width=${width},height=${height},top=${top},left=${left}`
+      `width=${width},height=${height},top=${top},left=${left}`,
     );
 
     const handleMessage = (event: MessageEvent) => {
@@ -168,7 +173,7 @@ export const AccountFormModal: React.FC<AccountFormModalProps> = ({
 
         if (!refreshToken) {
           toast.error(
-            "Không tìm thấy Refresh Token. Vui lòng thử lại và cấp quyền truy cập."
+            "Không tìm thấy Refresh Token. Vui lòng thử lại và cấp quyền truy cập.",
           );
           return;
         }
@@ -205,7 +210,7 @@ export const AccountFormModal: React.FC<AccountFormModalProps> = ({
           logoUrl: formData.logoUrl,
           customFields: customFieldsList.reduce(
             (acc, curr) => ({ ...acc, [curr.key]: curr.value }),
-            {}
+            {},
           ),
         });
         toast.success("Cập nhật tài khoản thành công!");
@@ -252,12 +257,12 @@ export const AccountFormModal: React.FC<AccountFormModalProps> = ({
   const handleCustomFieldChange = (
     id: string,
     field: "key" | "value",
-    newValue: string
+    newValue: string,
   ) => {
     setCustomFieldsList((prev) =>
       prev.map((item) =>
-        item.id === id ? { ...item, [field]: newValue } : item
-      )
+        item.id === id ? { ...item, [field]: newValue } : item,
+      ),
     );
   };
 
@@ -368,7 +373,8 @@ export const AccountFormModal: React.FC<AccountFormModalProps> = ({
                 }
                 placeholder="Nhập ID kênh..."
                 required
-                className="bg-white border-slate-300 focus:border-indigo-500 focus:ring-indigo-500/20 rounded-xl shadow-sm font-mono text-sm"
+                disabled={!canEditSensitive && !!editAccount}
+                className="bg-white border-slate-300 focus:border-indigo-500 focus:ring-indigo-500/20 rounded-xl shadow-sm font-mono text-sm disabled:bg-slate-50 disabled:text-slate-500"
               />
             </div>
 
@@ -460,32 +466,34 @@ export const AccountFormModal: React.FC<AccountFormModalProps> = ({
               </Label>
               <div className="space-y-2">
                 {customFieldsList.map((item) => (
-                  <div
-                    key={item.id}
-                    className="flex items-center gap-2"
-                  >
+                  <div key={item.id} className="flex items-start gap-2">
                     <Input
                       value={item.key}
                       onChange={(e) =>
                         handleCustomFieldChange(item.id, "key", e.target.value)
                       }
                       placeholder="Mã (vd: title, phone)"
-                      className="flex-[1] bg-white border-slate-300 text-sm font-mono"
+                      className="flex-[1] bg-white border-slate-300 text-sm font-mono mt-0.5"
                     />
-                    <Input
+                    <Textarea
                       value={item.value}
                       onChange={(e) =>
-                        handleCustomFieldChange(item.id, "value", e.target.value)
+                        handleCustomFieldChange(
+                          item.id,
+                          "value",
+                          e.target.value,
+                        )
                       }
                       placeholder="Giá trị thay thế"
-                      className="flex-[2] bg-white border-slate-300 text-sm"
+                      className="flex-[2] bg-white border-slate-300 text-sm min-h-[40px] resize-y"
+                      rows={1}
                     />
                     <Button
                       type="button"
                       variant="ghost"
                       size="icon"
                       onClick={() => handleDeleteCustomField(item.id)}
-                      className="h-9 w-9 text-slate-400 hover:text-red-500"
+                      className="h-9 w-9 text-slate-400 hover:text-red-500 mt-0.5"
                     >
                       <Trash2 className="w-4 h-4" />
                     </Button>
@@ -496,8 +504,30 @@ export const AccountFormModal: React.FC<AccountFormModalProps> = ({
                     Chưa có tham số nào. Thêm tham số để sử dụng trong nội dung
                     mẫu.
                     <br />
-                    Ví dụ: [brand_name] sẽ được thay thế bằng tên Brand của tài
-                    khoản này.
+                    Mã tham số: Viết liền, không dấu (VD:{" "}
+                    <span className="font-semibold px-1 bg-slate-100 rounded">
+                      brand_name
+                    </span>
+                    )
+                    <br />
+                    Khi đăng bài, giá trị thay thế sẽ được điền tự động vào{" "}
+                    <span className="font-semibold px-1 bg-slate-100 rounded">
+                      [brand_name]
+                    </span>
+                    .
+                  </div>
+                )}
+                {customFieldsList.length > 0 && (
+                  <div className="text-xs text-slate-500 italic px-2 py-1">
+                    * Lưu ý: Mã tham số viết liền, không dấu. Ví dụ:{" "}
+                    <span className="font-semibold text-slate-700">
+                      brand_name
+                    </span>{" "}
+                    (sử dụng trong bài:{" "}
+                    <span className="font-semibold text-slate-700">
+                      [brand_name]
+                    </span>
+                    )
                   </div>
                 )}
               </div>
@@ -519,7 +549,8 @@ export const AccountFormModal: React.FC<AccountFormModalProps> = ({
                       setFormData({ ...formData, clientId: e.target.value })
                     }
                     placeholder="Nhập Client ID..."
-                    className="bg-white border-slate-300 focus:border-indigo-500 focus:ring-indigo-500/20 rounded-xl shadow-sm font-mono text-sm"
+                    disabled={!canEditSensitive && !!editAccount}
+                    className="bg-white border-slate-300 focus:border-indigo-500 focus:ring-indigo-500/20 rounded-xl shadow-sm font-mono text-sm disabled:bg-slate-50 disabled:text-slate-500"
                   />
                 </div>
                 <div className="space-y-2">
@@ -536,7 +567,8 @@ export const AccountFormModal: React.FC<AccountFormModalProps> = ({
                       setFormData({ ...formData, clientSecret: e.target.value })
                     }
                     placeholder="Nhập Client Secret..."
-                    className="bg-white border-slate-300 focus:border-indigo-500 focus:ring-indigo-500/20 rounded-xl shadow-sm font-mono text-sm"
+                    disabled={!canEditSensitive && !!editAccount}
+                    className="bg-white border-slate-300 focus:border-indigo-500 focus:ring-indigo-500/20 rounded-xl shadow-sm font-mono text-sm disabled:bg-slate-50 disabled:text-slate-500"
                   />
                 </div>
               </>
@@ -555,17 +587,18 @@ export const AccountFormModal: React.FC<AccountFormModalProps> = ({
                   <span className="text-red-500">*</span>
                 </div>
                 {(formData.platform === "Youtube" ||
-                  formData.platform === "X") && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={handleGetOAuthToken}
-                    className="h-7 text-sm bg-red-50 text-red-600 hover:bg-red-100 border-red-200"
-                  >
-                    Lấy Token
-                  </Button>
-                )}
+                  formData.platform === "X") &&
+                  canEditSensitive && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleGetOAuthToken}
+                      className="h-7 text-sm bg-red-50 text-red-600 hover:bg-red-100 border-red-200"
+                    >
+                      Lấy Token
+                    </Button>
+                  )}
               </Label>
               <div className="relative">
                 <Input
@@ -578,12 +611,13 @@ export const AccountFormModal: React.FC<AccountFormModalProps> = ({
                     editAccount
                       ? "Mã hoá (Nhập để thay đổi)"
                       : formData.platform === "Youtube" ||
-                        formData.platform === "X"
-                      ? "Refresh Token..."
-                      : "Access Token..."
+                          formData.platform === "X"
+                        ? "Refresh Token..."
+                        : "Access Token..."
                   }
                   required={!editAccount} // Required only on create
-                  className="bg-white border-slate-300 focus:border-indigo-500 focus:ring-indigo-500/20 rounded-xl shadow-sm font-mono text-sm pr-10"
+                  disabled={!canEditSensitive && !!editAccount}
+                  className="bg-white border-slate-300 focus:border-indigo-500 focus:ring-indigo-500/20 rounded-xl shadow-sm font-mono text-sm pr-10 disabled:bg-slate-50 disabled:text-slate-500"
                 />
                 <Button
                   type="button"
@@ -640,8 +674,8 @@ export const AccountFormModal: React.FC<AccountFormModalProps> = ({
               {isLoading
                 ? "Đang lưu..."
                 : editAccount
-                ? "Cập nhật"
-                : "Thêm mới"}
+                  ? "Cập nhật"
+                  : "Thêm mới"}
             </Button>
           </div>
         </form>
