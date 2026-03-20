@@ -33,6 +33,7 @@ import { isOverdue } from "@/lib/utils/date";
 import type { ContentItem, Platform, Project } from "@/lib/types";
 import { platformColors, statusConfig, type Status } from "@/lib/types";
 import { useEffect, useState } from "react";
+import { AiIdeaModal } from "@/components/content/ai-idea-modal";
 import { getProjects } from "@/lib/api";
 import { toast } from "sonner";
 import { usePermissions } from "@/hooks/use-permissions";
@@ -89,6 +90,8 @@ export function ContentTable({
   const [loading, setLoading] = useState(false);
   const { hasPermission } = usePermissions();
 
+  const [showAiModal, setShowAiModal] = useState(false);
+
   useEffect(() => {
     async function fetchProjects() {
       try {
@@ -101,15 +104,16 @@ export function ContentTable({
     fetchProjects();
   }, []);
 
-  const triggerAiSearchIdeas = async () => {
-    if (!confirm("Bạn có chắc chắn muốn gọi AI tạo ý tưởng?")) return;
-
+  const triggerAiSearchIdeas = async (
+    payload: { projectId: string; quantity: number }[]
+  ) => {
+    setShowAiModal(false);
     setLoading(true);
     try {
       const res = await fetch("/api/webhook/ai-search-ideas", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ postType: "content" }),
+        body: JSON.stringify({ postType: "content", projectQuantities: payload }),
       });
 
       if (!res.ok) {
@@ -202,7 +206,7 @@ export function ContentTable({
               <TooltipTrigger asChild>
                 <Button
                   id="tour-ai-btn"
-                  onClick={triggerAiSearchIdeas}
+                  onClick={() => setShowAiModal(true)}
                   disabled={loading}
                   className={`flex items-center gap-2 font-medium transition-all duration-200 cursor-pointer border-0 shadow-md ${
                     loading
@@ -602,6 +606,12 @@ export function ContentTable({
           </div>
         </div>
       </Card>
+      <AiIdeaModal
+        open={showAiModal}
+        projects={projects}
+        onClose={() => setShowAiModal(false)}
+        onConfirm={triggerAiSearchIdeas}
+      />
     </div>
   );
 }

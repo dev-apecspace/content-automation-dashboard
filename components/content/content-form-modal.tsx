@@ -1598,7 +1598,6 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
                         </Button>
                         {Array.from(
                           new Set([
-                            "channel_name",
                             ...accounts
                               .filter((acc) =>
                                 formData.accountIds?.includes(acc.id),
