@@ -4,14 +4,14 @@ const WEBHOOK_URL = process.env.NEXT_PUBLIC_SEARCH_IDEAS_WEBHOOK!;
 
 export async function POST(request: NextRequest) {
   try {
-    const { postType } = await request.json();
+    const { postType, projectQuantities } = await request.json();
 
     const res = await fetch(WEBHOOK_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ postType }),
+      body: JSON.stringify({ postType, projectQuantities }),
     });
 
     if (!res.ok) {
