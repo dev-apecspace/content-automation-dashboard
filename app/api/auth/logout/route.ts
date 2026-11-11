@@ -22,12 +22,21 @@ export async function POST(req: NextRequest) {
     console.error("Logout logging error:", error);
   }
 
+  // Đồng bộ chính sách cookie với login (SameSite=None + Secure trên HTTPS/localhost)
+  const proto = (
+    req.headers.get("x-forwarded-proto") ?? req.nextUrl.protocol.replace(":", "")
+  )
+    .split(",")[0]
+    .trim();
+  const host = (req.headers.get("host") ?? "").split(":")[0];
+  const isHttps =
+    proto === "https" || host === "localhost" || host === "127.0.0.1";
   const cookie = serialize("auth_token", "", {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure: isHttps,
     maxAge: -1,
     path: "/",
-    sameSite: "lax",
+    sameSite: isHttps ? "none" : "lax",
   });
 
   const response = NextResponse.json({ success: true });

@@ -50,12 +50,24 @@ export async function POST(req: NextRequest) {
     });
 
     // 4. Set Cookie
+    // Cookie policy: khi chạy trên HTTPS (production/preview qua proxy) hoặc localhost
+    // (secure context) dùng SameSite=None + Secure để cookie được nhận khi app
+    // được nhúng trong iframe cross-origin (preview panel). Trên HTTP thường
+    // (dev local) giữ SameSite=Lax vì SameSite=None thiếu Secure bị browser từ chối.
+    const proto = (
+      req.headers.get("x-forwarded-proto") ?? req.nextUrl.protocol.replace(":", "")
+    )
+      .split(",")[0]
+      .trim();
+    const host = (req.headers.get("host") ?? "").split(":")[0];
+    const isHttps =
+      proto === "https" || host === "localhost" || host === "127.0.0.1";
     const cookie = serialize("auth_token", token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: isHttps,
       maxAge: 60 * 60 * 24 * 7, // 1 week
       path: "/",
-      sameSite: "lax",
+      sameSite: isHttps ? "none" : "lax",
     });
 
     const response = NextResponse.json({
