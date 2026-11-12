@@ -51,11 +51,21 @@ export NEXT_TELEMETRY_DISABLED=1
 # ==============================================================================
 SHADOW_DIR="/home/z/.publish-shadow"
 echo "📁 影子构建目录: $SHADOW_DIR (避开工作区内的挂载点)"
+# [cache-keep] 保留上次构建的 webpack cache（.next/cache），源码没变时
+# next build 走增量编译，~3 分钟完成，避免平台构建超时。
+if [ -d "$SHADOW_DIR/.next/cache" ]; then
+    echo "♻️  保留影子目录 webpack cache 以加速增量构建"
+    mv "$SHADOW_DIR/.next" "$SHADOW_DIR/../.publish-shadow.next.keep"
+fi
 rm -rf "$SHADOW_DIR"
 mkdir -p "$SHADOW_DIR"
 rsync -a --link-dest="$NEXTJS_PROJECT_DIR" \
     --exclude=upload --exclude=.next --exclude=.git \
     "$NEXTJS_PROJECT_DIR/" "$SHADOW_DIR/"
+if [ -d "$SHADOW_DIR/../.publish-shadow.next.keep" ]; then
+    echo "♻️  恢复 webpack cache"
+    mv "$SHADOW_DIR/../.publish-shadow.next.keep" "$SHADOW_DIR/.next"
+fi
 
 # [env-restore] 影子目录同样需要 .env.local（rsync 已排除 .next/.git，
 # 但 .env.local 是普通文件会正常带上；再兜底检查一次）
