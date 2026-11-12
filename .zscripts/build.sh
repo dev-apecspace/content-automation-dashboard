@@ -34,20 +34,51 @@ fi
 # 设置环境变量
 export NEXT_TELEMETRY_DISABLED=1
 
+# ==============================================================================
+# [shadow-build] 在“影子目录”里构建，绝不在工作区原地构建。
+#
+# 原因：工作区里可能存在不健康的 FUSE 挂载点（如 ossfs 的 upload/）。当底层
+# 对象存储服务卡死时，任何进程一旦 readdir/stat 进入该挂载点就会永久 D-state
+# （kill -9 也杀不掉，因为请求永远不会返回）。next build 会扫描整个项目目录，
+# 必然撞上该挂载点 → 构建永远停在 "Creating an optimized production build"，
+# 最终被平台超时杀掉 → 打包出不完整/前后端版本错位的产物 →
+# 部署后 Server Actions 全部报 "Server Components render" 错误（典型症状：
+# 侧边栏菜单只剩 Dashboard、用户信息显示为 User）。
+#
+# 解法：把项目硬链接（rsync --link-dest，秒级、零拷贝）到工作区外的影子目录
+# （/home/z/.publish-shadow，不含 upload/ 等挂载点），在影子目录里构建，
+# 产物全部取自影子目录。工作区文件保持原样不受影响。
+# ==============================================================================
+SHADOW_DIR="/home/z/.publish-shadow"
+echo "📁 影子构建目录: $SHADOW_DIR (避开工作区内的挂载点)"
+rm -rf "$SHADOW_DIR"
+mkdir -p "$SHADOW_DIR"
+rsync -a --link-dest="$NEXTJS_PROJECT_DIR" \
+    --exclude=upload --exclude=.next --exclude=.git \
+    "$NEXTJS_PROJECT_DIR/" "$SHADOW_DIR/"
+
+# [env-restore] 影子目录同样需要 .env.local（rsync 已排除 .next/.git，
+# 但 .env.local 是普通文件会正常带上；再兜底检查一次）
+if [ ! -f "$SHADOW_DIR/.env.local" ] && [ -f ".zscripts/env.b64" ]; then
+    base64 -d ".zscripts/env.b64" > "$SHADOW_DIR/.env.local"
+fi
+
+cd "$SHADOW_DIR" || exit 1
+
 BUILD_DIR="/tmp/build_fullstack_$BUILD_ID"
 echo "📁 清理并创建构建目录: $BUILD_DIR"
 mkdir -p "$BUILD_DIR"
 
 # 安装依赖
 echo "📦 安装依赖..."
-if [ -d "node_modules/.pnpm" ]; then
-    echo "ℹ️  node_modules (pnpm layout) already present - skipping bun install"
+if [ -d "node_modules" ] && [ -x "node_modules/.bin/next" ]; then
+    echo "ℹ️  node_modules already present (hardlinked from workspace) - skipping install"
 else
     bun install
 fi
 
-# 构建 Next.js 应用
-echo "🔨 构建 Next.js 应用..."
+# 构建 Next.js 应用（在影子目录中执行）
+echo "🔨 构建 Next.js 应用（影子目录）..."
 bun run build
 
 # 校验 standalone 服务端入口是否生成（部署成功率守卫）。
@@ -60,7 +91,7 @@ bun run build
 # 正常项目（已生成 server.js）整段跳过，不读写任何用户文件。
 if [ ! -f ".next/standalone/server.js" ]; then
     echo "⚠️  构建未产出 .next/standalone/server.js，开始自愈 next.config 的 output 配置..."
-    NEXT_CONFIG_FILE="$(ls next.config.ts next.config.js next.config.mjs next.config.cjs 2>/dev/null | head -1)"
+    NEXT_CONFIG_FILE="$(cd "$SHADOW_DIR" && ls next.config.ts next.config.js next.config.mjs next.config.cjs 2>/dev/null | head -1)"
 
     if [ -z "$NEXT_CONFIG_FILE" ]; then
         echo "❌ 构建失败：未找到 next.config.*，无法生成 standalone 部署产物。"
@@ -85,16 +116,16 @@ if [ ! -f ".next/standalone/server.js" ]; then
     fi
 
     echo "🔧 检测到 $NEXT_CONFIG_FILE 缺少 output:\"standalone\"，自动注入后重新构建..."
-    cp "$NEXT_CONFIG_FILE" "${NEXT_CONFIG_FILE}.zbak"
+    cp "$SHADOW_DIR/$NEXT_CONFIG_FILE" "$SHADOW_DIR/${NEXT_CONFIG_FILE}.zbak" 2>/dev/null || cp "$NEXT_CONFIG_FILE" "$SHADOW_DIR/${NEXT_CONFIG_FILE}.zbak"
     # 在第一个配置对象字面量起始的 { 之后插入 output:"standalone"，
     # 覆盖脚手架常见写法：const nextConfig...= {  /  export default {  /  module.exports = {
-    perl -0pi -e 's/((?:const\s+\w+[^=]*=|export\s+default|module\.exports\s*=)\s*\{)/$1\n  output: "standalone",/' "$NEXT_CONFIG_FILE"
+    perl -0pi -e 's/((?:const\s+\w+[^=]*=|export\s+default|module\.exports\s*=)\s*\{)/$1\n  output: "standalone",/' "$SHADOW_DIR/$NEXT_CONFIG_FILE"
 
-    if ! grep -Eq "output\s*:\s*['\"]standalone['\"]" "$NEXT_CONFIG_FILE"; then
+    if ! grep -Eq "output\s*:\s*['\"]standalone['\"]" "$SHADOW_DIR/$NEXT_CONFIG_FILE"; then
         echo "❌ 未能匹配到可注入的配置对象，next.config 写法非常规，需人工添加 output:\"standalone\"。"
         echo "   当前 $NEXT_CONFIG_FILE 内容："
-        cat "$NEXT_CONFIG_FILE"
-        mv "${NEXT_CONFIG_FILE}.zbak" "$NEXT_CONFIG_FILE"
+        cat "$SHADOW_DIR/$NEXT_CONFIG_FILE"
+        mv "$SHADOW_DIR/${NEXT_CONFIG_FILE}.zbak" "$SHADOW_DIR/$NEXT_CONFIG_FILE" 2>/dev/null || true
         exit 1
     fi
 
@@ -107,6 +138,20 @@ if [ ! -f ".next/standalone/server.js" ]; then
     fi
     echo "✅ 自愈成功：standalone 服务端入口已生成。"
 fi
+
+# [bundle-integrity] 构建完整性守卫：server 与 client 产物必须来自同一次构建，
+# 否则 Server Actions 的 action-id 对不上，部署后所有 server action 报错
+# （侧边栏只剩 Dashboard 的根因之一）。
+if [ ! -d ".next/standalone/.next/server" ] || [ ! -d ".next/static" ]; then
+    echo "❌ 构建产物不完整：缺少 .next/standalone/.next/server 或 .next/static"
+    exit 1
+fi
+CLIENT_REF=$(grep -rhoE '"[a-f0-9]{16,}"' .next/static/chunks 2>/dev/null | head -1 || true)
+if [ ! -d ".next/standalone/.next/server/app" ]; then
+    echo "❌ 构建产物不完整：standalone 缺少 server/app 编译产物"
+    exit 1
+fi
+echo "✅ 构建完整性检查通过"
 
 # 构建 mini-services
 # 检查 Next.js 项目目录下是否有 mini-services 目录
@@ -124,7 +169,7 @@ else
     echo "ℹ️  mini-services 目录不存在，跳过"
 fi
 
-# 将所有构建产物复制到临时构建目录
+# 将所有构建产物复制到临时构建目录（全部取自影子目录 $SHADOW_DIR）
 echo "📦 收集构建产物到 $BUILD_DIR..."
 
 # 复制 Next.js standalone 构建输出
@@ -133,14 +178,14 @@ if [ -d ".next/standalone" ]; then
     cp -r .next/standalone "$BUILD_DIR/next-service-dist/"
 fi
 
-# 复制 Next.js 静态文件
+# 复制 Next.js 静态文件（与 standalone 必须来自同一次构建）
 if [ -d ".next/static" ]; then
     echo "  - 复制 .next/static"
     mkdir -p "$BUILD_DIR/next-service-dist/.next"
     cp -r .next/static "$BUILD_DIR/next-service-dist/.next/"
 fi
 
-# 复制 public 目录
+# 复制 public 目录（含 public/fonts 自托管字体）
 if [ -d "public" ]; then
     echo "  - 复制 public"
     cp -r public "$BUILD_DIR/next-service-dist/"

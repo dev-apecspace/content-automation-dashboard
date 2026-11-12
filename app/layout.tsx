@@ -1,17 +1,11 @@
 import type React from "react";
 import type { Metadata } from "next";
-import { Be_Vietnam_Pro } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { Providers } from "@/components/providers/providers";
 import { ActivityTracker } from "@/components/layout/activity-tracker";
 import { TourOverlay } from "@/components/ui/tour-overlay";
+import "./fonts.css";
 import "./globals.css";
-
-const beVietnamPro = Be_Vietnam_Pro({
-  weight: ["100", "200", "300", "400", "500", "600", "700", "800", "900"],
-  subsets: ["vietnamese"],
-  display: "swap",
-});
 
 export const metadata: Metadata = {
   // <CHANGE> Updated metadata for Vietnamese Content Automation Dashboard
@@ -45,7 +39,7 @@ export default function RootLayout({
   return (
     // <CHANGE> Updated lang to 'vi' for Vietnamese
     <html lang="vi" suppressHydrationWarning>
-      <body className={`${beVietnamPro.className} antialiased`}>
+      <body className="antialiased" style={{ fontFamily: "'Be Vietnam Pro', ui-sans-serif, system-ui, -apple-system, sans-serif" }}>
         <Providers>
           {children}
           <ActivityTracker />
