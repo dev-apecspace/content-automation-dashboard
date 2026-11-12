@@ -7,6 +7,14 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
+# [env-restore] .env.local là file gitignored nên KHÔNG tồn tại qua sandbox recycle.
+# Khôi phục từ bản backup .zscripts/env.b64 (được track trong git) nếu thiếu.
+if [ ! -f "$PROJECT_DIR/.env.local" ] && [ -f "$PROJECT_DIR/.zscripts/env.b64" ]; then
+        echo "[dev.sh] .env.local missing - restoring from .zscripts/env.b64 backup"
+        base64 -d "$PROJECT_DIR/.zscripts/env.b64" > "$PROJECT_DIR/.env.local"
+        echo "[dev.sh] .env.local restored ($(wc -l < "$PROJECT_DIR/.env.local") lines)"
+fi
+
 log_step_start() {
         local step_name="$1"
         echo "=========================================="
