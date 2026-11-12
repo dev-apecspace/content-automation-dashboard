@@ -127,3 +127,8 @@ supabase/.temp/
 
 # Cleanup scripts
 cleanup.ps1
+
+# Sandbox workspace extras (assistant tooling / test artifacts - not app code)
+skills/
+download/
+upload/

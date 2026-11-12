@@ -18,11 +18,19 @@ else
     echo "ℹ️  未找到 Preview 数据库 db/custom.db，将初始化空的生产数据库"
 fi
 
-echo "🗄️  同步构建产物中的数据库结构..."
-(
-    cd "$PROJECT_DIR"
-    DATABASE_URL="file:$TARGET_DB_PATH" bun run db:push
-)
+# Only run schema sync for Prisma-style projects that define db:push.
+# Non-Prisma apps (e.g. Supabase REST) have no db:push script - running it
+# would fail the whole build under set -e. Just ensure the packaged DB file
+# exists so start.sh's guard (test -f /app/db/custom.db) passes.
+if grep -q '"db:push"' "$PROJECT_DIR/package.json" 2>/dev/null; then
+    echo "🗄️  同步构建产物中的数据库结构..."
+    (
+        cd "$PROJECT_DIR"
+        DATABASE_URL="file:$TARGET_DB_PATH" bun run db:push
+    )
+else
+    echo "ℹ️  No db:push script (non-Prisma project) - skipping schema sync"
+fi
 
 if [ ! -f "$TARGET_DB_PATH" ]; then
     echo "❌ 数据库初始化命令执行成功，但未生成 $TARGET_DB_PATH"

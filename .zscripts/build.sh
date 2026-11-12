@@ -24,6 +24,13 @@ echo "📁 Next.js 项目路径: $NEXTJS_PROJECT_DIR"
 # 切换到 Next.js 项目目录
 cd "$NEXTJS_PROJECT_DIR" || exit 1
 
+# [env-restore] .env.local is gitignored and may be missing after sandbox
+# recycle. Restore from tracked backup so the build gets env vars inlined.
+if [ ! -f ".env.local" ] && [ -f ".zscripts/env.b64" ]; then
+    echo "🔐 .env.local missing - restoring from .zscripts/env.b64"
+    base64 -d ".zscripts/env.b64" > ".env.local"
+fi
+
 # 设置环境变量
 export NEXT_TELEMETRY_DISABLED=1
 
@@ -33,7 +40,11 @@ mkdir -p "$BUILD_DIR"
 
 # 安装依赖
 echo "📦 安装依赖..."
-bun install
+if [ -d "node_modules/.pnpm" ]; then
+    echo "ℹ️  node_modules (pnpm layout) already present - skipping bun install"
+else
+    bun install
+fi
 
 # 构建 Next.js 应用
 echo "🔨 构建 Next.js 应用..."
@@ -133,6 +144,14 @@ fi
 if [ -d "public" ]; then
     echo "  - 复制 public"
     cp -r public "$BUILD_DIR/next-service-dist/"
+fi
+
+# [runtime-env] 把运行时环境变量打进部署包。FC 上没有 env 管理机制，
+# 没有这个文件的话 Supabase/Cloudinary/JWT 等全部缺失，standalone 启动后
+# 所有数据请求失败 -> 健康检查超时 -> 发布失败。start.sh 会 source 该文件。
+if [ -f ".env.local" ] && [ -d "$BUILD_DIR/next-service-dist" ]; then
+    echo "  - 复制 .env.local 到部署包（运行时环境变量）"
+    cp .env.local "$BUILD_DIR/next-service-dist/.env.local"
 fi
 
 # Python 不继承 workspace-agent 的 /home/z/.venv。若项目包含 Python 源码或

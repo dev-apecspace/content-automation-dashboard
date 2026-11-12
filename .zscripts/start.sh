@@ -77,6 +77,15 @@ if [ -f "./next-service-dist/server.js" ]; then
     export HOSTNAME="${HOSTNAME:-0.0.0.0}"
     export DATABASE_URL="${DATABASE_URL:-$DEFAULT_PACKAGED_DATABASE_URL}"
 
+    # [runtime-env] 加载打包在部署包内的环境变量（Supabase/Cloudinary/JWT/webhooks）。
+    # build.sh 会把 .env.local 复制进 next-service-dist。
+    if [ -f "./.env.local" ]; then
+        set -a
+        . ./.env.local
+        set +a
+        echo "🔐 Loaded runtime env from next-service-dist/.env.local"
+    fi
+
     if [ "$DATABASE_URL" = "$DEFAULT_PACKAGED_DATABASE_URL" ]; then
         if [ ! -f "$DEFAULT_PACKAGED_DB_PATH" ]; then
             echo "❌ 未找到打包后的数据库文件 $DEFAULT_PACKAGED_DB_PATH"

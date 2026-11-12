@@ -17,6 +17,8 @@ has_python_sources() {
         -o -name 'node_modules' \
         -o -name '__pycache__' \
         -o -name 'mini-services' \
+        -o -name 'skills' \
+        -o -name '.zscripts' \
         -o -name 'upload' \
         -o -name 'download' \
         \) -prune \) \
