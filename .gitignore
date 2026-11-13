@@ -133,3 +133,4 @@ skills/
 download/
 upload/
 *.zbak
+.next-publish-cache/
