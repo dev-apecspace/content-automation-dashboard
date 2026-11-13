@@ -53,18 +53,21 @@ SHADOW_DIR="/home/z/.publish-shadow"
 echo "📁 影子构建目录: $SHADOW_DIR (避开工作区内的挂载点)"
 # [cache-keep] 保留上次构建的 webpack cache（.next/cache），源码没变时
 # next build 走增量编译，~3 分钟完成，避免平台构建超时。
-if [ -d "$SHADOW_DIR/.next/cache" ]; then
-    echo "♻️  保留影子目录 webpack cache 以加速增量构建"
-    mv "$SHADOW_DIR/.next" "$SHADOW_DIR/../.publish-shadow.next.keep"
-fi
+# [cache-keep-v2] 缓存必须持久化在工作区内（$NEXTJS_PROJECT_DIR/.next-publish-cache）。
+# 原方案把缓存放在影子目录旁边（/home/z/.publish-shadow.next.keep），但该路径在
+# 沙箱 recycle 后被清空 -> 每次 recycle 后的第一次 publish 都是冷构建（~12 分钟，
+# 极易触发平台构建超时 -> "problem deploying the code"）。工作区内容跨 recycle
+# 保留；构建结束时再把最新缓存搬回工作区（见文件末尾 cache-keep-v2 保存段）。
+CACHE_KEEP="$NEXTJS_PROJECT_DIR/.next-publish-cache"
 rm -rf "$SHADOW_DIR"
 mkdir -p "$SHADOW_DIR"
 rsync -a --link-dest="$NEXTJS_PROJECT_DIR" \
     --exclude=upload --exclude=.next --exclude=.git \
+    --exclude=.next-publish-cache \
     "$NEXTJS_PROJECT_DIR/" "$SHADOW_DIR/"
-if [ -d "$SHADOW_DIR/../.publish-shadow.next.keep" ]; then
-    echo "♻️  恢复 webpack cache"
-    mv "$SHADOW_DIR/../.publish-shadow.next.keep" "$SHADOW_DIR/.next"
+if [ -d "$CACHE_KEEP" ]; then
+    echo "♻️  恢复 webpack cache（工作区持久化缓存）"
+    mv "$CACHE_KEEP" "$SHADOW_DIR/.next"
 fi
 
 # [env-restore] 影子目录同样需要 .env.local（rsync 已排除 .next/.git，
@@ -77,6 +80,10 @@ cd "$SHADOW_DIR" || exit 1
 
 BUILD_DIR="/tmp/build_fullstack_$BUILD_ID"
 echo "📁 清理并创建构建目录: $BUILD_DIR"
+# [build-dir-guard] BUILD_DIR 若残留旧内容（BUILD_ID 重复/上次构建中断），standalone
+# 会被 cp -r 嵌套进旧结构，打出"新旧混合"的畸形产物 —— 正是 bundle-integrity 注释里
+# 警告的前后端错位类故障。每次构建前强制清空。
+rm -rf "$BUILD_DIR"
 mkdir -p "$BUILD_DIR"
 
 # 安装依赖
@@ -239,6 +246,15 @@ echo "📦 打包构建产物到 $PACKAGE_FILE..."
 cd "$BUILD_DIR" || exit 1
 tar -czf "$PACKAGE_FILE" .
 cd - > /dev/null || exit 1
+
+# [cache-keep-v2] 构建完成后把最新 webpack cache 搬回工作区持久化。
+# 影子目录在沙箱 recycle 时会被清空，只有工作区里的这份缓存能让下一次
+# publish（哪怕在全新的沙箱里）走增量构建，避免冷构建超时导致发布失败。
+if [ -d "$SHADOW_DIR/.next/cache" ]; then
+    echo "♻️  保存 webpack cache 到工作区（跨 recycle 增量构建）"
+    rm -rf "$CACHE_KEEP"
+    mv "$SHADOW_DIR/.next" "$CACHE_KEEP"
+fi
 
 # # 清理临时目录
 # rm -rf "$BUILD_DIR"
