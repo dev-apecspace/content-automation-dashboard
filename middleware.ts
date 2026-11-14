@@ -26,6 +26,28 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // API routes must never receive an HTML redirect: clients do res.json()
+  // on them and an HTML login page would crash with
+  // "Unexpected token '<', ... is not valid JSON". Return JSON 401 instead.
+  if (pathname.startsWith("/api/")) {
+    const json401 = (message: string) =>
+      NextResponse.json({ error: message }, { status: 401 });
+
+    if (!token) {
+      return json401("Chưa đăng nhập hoặc phiên đã hết hạn");
+    }
+
+    try {
+      await jwtVerify(token, JWT_SECRET);
+      return NextResponse.next();
+    } catch (error) {
+      console.error("Token verification failed:", error);
+      const unauthorized = json401("Phiên đăng nhập không hợp lệ, vui lòng đăng nhập lại");
+      unauthorized.cookies.delete("auth_token");
+      return unauthorized;
+    }
+  }
+
   if (!token) {
     // Redirect to login if no token
     const url = request.nextUrl.clone();

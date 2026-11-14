@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { WEBHOOK_TIMEOUT_MS, webhookErrorMessage } from "@/lib/webhook";
 
 export async function POST(request: Request) {
   try {
@@ -26,6 +27,7 @@ export async function POST(request: Request) {
 
     const response = await fetch(WEBHOOK_URL, {
       method: "POST",
+      signal: AbortSignal.timeout(WEBHOOK_TIMEOUT_MS),
       headers: {
         "Content-Type": "application/json",
       },
@@ -56,7 +58,7 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error("Error forwarding to webhook:", error);
     return NextResponse.json(
-      { error: "Internal Server Error" },
+      { error: webhookErrorMessage(error) },
       { status: 500 },
     );
   }

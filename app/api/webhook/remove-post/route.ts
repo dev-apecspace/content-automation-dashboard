@@ -1,4 +1,5 @@
 import { NextRequest } from "next/server";
+import { WEBHOOK_TIMEOUT_MS, webhookErrorMessage } from "@/lib/webhook";
 
 const WEBHOOK_URL = process.env.NEXT_PUBLIC_REMOVE_POST_WEBHOOK!;
 
@@ -9,6 +10,7 @@ export async function POST(request: NextRequest) {
 console.log("============ platform: ", platform)
     const res = await fetch(WEBHOOK_URL, {
       method: "POST",
+      signal: AbortSignal.timeout(WEBHOOK_TIMEOUT_MS),
       headers: {
         "Content-Type": "application/json",
       },
@@ -28,7 +30,7 @@ console.log("============ platform: ", platform)
     const data = await res.json();
     return new Response(JSON.stringify(data), { status: 200 });
   } catch (err: any) {
-    return new Response(JSON.stringify({ error: err.message }), {
+    return new Response(JSON.stringify({ error: webhookErrorMessage(err) }), {
       status: 500,
     });
   }

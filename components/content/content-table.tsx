@@ -117,8 +117,14 @@ export function ContentTable({
       });
 
       if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.error || "Lỗi gọi AI tạo ý tưởng");
+        let message = "Lỗi gọi AI tạo ý tưởng";
+        try {
+          const error = await res.json();
+          message = error.error || message;
+        } catch {
+          // response was not JSON (e.g. proxy error page)
+        }
+        throw new Error(message);
       }
 
       toast.success("AI đang tạo ý tưởng...");
