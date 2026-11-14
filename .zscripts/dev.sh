@@ -148,6 +148,15 @@ log_step_end "bun run db:push"
 
 log_step_start "Starting Next.js dev server"
 echo "[BUN] Starting development server..."
+# [dev-cache-heal] Sandbox recycle có thể chết giữa lúc webpack đang ghi cache dev
+# (.next/cache/webpack/*/*.pack.gz_ là file tạm dấu "_"). Lần boot sau, next dev
+# đọc phải cache rác rồi quay CPU vô hạn (R 115%, không serve gì, trace 0 byte).
+# Thấy file tạm "_" còn sót = lần chạy trước chết giữa chừng -> dọn sạch webpack
+# cache để cold compile một lần (chậm hơn nhưng an toàn, không treo vĩnh viễn).
+if ls .next/cache/webpack/*/*.pack.gz_ >/dev/null 2>&1; then
+        echo "[BUN] Detected stale webpack dev cache (mid-write leftovers) - cleaning"
+        rm -rf .next/cache/webpack
+fi
 bun run dev &
 DEV_PID=$!
 log_step_end "Starting Next.js dev server"
