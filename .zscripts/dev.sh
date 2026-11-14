@@ -15,6 +15,14 @@ if [ ! -f "$PROJECT_DIR/.env.local" ] && [ -f "$PROJECT_DIR/.zscripts/env.b64" ]
         echo "[dev.sh] .env.local restored ($(wc -l < "$PROJECT_DIR/.env.local") lines)"
 fi
 
+# [zai-config-restore] .z-ai-config chứa credentials của z-ai-web-dev-sdk (GLM AI
+# trong app). Thiếu thì mọi feature AI fail -> khôi phục từ backup base64.
+if [ ! -f "$PROJECT_DIR/.z-ai-config" ] && [ -f "$PROJECT_DIR/.zscripts/zai-config.b64" ]; then
+        echo "[dev.sh] .z-ai-config missing - restoring from .zscripts/zai-config.b64 backup"
+        base64 -d "$PROJECT_DIR/.zscripts/zai-config.b64" > "$PROJECT_DIR/.z-ai-config"
+        chmod 600 "$PROJECT_DIR/.z-ai-config"
+fi
+
 log_step_start() {
         local step_name="$1"
         echo "=========================================="

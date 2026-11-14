@@ -134,3 +134,4 @@ download/
 upload/
 *.zbak
 .next-publish-cache/
+.z-ai-config

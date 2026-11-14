@@ -116,7 +116,12 @@ export function VideoTable({
         throw new Error(message);
       }
 
-      toast.success("AI đang tạo ý tưởng...");
+      const result = await res.json().catch(() => null);
+      toast.success(
+        result?.created
+          ? `Đã tạo ${result.created} ý tưởng bằng AI — danh sách sẽ tự cập nhật trong giây lát`
+          : "AI đang tạo ý tưởng..."
+      );
     } catch (error: any) {
       console.error("Lỗi khi gọi AI:", error);
       toast.error(error.message || "Không thể tạo ý tưởng bằng AI lúc này");

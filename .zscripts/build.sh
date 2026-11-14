@@ -31,6 +31,15 @@ if [ ! -f ".env.local" ] && [ -f ".zscripts/env.b64" ]; then
     base64 -d ".zscripts/env.b64" > ".env.local"
 fi
 
+# [zai-config-restore] .z-ai-config chứa credentials của z-ai-web-dev-sdk (GLM AI
+# trong app: tạo ý tưởng...). File gitignored, có thể mất sau recycle -> khôi phục
+# từ bản backup base64. Thiếu file này thì mọi feature AI sẽ fail.
+if [ ! -f ".z-ai-config" ] && [ -f ".zscripts/zai-config.b64" ]; then
+    echo "🔐 .z-ai-config missing - restoring from .zscripts/zai-config.b64"
+    base64 -d ".zscripts/zai-config.b64" > ".z-ai-config"
+    chmod 600 ".z-ai-config"
+fi
+
 # 设置环境变量
 export NEXT_TELEMETRY_DISABLED=1
 
@@ -214,6 +223,15 @@ fi
 if [ -f ".env.local" ] && [ -d "$BUILD_DIR/next-service-dist" ]; then
     echo "  - 复制 .env.local 到部署包（运行时环境变量）"
     cp .env.local "$BUILD_DIR/next-service-dist/.env.local"
+fi
+
+# [runtime-env] .z-ai-config: standalone server trên FC chạy với cwd =
+# next-service-dist; z-ai-web-dev-sdk đọc config từ cwd trước tiên. Không có
+# file này trên FC thì mọi feature AI trong app đều fail.
+if [ -f ".z-ai-config" ] && [ -d "$BUILD_DIR/next-service-dist" ]; then
+    echo "  - 复制 .z-ai-config 到部署包（AI runtime credentials）"
+    cp .z-ai-config "$BUILD_DIR/next-service-dist/.z-ai-config"
+    chmod 600 "$BUILD_DIR/next-service-dist/.z-ai-config"
 fi
 
 # Python 不继承 workspace-agent 的 /home/z/.venv。若项目包含 Python 源码或
