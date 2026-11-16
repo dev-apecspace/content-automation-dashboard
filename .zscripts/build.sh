@@ -104,8 +104,15 @@ else
 fi
 
 # 构建 Next.js 应用（在影子目录中执行）
-echo "🔨 构建 Next.js 应用（影子目录）..."
-bun run build
+# [turbopack-cold-fast] webpack 冷构建要 ~8-12 分钟，极易超出平台 publish 构建
+# 超时（"problem deploying the code" 的成因；workspace cache 靠后台异步恢复，
+# 冷启动的发布沙箱可能在恢复完成前就开始构建）。turbopack 冷构建实测 ~1 分钟
+# (2026-11-16, Next 15.5.9)。优先 --turbopack，失败则回退 webpack 保证能出包。
+echo "🔨 构建 Next.js 应用（影子目录，优先 turbopack）..."
+if ! bun run build --turbopack; then
+    echo "⚠️  turbopack build 失败 - 回退到 webpack 构建"
+    bun run build
+fi
 
 # 校验 standalone 服务端入口是否生成（部署成功率守卫）。
 # Next 仅在 next.config 含 output:"standalone" 时产出 .next/standalone/server.js。
