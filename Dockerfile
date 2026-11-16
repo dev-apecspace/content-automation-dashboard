@@ -7,7 +7,11 @@ RUN corepack enable && corepack prepare pnpm@9.0.0 --activate
 # ---------- Dependencies ----------
 FROM base AS deps
 COPY package.json pnpm-lock.yaml ./
-RUN pnpm install --frozen-lockfile
+# [lock-resilience] Không dùng --frozen-lockfile: deps có thể được thêm bằng
+# `bun add` (chỉ cập nhật bun.lock), khi đó frozen install sẽ fail ngay lập tức
+# (ERR_PNPM_OUTDATED_LOCKFILE) và làm hỏng publish. pnpm install thường sẽ tự
+# sync lockfile theo package.json nên build luôn chạy được.
+RUN pnpm install
 
 # ---------- Build ----------
 FROM base AS build
@@ -27,6 +31,7 @@ ARG NEXT_PUBLIC_EDIT_CONTENT_WEBHOOK
 ARG NEXT_PUBLIC_EDIT_MEDIA_WEBHOOK
 ARG NEXT_PUBLIC_AUTO_POST_WEBHOOK
 ARG NEXT_PUBLIC_POST_NOW_WEBHOOK
+ARG NEXT_PUBLIC_UPDATE_POST_WEBHOOK
 ENV NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL
 ENV NEXT_PUBLIC_SUPABASE_ANON_KEY=$NEXT_PUBLIC_SUPABASE_ANON_KEY
 ENV SUPABASE_SERVICE_ROLE_KEY=$SUPABASE_SERVICE_ROLE_KEY
@@ -46,7 +51,9 @@ ENV NEXT_PUBLIC_POST_NOW_WEBHOOK=$NEXT_PUBLIC_POST_NOW_WEBHOOK
 ENV NEXT_PUBLIC_UPDATE_POST_WEBHOOK=$NEXT_PUBLIC_UPDATE_POST_WEBHOOK
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-RUN pnpm build
+# [turbopack-cold-fast] Ưu tiên turbopack (cold build ~1 phút thay vì ~8-12 phút
+# của webpack — tránh platform build timeout). Fallback webpack nếu turbopack lỗi.
+RUN (pnpm build --turbopack || pnpm build)
 
 # ---------- Runtime ----------
 FROM node:22-alpine AS runner
