@@ -1,10 +1,22 @@
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { NextRequest } from "next/server";
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-);
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+let supabase: SupabaseClient;
+
+if (supabaseUrl && serviceRoleKey) {
+  supabase = createClient(supabaseUrl, serviceRoleKey);
+} else {
+  // Same rationale as lib/supabase.ts: do NOT throw at import time — a throw
+  // here fails "collect page data" during `next build` in any environment
+  // without .env.local (platform publish build), killing the whole publish.
+  // The placeholder client keeps the module importable; requests fail at
+  // runtime with a clear Supabase error instead.
+  console.error("schedule-post: missing Supabase credentials - using placeholder client");
+  supabase = createClient("https://placeholder.invalid", "placeholder-key");
+}
 
 const webhookUrl = process.env.NEXT_PUBLIC_AUTO_POST_WEBHOOK;
 
