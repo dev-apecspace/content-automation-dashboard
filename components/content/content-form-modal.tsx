@@ -655,14 +655,29 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
 
       // --- LOGIC RIÊNG CHO IMAGE ---
       if (aiPromptType === "image") {
-        // Gọi webhook Image (Fire-and-forget UI, nhưng await request để đảm bảo gửi thành công)
-        await fetch("/api/webhook/edit-media", {
+        // GLM Image in-app (miễn phí): tạo xong trả URL ngay → thêm vào form luôn
+        const res = await fetch("/api/webhook/edit-media", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
         });
 
-        toast.success("Đã gửi yêu cầu chỉnh sửa ảnh! Vui lòng đợi kết quả.");
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data.imageUrl) {
+          throw new Error(data.error || "Tạo ảnh bằng AI thất bại");
+        }
+
+        setFormData((prev) => ({
+          ...prev,
+          imageLinks: [...(prev.imageLinks || []), data.imageUrl],
+        }));
+        setRawImageLinks((prev) => [...prev, data.imageUrl]);
+
+        toast.success(
+          imageAction === "create"
+            ? "Đã tạo ảnh bằng AI (miễn phí)!"
+            : "Đã chỉnh sửa ảnh bằng AI (miễn phí)!"
+        );
         setAiPromptOpen(false);
       }
       // --- LOGIC RIÊNG CHO TEXT (Caption/Schedule) ---
@@ -1716,13 +1731,11 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
                   colorTheme="rose"
                   id="tour-content-media"
                   action={
-                    estimatedCost &&
-                    estimatedCost.total > 0 && (
-                      <div className="text-xs font-medium text-slate-600 bg-slate-100 px-2 py-1 rounded border border-slate-200">
-                        Chi phí:{" "}
-                        <span className="text-slate-900">
-                          ${estimatedCost.total.toFixed(3)}
-                        </span>
+                    estimatedCost && (
+                      // GLM Image in-app (miễn phí) — luôn hiển thị badge Miễn phí
+                      // thay vì giá model cũ ($0.025/ảnh) vì backend đã đổi engine.
+                      <div className="text-xs font-medium text-emerald-700 bg-emerald-50 px-2 py-1 rounded border border-emerald-200">
+                        Miễn phí
                       </div>
                     )
                   }
