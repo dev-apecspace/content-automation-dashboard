@@ -50,15 +50,17 @@ export async function POST(req: NextRequest) {
     });
 
     // 4. Set Cookie
-    // Cookie policy: preview của platform LUÔN phục vụ browser qua HTTPS, nhưng
-    // hop nội bộ (edge → Caddy:81 → Next) là http và Caddy có thể ghi đè
-    // X-Forwarded-Proto thành http. Nếu chỉ tin proto, login sẽ đặt cookie
-    // SameSite=Lax → iframe cross-origin của preview panel TỪ CHỐI lưu cookie →
-    // đăng nhập xong bị đá về /login, không vào được dashboard (lỗi dev preview).
-    //
-    // Vì vậy cookie luôn SameSite=None + Secure:
-    // - context https (preview/publish) → yêu cầu bắt buộc của iframe cross-origin;
-    // - localhost: browser coi là secure context nên vẫn chấp nhận Secure cookie.
+    // Cookie policy: LUÔN SameSite=None + Secure.
+    // - Preview/publish của platform: browser nhận https từ edge, iframe
+    //   cross-origin của preview panel CHỈ chấp nhận cookie None+Secure
+    //   (SameSite=Lax sẽ bị iframe bỏ qua → đăng nhập xong bị đá về /login).
+    //   Hop nội bộ (edge → Caddy:81 → Next) là http nhưng KHÔNG đại diện cho
+    //   context của browser, và X-Forwarded-* không đáng tin (Next dev tự
+    //   inject x-forwarded-for ::ffff:127.0.0.1 cho cả request trực tiếp).
+    // - Localhost http: browser coi là secure context nên vẫn chấp nhận
+    //   Secure cookie.
+    // - Http thuần qua domain thật (không qua edge https): không tồn tại trong
+    //   môi trường platform này.
     const cookie = serialize("auth_token", token, {
       httpOnly: true,
       secure: true,

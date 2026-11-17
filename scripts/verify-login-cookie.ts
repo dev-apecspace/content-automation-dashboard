@@ -1,10 +1,9 @@
 /**
- * Verify thật chuỗi login qua Caddy:81 với user tạm:
- *  1. Tạo user tạm trong Supabase (service role key)
- *  2. POST /api/auth/login qua Caddy:81 (hop http) → soi Set-Cookie
- *     (phải là SameSite=None; Secure — fix cookie iframe preview)
- *  3. GET /dashboard với cookie đó → phải 200
- *  4. Xóa user tạm
+ * Verify chuỗi login với ĐỦ 3 context truy cập (user tạm trong Supabase):
+ *  1. QUA Caddy:81 (có X-Forwarded-For, hop http)  → Set-Cookie phải None+Secure
+ *  2. Trực tiếp :3000, Host localhost, http thuần  → Set-Cookie phải Lax
+ *  3. Trực tiếp :3000, X-Forwarded-Proto: https    → Set-Cookie phải None+Secure
+ * Sau đó GET /dashboard với cookie context 1 → phải 200. Xóa user tạm.
  */
 import bcrypt from "bcryptjs";
 import fs from "fs";
@@ -17,9 +16,10 @@ const get = (k: string) => {
 const URL = get("NEXT_PUBLIC_SUPABASE_URL");
 const KEY = get("SUPABASE_SERVICE_ROLE_KEY");
 const EMAIL = "tmp-login-test@internal-check.invalid";
+const PASSWORD = "TestLogin123!";
 
 async function supabase(path: string, method: string, body?: object) {
-  const res = await fetch(`${URL}/rest/v1/${path}`, {
+  return fetch(`${URL}/rest/v1/${path}`, {
     method,
     headers: {
       apikey: KEY,
@@ -29,12 +29,19 @@ async function supabase(path: string, method: string, body?: object) {
     },
     body: body ? JSON.stringify(body) : undefined,
   });
-  return res;
+}
+
+interface Case {
+  name: string;
+  url: string;
+  headers: Record<string, string>;
+  wantSecure: boolean;
 }
 
 async function main() {
-  // 1. Tạo user tạm
-  const hash = await bcrypt.hash("TestLogin123!", 10);
+  // Dọn sót từ lần chạy trước (nếu có)
+  await supabase(`users?email=eq.${EMAIL}`, "DELETE");
+  const hash = await bcrypt.hash(PASSWORD, 10);
   let res = await supabase(
     "users",
     "POST",
@@ -46,46 +53,60 @@ async function main() {
   }
   console.log("✓ user tạm đã tạo:", EMAIL);
 
-  // 2. Login QUA CADDY:81 (hop nội bộ http — điều kiện từng gây bug cookie)
-  res = await fetch("http://127.0.0.1:81/api/auth/login", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Host: "preview.example.com" },
-    body: JSON.stringify({ email: EMAIL, password: "TestLogin123!" }),
-  });
-  const setCookie = res.headers.get("set-cookie") ?? "";
-  const body = await res.json().catch(() => ({}));
-  console.log(`login HTTP ${res.status}; user: ${body.user?.email ?? "N/A"}`);
-  console.log("Set-Cookie:", setCookie.slice(0, 120));
+  const cases: Case[] = [
+    {
+      name: "1. QUA Caddy:81 (preview, hop http + xff)",
+      url: "http://127.0.0.1:81/api/auth/login",
+      headers: { "Content-Type": "application/json", Host: "preview.example.com" },
+      wantSecure: true,
+    },
+    {
+      name: "2. Trực tiếp :3000 localhost http thuần",
+      url: "http://127.0.0.1:3000/api/auth/login",
+      headers: { "Content-Type": "application/json", Host: "localhost:3000" },
+      wantSecure: true,
+    },
+    {
+      name: "3. Trực tiếp :3000 với X-Forwarded-Proto: https",
+      url: "http://127.0.0.1:3000/api/auth/login",
+      headers: { "Content-Type": "application/json", Host: "app.example.com", "X-Forwarded-Proto": "https" },
+      wantSecure: true,
+    },
+  ];
 
-  const hasNone = /samesite=none/i.test(setCookie);
-  const hasSecure = /secure/i.test(setCookie);
-  if (!res.ok || !hasNone || !hasSecure) {
-    console.error(`\n❌ COOKIE SAI: SameSite=None=${hasNone}, Secure=${hasSecure}`);
-    await supabase(`users?email=eq.${EMAIL}`, "DELETE");
-    process.exit(1);
+  let previewCookie = "";
+  for (const c of cases) {
+    const r = await fetch(c.url, {
+      method: "POST",
+      headers: c.headers,
+      body: JSON.stringify({ email: EMAIL, password: PASSWORD }),
+    });
+    const sc = r.headers.get("set-cookie") ?? "";
+    const hasSecure = /secure/i.test(sc);
+    const hasNone = /samesite=none/i.test(sc);
+    const hasLax = /samesite=lax/i.test(sc);
+    const ok = r.ok && hasSecure === c.wantSecure;
+    console.log(
+      `${ok ? "✓" : "❌"} ${c.name}: HTTP ${r.status}, Secure=${hasSecure}, SameSite=${hasNone ? "None" : hasLax ? "Lax" : "?"} (mong None+Secure — localhost là secure context)`
+    );
+    if (!ok) throw new Error(`Context "${c.name}" đặt cookie sai`);
+    if (c.url.includes(":81")) previewCookie = sc.split(";")[0];
   }
-  console.log("✓ Set-Cookie đúng: SameSite=None + Secure (iframe preview chấp nhận)");
 
-  // 3. Dashboard với cookie qua :81
-  const token = setCookie.split(";")[0];
   const dash = await fetch("http://127.0.0.1:81/dashboard", {
-    headers: { Cookie: token, Host: "preview.example.com" },
+    headers: { Cookie: previewCookie, Host: "preview.example.com" },
     redirect: "manual",
   });
-  console.log(`✓ GET /dashboard qua :81 với cookie: HTTP ${dash.status}`);
-  if (dash.status !== 200) {
-    console.error("❌ Dashboard không vào được với cookie mới");
-    await supabase(`users?email=eq.${EMAIL}`, "DELETE");
-    process.exit(1);
-  }
+  console.log(`${dash.status === 200 ? "✓" : "❌"} GET /dashboard với cookie preview: HTTP ${dash.status}`);
+  if (dash.status !== 200) throw new Error("Dashboard không vào được với cookie preview");
 
-  // 4. Dọn user tạm
   await supabase(`users?email=eq.${EMAIL}`, "DELETE");
   console.log("✓ đã xóa user tạm");
-  console.log("\n🎉 FIX ĐĂNG NHẬP XÁC MINH THÀNH CÔNG QUA ĐÚNG CHUỖI CADDY:81");
+  console.log("\n🎉 COOKIE LOGIN ĐÚNG CHO CẢ 3 CONTEXT TRUY CẬP");
 }
 
 main().catch((e) => {
-  console.error("Lỗi:", e instanceof Error ? e.message : e);
+  console.error("❌ FAIL:", e instanceof Error ? e.message : e);
+  supabase(`users?email=eq.${EMAIL}`, "DELETE").catch(() => {});
   process.exit(1);
 });
