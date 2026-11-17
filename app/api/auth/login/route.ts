@@ -50,24 +50,21 @@ export async function POST(req: NextRequest) {
     });
 
     // 4. Set Cookie
-    // Cookie policy: khi chạy trên HTTPS (production/preview qua proxy) hoặc localhost
-    // (secure context) dùng SameSite=None + Secure để cookie được nhận khi app
-    // được nhúng trong iframe cross-origin (preview panel). Trên HTTP thường
-    // (dev local) giữ SameSite=Lax vì SameSite=None thiếu Secure bị browser từ chối.
-    const proto = (
-      req.headers.get("x-forwarded-proto") ?? req.nextUrl.protocol.replace(":", "")
-    )
-      .split(",")[0]
-      .trim();
-    const host = (req.headers.get("host") ?? "").split(":")[0];
-    const isHttps =
-      proto === "https" || host === "localhost" || host === "127.0.0.1";
+    // Cookie policy: preview của platform LUÔN phục vụ browser qua HTTPS, nhưng
+    // hop nội bộ (edge → Caddy:81 → Next) là http và Caddy có thể ghi đè
+    // X-Forwarded-Proto thành http. Nếu chỉ tin proto, login sẽ đặt cookie
+    // SameSite=Lax → iframe cross-origin của preview panel TỪ CHỐI lưu cookie →
+    // đăng nhập xong bị đá về /login, không vào được dashboard (lỗi dev preview).
+    //
+    // Vì vậy cookie luôn SameSite=None + Secure:
+    // - context https (preview/publish) → yêu cầu bắt buộc của iframe cross-origin;
+    // - localhost: browser coi là secure context nên vẫn chấp nhận Secure cookie.
     const cookie = serialize("auth_token", token, {
       httpOnly: true,
-      secure: isHttps,
+      secure: true,
       maxAge: 60 * 60 * 24 * 7, // 1 week
       path: "/",
-      sameSite: isHttps ? "none" : "lax",
+      sameSite: "none",
     });
 
     const response = NextResponse.json({

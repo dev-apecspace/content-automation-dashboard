@@ -7,7 +7,13 @@
 		reverse_proxy localhost:{query.XTransformPort} {
 			header_up Host {host}
 			header_up X-Forwarded-For {remote_host}
-			header_up X-Forwarded-Proto {scheme}
+			# [login-cookie-fix] Preview platform luôn phục vụ browser qua HTTPS.
+			# Caddy nhận hop nội bộ là http nên {scheme}=http sẽ ghi đè
+			# X-Forwarded-Proto: https của edge → login route thấy http → đặt cookie
+			# SameSite=Lax → iframe cross-origin TỪ CHỐI lưu cookie → đăng nhập xong
+			# bị đá về /login (không vào được dashboard). Ép https để cookie luôn
+			# SameSite=None; Secure như môi trường publish.
+			header_up X-Forwarded-Proto https
 			header_up X-Real-IP {remote_host}
 		}
 	}
@@ -16,7 +22,8 @@
 		reverse_proxy localhost:3000 {
 			header_up Host {host}
 			header_up X-Forwarded-For {remote_host}
-			header_up X-Forwarded-Proto {scheme}
+			# [login-cookie-fix] Giải thích: xem block @transform_port_query phía trên.
+			header_up X-Forwarded-Proto https
 			header_up X-Real-IP {remote_host}
 		}
 	}
