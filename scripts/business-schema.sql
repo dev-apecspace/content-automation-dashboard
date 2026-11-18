@@ -71,7 +71,6 @@ CREATE INDEX IF NOT EXISTS idx_customers_assigned ON customers(assigned_to);
 CREATE INDEX IF NOT EXISTS idx_subscriptions_customer ON subscriptions(customer_id);
 CREATE INDEX IF NOT EXISTS idx_subscriptions_package ON subscriptions(package_id);
 CREATE INDEX IF NOT EXISTS idx_subscriptions_status ON subscriptions(status);
-CREATE INDEX IF NOT EXISTS idx_projects_customer ON projects(customer_id);
 
 -- ---------- 5. GÁN DỮ LIỆU HIỆN CÓ VÀO KHÁCH HÀNG ----------
 -- Mỗi dự án (và toàn bộ content/video/schedule/accounts của nó) thuộc về
@@ -82,6 +81,10 @@ CREATE INDEX IF NOT EXISTS idx_projects_customer ON projects(customer_id);
 -- Cột customer_id trên projects (chạy lại không lỗi)
 ALTER TABLE projects
   ADD COLUMN IF NOT EXISTS customer_id TEXT REFERENCES customers(id) ON DELETE SET NULL;
+
+-- Index cho cột VỪA thêm (phải đặt SAU ALTER, không thì lỗi 42703
+-- column "customer_id" does not exist)
+CREATE INDEX IF NOT EXISTS idx_projects_customer ON projects(customer_id);
 
 -- Khách hàng đầu tiên: APEC GLOBAL (id cố định → idempotent)
 INSERT INTO customers (id, name, company, status, notes) VALUES
