@@ -23,6 +23,10 @@ import {
   Users,
   SquareUser,
   FilePenLine,
+  Package,
+  Briefcase,
+  Tags,
+  Receipt,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -74,6 +78,30 @@ const menuItems: MenuItem[] = [
     label: "Tài khoản MXH",
     icon: SquareUser,
     permission: "accounts.view",
+  },
+  {
+    route: "/packages",
+    label: "Gói dịch vụ",
+    icon: Package,
+    permission: "packages.view",
+  },
+  {
+    route: "/customers",
+    label: "Khách hàng",
+    icon: Briefcase,
+    permission: "customers.view",
+  },
+  {
+    route: "/subscriptions",
+    label: "Mua gói",
+    icon: Receipt,
+    permission: "subscriptions.view",
+  },
+  {
+    route: "/industries",
+    label: "Ngành hàng",
+    icon: Tags,
+    permission: "industries.view",
   },
   {
     route: "/users",

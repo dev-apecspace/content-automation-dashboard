@@ -421,7 +421,11 @@ export type EntityType =
   | "auth"
   | "page"
   | "security"
-  | "prompt";
+  | "prompt"
+  | "industry"
+  | "package"
+  | "customer"
+  | "subscription";
 
 export interface ActivityLog {
   id: number;
@@ -534,5 +538,21 @@ export const entityTypeConfig: Record<
   prompt: {
     label: "Prompt",
     className: "bg-fuchsia-700 text-fuchsia-100",
+  },
+  industry: {
+    label: "Ngành hàng",
+    className: "bg-orange-700 text-orange-100",
+  },
+  package: {
+    label: "Gói dịch vụ",
+    className: "bg-violet-700 text-violet-100",
+  },
+  customer: {
+    label: "Khách hàng",
+    className: "bg-sky-700 text-sky-100",
+  },
+  subscription: {
+    label: "Mua gói",
+    className: "bg-lime-700 text-lime-100",
   },
 };
