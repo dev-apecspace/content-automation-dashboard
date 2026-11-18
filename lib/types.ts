@@ -192,6 +192,9 @@ export interface Project {
   name: string;
   description: string;
   color: string;
+  // Khách hàng sở hữu dự án (scoping data theo khách — APEC GLOBAL là khách đầu tiên)
+  customer_id?: string | null;
+  customer?: { id: string; name: string } | null;
 }
 
 export interface Schedule {

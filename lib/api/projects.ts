@@ -6,17 +6,26 @@ import { requirePermission, getCurrentUser } from "@/lib/auth/permissions";
 import { createActivityLog } from "@/lib/api/activity-logs";
 
 export async function getProjects(): Promise<Project[]> {
-  const { data, error } = await supabase
+  // Join tên khách hàng; nếu cột customer_id chưa tồn tại (chưa chạy bản SQL
+  // mới) thì fallback về select thường để trang dự án không chết.
+  const joined = await supabase
+    .from("projects")
+    .select("*, customer:customer_id(id, name)")
+    .order("created_at", { ascending: false });
+
+  if (!joined.error) return joined.data || [];
+
+  const plain = await supabase
     .from("projects")
     .select("*")
     .order("created_at", { ascending: false });
 
-  if (error) {
-    console.error("Error fetching projects:", error);
-    throw error;
+  if (plain.error) {
+    console.error("Error fetching projects:", plain.error);
+    throw plain.error;
   }
 
-  return data || [];
+  return plain.data || [];
 }
 
 export async function getProjectById(id: string): Promise<Project | null> {
@@ -38,11 +47,13 @@ export async function createProject(
   project: Omit<Project, "id">
 ): Promise<Project> {
   await requirePermission("projects.create");
+  // Không ghi trường join `customer` (chỉ có customer_id là cột thật)
+  const { customer: _customer, ...fields } = project as Project;
   const { data, error } = await supabase
     .from("projects")
     .insert({
-      id: Date.now().toString(),
-      ...project,
+      ...fields,
+      id: Date.now().toString(), // sinh lại id đúng (fields có thể còn mang id cũ)
     })
     .select()
     .single();
@@ -78,9 +89,11 @@ export async function updateProject(
     .eq("id", id)
     .single();
 
+  // Không ghi trường join `customer` (chỉ có customer_id là cột thật)
+  const { customer: _customer, ...fields } = updates as Partial<Project>;
   const { data, error } = await supabase
     .from("projects")
-    .update(updates)
+    .update(fields)
     .eq("id", id)
     .select()
     .single();

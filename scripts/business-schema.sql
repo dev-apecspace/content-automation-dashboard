@@ -71,6 +71,29 @@ CREATE INDEX IF NOT EXISTS idx_customers_assigned ON customers(assigned_to);
 CREATE INDEX IF NOT EXISTS idx_subscriptions_customer ON subscriptions(customer_id);
 CREATE INDEX IF NOT EXISTS idx_subscriptions_package ON subscriptions(package_id);
 CREATE INDEX IF NOT EXISTS idx_subscriptions_status ON subscriptions(status);
+CREATE INDEX IF NOT EXISTS idx_projects_customer ON projects(customer_id);
+
+-- ---------- 5. GÁN DỮ LIỆU HIỆN CÓ VÀO KHÁCH HÀNG ----------
+-- Mỗi dự án (và toàn bộ content/video/schedule/accounts của nó) thuộc về
+-- 1 khách hàng. Data hiện có của workspace → APEC GLOBAL (khách đầu tiên).
+-- Sau này thêm khách mới: tạo khách trong trang Khách hàng, dự án mới
+-- chọn khách tương ứng khi tạo/sửa.
+
+-- Cột customer_id trên projects (chạy lại không lỗi)
+ALTER TABLE projects
+  ADD COLUMN IF NOT EXISTS customer_id TEXT REFERENCES customers(id) ON DELETE SET NULL;
+
+-- Khách hàng đầu tiên: APEC GLOBAL (id cố định → idempotent)
+INSERT INTO customers (id, name, company, status, notes) VALUES
+  ('cus-apec-global', 'APEC GLOBAL', 'APEC GLOBAL', 'active',
+   'Khách hàng đầu tiên — toàn bộ data hiện tại của workspace thuộc về APEC GLOBAL.')
+ON CONFLICT (id) DO NOTHING;
+
+-- Backfill: toàn bộ dự án CHƯA có khách → gán vào APEC GLOBAL
+-- (chỉ điền các dòng NULL nên chạy lại an toàn, không ghi đè lựa chọn mới)
+UPDATE projects
+SET customer_id = 'cus-apec-global'
+WHERE customer_id IS NULL;
 
 -- ---------- DỮ LIỆU MẪU (id cố định → chạy lại không trùng) ----------
 INSERT INTO industries (id, name, description) VALUES

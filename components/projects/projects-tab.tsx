@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -21,7 +21,16 @@ import {
   Facebook,
   Youtube,
   User,
+  Building2,
 } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { getCustomers } from "@/actions/business-action";
 import { TiktokIcon } from "@/components/shared/platform-icons";
 import type {
   Project,
@@ -63,7 +72,18 @@ export function ProjectsTab({
   const [isSaving, setIsSaving] = useState(false);
   const [editItem, setEditItem] = useState<Project | null>(null);
   const [formData, setFormData] = useState<Partial<Project>>({});
+  const [customers, setCustomers] = useState<{ id: string; name: string }[]>([]);
+  const [customerFilter, setCustomerFilter] = useState<string>("all");
   const { hasPermission } = usePermissions();
+
+  // Danh sách khách hàng cho modal + filter (rỗng nếu chưa có quyền/chưa chạy SQL)
+  useEffect(() => {
+    getCustomers()
+      .then((list) =>
+        setCustomers(list.map((c) => ({ id: c.id, name: c.name })))
+      )
+      .catch(() => setCustomers([]));
+  }, []);
 
   const getPlatformIcon = (platform: string) => {
     switch (platform) {
@@ -80,7 +100,12 @@ export function ProjectsTab({
 
   const handleAdd = () => {
     setEditItem(null);
-    setFormData({ name: "", description: "", color: "#3b82f6" });
+    setFormData({
+      name: "",
+      description: "",
+      color: "#3b82f6",
+      customer_id: null,
+    });
     setIsModalOpen(true);
   };
 
@@ -188,8 +213,29 @@ export function ProjectsTab({
         )}
       </div>
 
+      {customers.length > 0 && (
+        <div className="flex items-center gap-2">
+          <Select value={customerFilter} onValueChange={setCustomerFilter}>
+            <SelectTrigger className="w-64 bg-white/60 backdrop-blur-sm border-white/60">
+              <SelectValue placeholder="Lọc theo khách hàng" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Tất cả khách hàng</SelectItem>
+              {customers.map((c) => (
+                <SelectItem key={c.id} value={c.id}>
+                  {c.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {projects.map((project) => {
+        {(customerFilter === "all"
+          ? projects
+          : projects.filter((p) => p.customer_id === customerFilter)
+        ).map((project) => {
           const stats = getProjectStats(project.id);
           return (
             <Card
@@ -228,6 +274,12 @@ export function ProjectsTab({
               </CardHeader>
               <CardContent className="flex flex-col justify-between h-full">
                 <div>
+                  {project.customer && (
+                    <p className="flex items-center gap-1 text-xs font-medium text-indigo-600 mb-2">
+                      <Building2 className="h-3 w-3 shrink-0" />
+                      {project.customer.name}
+                    </p>
+                  )}
                   {project.description && (
                     <p className="text-sm text-muted-foreground mb-3">
                       {project.description}
@@ -318,6 +370,30 @@ export function ProjectsTab({
                 }
                 placeholder="Nhập tên dự án"
               />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="customer">Khách hàng</Label>
+              <Select
+                value={formData.customer_id || "none"}
+                onValueChange={(v) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    customer_id: v === "none" ? null : v,
+                  }))
+                }
+              >
+                <SelectTrigger id="customer">
+                  <SelectValue placeholder="Chọn khách hàng" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Chưa gán khách hàng</SelectItem>
+                  {customers.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-2">
               <Label htmlFor="description">Mô tả</Label>
