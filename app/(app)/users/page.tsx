@@ -252,6 +252,14 @@ export default function UsersPage() {
                         <span className="font-medium text-slate-800">
                           {user.name}
                         </span>
+                        {user.customer?.name && (
+                          <Badge
+                            variant="outline"
+                            className="text-xs border-indigo-200 bg-indigo-50 text-indigo-600"
+                          >
+                            {user.customer.name}
+                          </Badge>
+                        )}
                       </div>
                     </td>
                     <td className="p-4">

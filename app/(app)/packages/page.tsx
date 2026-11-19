@@ -36,6 +36,12 @@ import {
 } from "@/actions/business-action";
 import { formatVnd } from "@/lib/utils/format";
 import { usePermissions } from "@/hooks/use-permissions";
+import { Checkbox } from "@/components/ui/checkbox";
+import { PACKAGE_PERMISSION_GROUPS } from "@/lib/constants/permissions";
+import {
+  getPackagePermissions,
+  setPackagePermissions,
+} from "@/actions/business-action";
 
 export default function PackagesPage() {
   const [packages, setPackages] = useState<Package[]>([]);
@@ -56,6 +62,13 @@ export default function PackagesPage() {
     features: "",
     is_active: true,
   });
+  // Quyền nghiệp vụ gắn với gói → user khách được gì khi mua gói này
+  const [pkgPerms, setPkgPerms] = useState<string[]>([
+    "projects.view",
+    "content.view",
+    "schedules.view",
+    "accounts.view",
+  ]);
 
   const loadPackages = useCallback(async () => {
     setIsLoading(true);
@@ -84,11 +97,15 @@ export default function PackagesPage() {
       features: "",
       is_active: true,
     });
+    setPkgPerms(["projects.view", "content.view", "schedules.view", "accounts.view"]);
     setIsModalOpen(true);
   };
 
   const openEdit = (pkg: Package) => {
     setEditing(pkg);
+    getPackagePermissions(pkg.id)
+      .then((perms) => setPkgPerms(perms.length ? perms : []))
+      .catch(() => setPkgPerms([]));
     setForm({
       name: pkg.name,
       description: pkg.description ?? "",
@@ -117,12 +134,19 @@ export default function PackagesPage() {
         features: form.features.trim() || null,
         is_active: form.is_active,
       };
+      let savedId = editing?.id;
       if (editing) {
-        await updatePackage(editing.id, payload);
+        const updated = await updatePackage(editing.id, payload);
+        savedId = updated.id;
         toast.success("Đã cập nhật gói dịch vụ!");
       } else {
-        await createPackage(payload);
+        const created = await createPackage(payload);
+        savedId = created.id;
         toast.success("Đã tạo gói dịch vụ mới!");
+      }
+      // Ghi đè quyền theo gói (user khách mua gói này sẽ được các quyền đã tick)
+      if (savedId) {
+        await setPackagePermissions(savedId, pkgPerms);
       }
       setIsModalOpen(false);
       loadPackages();
@@ -354,6 +378,40 @@ export default function PackagesPage() {
                 onChange={(e) => setForm({ ...form, features: e.target.value })}
                 placeholder={"Quản lý 6 dự án\nĐăng đa nền tảng\nHỗ trợ ưu tiên"}
               />
+            </div>
+            <div className="space-y-2">
+              <Label>
+                Quyền khách hàng được khi mua gói này
+              </Label>
+              <div className="grid grid-cols-1 gap-3 rounded-lg border p-3 sm:grid-cols-2">
+                {PACKAGE_PERMISSION_GROUPS.map((group) => (
+                  <div key={group.group} className="space-y-1.5">
+                    <p className="text-xs font-semibold text-muted-foreground">
+                      {group.group}
+                    </p>
+                    <div className="flex flex-wrap gap-x-3 gap-y-1.5">
+                      {group.perms.map((perm) => (
+                        <label
+                          key={perm.id}
+                          className="flex cursor-pointer items-center gap-1.5 text-sm"
+                        >
+                          <Checkbox
+                            checked={pkgPerms.includes(perm.id)}
+                            onCheckedChange={(v) =>
+                              setPkgPerms((prev) =>
+                                v
+                                  ? [...prev, perm.id]
+                                  : prev.filter((x) => x !== perm.id)
+                              )
+                            }
+                          />
+                          {perm.label}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
             <div className="flex items-center gap-2">
               <Switch
