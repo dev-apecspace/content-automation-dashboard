@@ -41,6 +41,21 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // 2.5. Đích đến sau đăng nhập theo loại user:
+    //      admin → /companies (quản trị kinh doanh + chọn côngty),
+    //      customer → workspace công ty của họ /{slug}
+    let redirectTo = "/dashboard";
+    if (user.role === "admin") {
+      redirectTo = "/companies";
+    } else if (user.role === "customer" && user.customer_id) {
+      const { data: cu } = await supabase
+        .from("customers")
+        .select("slug")
+        .eq("id", user.customer_id)
+        .single();
+      if (cu?.slug) redirectTo = `/${cu.slug}`;
+    }
+
     // 3. Generate JWT
     const token = signToken({
       userId: user.id,
@@ -76,6 +91,7 @@ export async function POST(req: NextRequest) {
         name: user.name,
         role: user.role,
       },
+      redirectTo,
     });
 
     response.headers.append("Set-Cookie", cookie);

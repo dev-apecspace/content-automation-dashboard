@@ -2,6 +2,10 @@
 
 import { getCurrentUserRole } from "@/lib/auth/permissions";
 import { supabase } from "@/lib/supabase";
+import {
+  getCustomerUserPermissions,
+  getCurrentUser,
+} from "@/lib/auth/permissions";
 
 import { cookies } from "next/headers";
 import { verifyToken } from "@/lib/server/encryption";
@@ -37,6 +41,14 @@ export async function getMyPermissions() {
   // If admin, maybe return all permissions?
   // For consistency with hook logic, just returning role is enough if hook handles 'admin' check.
   // But let's fetch permissions anyway for completeness.
+
+  // User khách hàng: quyền theo gói đang hiệu lực của công ty
+  if (roleId === "customer") {
+    const me = await getCurrentUser();
+    if (!me?.userId) return { role: roleId, permissions: [] };
+    const perms = await getCustomerUserPermissions(me.userId);
+    return { role: roleId, permissions: perms };
+  }
 
   const { data, error } = await supabase
     .from("role_permissions")

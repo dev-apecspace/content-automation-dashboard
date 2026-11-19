@@ -13,20 +13,32 @@ export interface User {
   created_at: string;
   updated_at: string;
   password?: string;
+  // User khách hàng: thuộc công ty nào (NULL = nhân viên nội bộ)
+  customer_id?: string | null;
+  customer?: { id: string; name: string } | null;
 }
 
 export async function getUsers(): Promise<User[]> {
-  const { data, error } = await supabase
+  // Join tên công ty khách hàng; fallback select thường nếu cột customer_id
+  // chưa tồn tại (chưa chạy bản SQL mới) để trang không chết.
+  const joined = await supabase
+    .from("users")
+    .select("*, customer:customer_id(id, name)")
+    .order("created_at", { ascending: false });
+
+  if (!joined.error) return joined.data || [];
+
+  const plain = await supabase
     .from("users")
     .select("*")
     .order("created_at", { ascending: false });
 
-  if (error) {
-    console.error("Error fetching users:", error);
-    throw error;
+  if (plain.error) {
+    console.error("Error fetching users:", plain.error);
+    throw plain.error;
   }
 
-  return data || [];
+  return plain.data || [];
 }
 
 export async function getAllUsers(): Promise<User[]> {

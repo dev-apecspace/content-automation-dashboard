@@ -122,3 +122,60 @@ INSERT INTO packages (id, name, description, price, duration_days, max_projects,
    4990000, 30, NULL,
    E'Không giới hạn dự án\nĐa nền tảng + báo cáo chi tiết\nTài khoản phụ không giới hạn\nHỗ trợ 24/7')
 ON CONFLICT (id) DO NOTHING;
+
+-- ---------- 6. USER KHÁCH HÀNG + QUYỀN THEO GÓI ----------
+-- User thuộc công ty khách hàng (role = 'customer'): quyền không còn theo
+-- role_permissions mà theo GÓI ĐANG HIỆU LỰC của công ty (subscriptions
+-- status='active' mới nhất → package_permissions).
+-- Admin: chỉ quản trị kinh doanh (khách/gói/giao dịch/ngành) + xem data của
+-- từng công ty qua URL /{slug}.
+
+-- User gắn với khách hàng nào (NULL = nhân viên nội bộ)
+ALTER TABLE users
+  ADD COLUMN IF NOT EXISTS customer_id TEXT REFERENCES customers(id) ON DELETE SET NULL;
+
+-- Slug công ty cho URL dễ quản lý: /{slug} (VD: /apec-global)
+ALTER TABLE customers
+  ADD COLUMN IF NOT EXISTS slug TEXT;
+
+-- Gán slug cho khách hiện có (id cố định → chạy lại an toàn)
+UPDATE customers SET slug = 'apec-global'
+WHERE id = 'cus-apec-global' AND (slug IS NULL OR slug = '');
+
+-- Unique index đặt SAU khi slug đã có giá trị (Postgres cho nhiều NULL)
+CREATE UNIQUE INDEX IF NOT EXISTS idx_customers_slug ON customers(slug);
+
+-- Bảng ánh xạ quyền theo gói
+CREATE TABLE IF NOT EXISTS package_permissions (
+  package_id TEXT NOT NULL REFERENCES packages(id) ON DELETE CASCADE,
+  permission_id TEXT NOT NULL,
+  PRIMARY KEY (package_id, permission_id)
+);
+
+-- Role cho user của khách hàng
+INSERT INTO roles (id, name, description) VALUES
+  ('customer', 'Khách hàng', 'Người dùng thuộc khách hàng — quyền theo gói đã mua')
+ON CONFLICT (id) DO NOTHING;
+
+-- Seed quyền mặc định theo gói mẫu (ON CONFLICT → chạy lại không trùng)
+INSERT INTO package_permissions (package_id, permission_id) VALUES
+  -- Gói Cơ bản: xem + tạo cơ bản
+  ('pkg-co-ban', 'projects.view'), ('pkg-co-ban', 'projects.create'),
+  ('pkg-co-ban', 'content.view'), ('pkg-co-ban', 'content.create'),
+  ('pkg-co-ban', 'schedules.view'), ('pkg-co-ban', 'schedules.create'),
+  ('pkg-co-ban', 'accounts.view'),
+  -- Gói Chuyên nghiệp: + video, sửa nội dung, sửa lịch
+  ('pkg-chuyen-nghiep', 'projects.view'), ('pkg-chuyen-nghiep', 'projects.create'), ('pkg-chuyen-nghiep', 'projects.edit'),
+  ('pkg-chuyen-nghiep', 'content.view'), ('pkg-chuyen-nghiep', 'content.create'), ('pkg-chuyen-nghiep', 'content.edit'),
+  ('pkg-chuyen-nghiep', 'videos.view'), ('pkg-chuyen-nghiep', 'videos.create'),
+  ('pkg-chuyen-nghiep', 'schedules.view'), ('pkg-chuyen-nghiep', 'schedules.create'), ('pkg-chuyen-nghiep', 'schedules.edit'),
+  ('pkg-chuyen-nghiep', 'accounts.view'), ('pkg-chuyen-nghiep', 'accounts.create'),
+  -- Gói Doanh nghiệp: full nghiệp vụ
+  ('pkg-doanh-nghiep', 'projects.view'), ('pkg-doanh-nghiep', 'projects.create'), ('pkg-doanh-nghiep', 'projects.edit'), ('pkg-doanh-nghiep', 'projects.delete'),
+  ('pkg-doanh-nghiep', 'content.view'), ('pkg-doanh-nghiep', 'content.create'), ('pkg-doanh-nghiep', 'content.edit'), ('pkg-doanh-nghiep', 'content.delete'),
+  ('pkg-doanh-nghiep', 'videos.view'), ('pkg-doanh-nghiep', 'videos.create'), ('pkg-doanh-nghiep', 'videos.edit'), ('pkg-doanh-nghiep', 'videos.delete'),
+  ('pkg-doanh-nghiep', 'schedules.view'), ('pkg-doanh-nghiep', 'schedules.create'), ('pkg-doanh-nghiep', 'schedules.edit'), ('pkg-doanh-nghiep', 'schedules.delete'),
+  ('pkg-doanh-nghiep', 'accounts.view'), ('pkg-doanh-nghiep', 'accounts.create'), ('pkg-doanh-nghiep', 'accounts.edit'), ('pkg-doanh-nghiep', 'accounts.delete'),
+  ('pkg-doanh-nghiep', 'prompts.view'),
+  ('pkg-doanh-nghiep', 'users.view')
+ON CONFLICT (package_id, permission_id) DO NOTHING;

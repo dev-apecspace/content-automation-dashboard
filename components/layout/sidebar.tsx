@@ -27,6 +27,7 @@ import {
   Briefcase,
   Tags,
   Receipt,
+  Building2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -50,82 +51,115 @@ interface MenuItem {
   label: string;
   icon: React.ElementType;
   permission?: PermissionId;
+  // business: quản trị kinh doanh (chỉ admin) | operational: nghiệp vụ
+  // (user khách theo gói, admin chỉ thấy khi đang xem 1 công ty /{slug})
+  kind?: "business" | "operational";
 }
 
 const menuItems: MenuItem[] = [
-  { route: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  {
+    route: "/dashboard",
+    label: "Dashboard",
+    icon: LayoutDashboard,
+    kind: "operational",
+  },
   {
     route: "/content",
     label: "Bài viết + ảnh",
     icon: FileImage,
     permission: "content.view",
+    kind: "operational",
   },
-  { route: "/video", label: "Video", icon: Video, permission: "videos.view" },
+  {
+    route: "/video",
+    label: "Video",
+    icon: Video,
+    permission: "videos.view",
+    kind: "operational",
+  },
   {
     route: "/schedules",
     label: "Lịch đăng",
     icon: Calendar,
     permission: "schedules.view",
+    kind: "operational",
   },
   {
     route: "/projects",
     label: "Dự án",
     icon: FolderOpen,
     permission: "projects.view",
+    kind: "operational",
   },
   {
     route: "/accounts",
     label: "Tài khoản MXH",
     icon: SquareUser,
     permission: "accounts.view",
+    kind: "operational",
   },
   {
     route: "/packages",
     label: "Gói dịch vụ",
     icon: Package,
     permission: "packages.view",
+    kind: "business",
   },
   {
     route: "/customers",
     label: "Khách hàng",
     icon: Briefcase,
     permission: "customers.view",
+    kind: "business",
   },
   {
     route: "/subscriptions",
     label: "Mua gói",
     icon: Receipt,
     permission: "subscriptions.view",
+    kind: "business",
   },
   {
     route: "/industries",
     label: "Ngành hàng",
     icon: Tags,
     permission: "industries.view",
+    kind: "business",
+  },
+  {
+    route: "/companies",
+    label: "Công ty",
+    icon: Building2,
+    permission: "customers.view",
+    kind: "business",
   },
   {
     route: "/users",
     label: "Người dùng",
     icon: Users,
     permission: "users.view",
+    kind: "operational",
   },
   {
     route: "/roles",
     label: "Phân quyền",
     icon: ShieldCheck,
     permission: "roles.view",
+    kind: "operational",
   },
   {
     route: "/activity-logs",
     label: "Nhật ký hoạt động",
     icon: LogsIcon,
     permission: "activity_logs.view",
+    kind: "operational",
   },
   {
     route: "/prompts",
     label: "Prompts",
     icon: FilePenLine,
     permission: "prompts.view",
+    kind: "operational",
   },
   // {
   //   route: "/guide",
@@ -138,6 +172,7 @@ const menuItems: MenuItem[] = [
     label: "Cài đặt",
     icon: Settings,
     permission: "settings.view",
+    kind: "operational",
   },
 ];
 
@@ -149,7 +184,33 @@ export function Sidebar({
   onDesktopToggle,
 }: SidebarProps) {
   const pathname = usePathname();
-  const { hasPermission } = usePermissions();
+  const { hasPermission, role } = usePermissions();
+
+  // Đang đứng trong workspace công ty? URL dạng /{slug} — segment đầu không
+  // trùng route tĩnh nào → là slug công ty (VD /apec-global).
+  const firstSegment = pathname.split("/")[1] || "";
+  const STATIC_SEGMENTS = new Set([
+    "dashboard",
+    "content",
+    "video",
+    "schedules",
+    "projects",
+    "accounts",
+    "packages",
+    "customers",
+    "subscriptions",
+    "industries",
+    "companies",
+    "users",
+    "roles",
+    "activity-logs",
+    "prompts",
+    "settings",
+    "guide",
+    "login",
+  ]);
+  const inCompanyContext =
+    firstSegment !== "" && !STATIC_SEGMENTS.has(firstSegment);
   const { user, fetchUser } = useUser();
 
   useEffect(() => {
@@ -159,6 +220,14 @@ export function Sidebar({
   }, [user, fetchUser]);
 
   const filteredMenuItems = menuItems.filter((item) => {
+    // Admin: chỉ mục kinh doanh; đang xem công ty /{slug} thì thêm mục nghiệp vụ
+    if (role === "admin") {
+      if (item.kind === "operational" && !inCompanyContext) return false;
+      if (item.kind === "business") return true;
+      return inCompanyContext;
+    }
+    // User khách / nhân viên: không thấy mục kinh doanh
+    if (item.kind === "business") return false;
     if (!item.permission) return true;
     return hasPermission(item.permission);
   });

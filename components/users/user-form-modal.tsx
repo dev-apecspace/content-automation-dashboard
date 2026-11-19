@@ -24,14 +24,17 @@ import {
 import { PasswordInput } from "@/components/ui/password-input";
 import { Loader2 } from "lucide-react";
 import { User } from "@/lib/api/users"; // Import type only
+import type { Customer } from "@/lib/api/business";
 
 import { getRoles, Role } from "@/lib/api/roles";
+import { getCustomers } from "@/actions/business-action";
 
 const userSchema = z.object({
   email: z.string().email("Email không hợp lệ"),
   name: z.string().min(2, "Tên phải có ít nhất 2 ký tự"),
   role: z.string().min(1, "Vui lòng chọn vai trò"),
   password: z.string().optional(),
+  customer_id: z.string().optional(),
 });
 
 type UserFormValues = z.infer<typeof userSchema>;
@@ -52,12 +55,14 @@ export function UserFormModal({
   isSubmitting,
 }: UserFormModalProps) {
   const [roles, setRoles] = useState<Role[]>([]);
+  const [customers, setCustomers] = useState<Customer[]>([]);
 
   const {
     register,
     handleSubmit,
     reset,
     setValue,
+    watch,
     formState: { errors },
   } = useForm<UserFormValues>({
     resolver: zodResolver(userSchema),
@@ -66,16 +71,23 @@ export function UserFormModal({
       name: "",
       role: "viewer",
       password: "",
+      customer_id: "",
     },
   });
 
+  const selectedRole = watch("role");
+
   useEffect(() => {
-    const fetchRoles = async () => {
+    const fetchData = async () => {
       const data = await getRoles();
       setRoles(data);
+      // Danh sách công ty cho user khách (rỗng nếu chưa chạy SQL mới)
+      getCustomers()
+        .then(setCustomers)
+        .catch(() => setCustomers([]));
     };
     if (isOpen) {
-      fetchRoles();
+      fetchData();
     }
   }, [isOpen]);
 
@@ -85,12 +97,14 @@ export function UserFormModal({
       setValue("name", initialData.name);
       setValue("role", initialData.role);
       setValue("password", ""); // Don't show password
+      setValue("customer_id", initialData.customer_id ?? "");
     } else {
       reset({
         email: "",
         name: "",
         role: "viewer",
         password: "",
+        customer_id: "",
       });
     }
   }, [initialData, setValue, reset, isOpen]);
@@ -164,6 +178,35 @@ export function UserFormModal({
                 <p className="text-red-400 text-xs">{errors.role.message}</p>
               )}
             </div>
+
+            {selectedRole === "customer" && (
+              <div className="space-y-2">
+                <Label htmlFor="customer" className="text-slate-300">
+                  Công ty khách hàng
+                </Label>
+                <Select
+                  onValueChange={(val) =>
+                    setValue("customer_id", val === "none" ? "" : val)
+                  }
+                  defaultValue={initialData?.customer_id || undefined}
+                >
+                  <SelectTrigger className="bg-black/20 border-white/10 text-white">
+                    <SelectValue placeholder="Chọn công ty" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-slate-900 border-white/10 text-white">
+                    {customers.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-slate-400">
+                  User này đăng nhập sẽ thấy đúng công ty của mình, quyền theo
+                  gói đang hiệu lực.
+                </p>
+              </div>
+            )}
 
             <div className="space-y-2">
               <Label htmlFor="password" className="text-slate-300">

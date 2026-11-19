@@ -17,7 +17,12 @@ import {
   createSubscription as apiCreateSubscription,
   updateSubscription as apiUpdateSubscription,
   deleteSubscription as apiDeleteSubscription,
+  getCustomerBySlug as apiGetCustomerBySlug,
+  resolveCustomerForUser as apiResolveCustomerForUser,
+  getPackagePermissions as apiGetPackagePermissions,
+  setPackagePermissions as apiSetPackagePermissions,
 } from "@/lib/api/business";
+import { getCurrentUser } from "@/lib/auth/permissions";
 import { revalidatePath } from "next/cache";
 import { requirePermission } from "@/lib/auth/permissions";
 
@@ -123,4 +128,34 @@ export async function deleteSubscription(id: string) {
   await requirePermission("subscriptions.delete");
   await apiDeleteSubscription(id);
   revalidatePath("/subscriptions");
+}
+
+// ---------- TRA CỨU CÔNG TY THEO SLUG (guard: chỉ cần đăng nhập) ----------
+// Dùng cho trang workspace /[slug] và chọn công ty — không yêu cầu
+// customers.view vì user khách cũng phải vào được công ty của mình.
+export async function getCustomerBySlug(slug: string) {
+  const me = await getCurrentUser();
+  if (!me) throw new Error("Chưa đăng nhập");
+  return await apiGetCustomerBySlug(slug);
+}
+
+export async function resolveCustomerForUser(userId: string) {
+  const me = await getCurrentUser();
+  if (!me) throw new Error("Chưa đăng nhập");
+  return await apiResolveCustomerForUser(userId);
+}
+
+// ---------- QUYỀN THEO GÓI ----------
+export async function getPackagePermissions(packageId: string) {
+  await requirePermission("packages.view");
+  return await apiGetPackagePermissions(packageId);
+}
+
+export async function setPackagePermissions(
+  packageId: string,
+  permissionIds: string[]
+) {
+  await requirePermission("packages.edit");
+  await apiSetPackagePermissions(packageId, permissionIds);
+  revalidatePath("/packages");
 }

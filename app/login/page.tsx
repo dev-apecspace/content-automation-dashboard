@@ -44,7 +44,9 @@ export default function LoginPage() {
       }
 
       toast.success("Đăng nhập thành công");
-      router.push("/dashboard");
+      // admin → /companies (chọn côngty); user khách → /{slug} công ty mình;
+      // nhân viên → /dashboard
+      router.push(data.redirectTo || "/dashboard");
       router.refresh();
     } catch (error: any) {
       let message = error.message;

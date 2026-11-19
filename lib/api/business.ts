@@ -157,6 +157,7 @@ export async function deletePackage(id: string): Promise<void> {
 export interface Customer {
   id: string;
   name: string;
+  slug: string | null;
   company: string | null;
   email: string | null;
   phone: string | null;
@@ -188,13 +189,81 @@ export async function getCustomers(): Promise<Customer[]> {
   return data || [];
 }
 
+/** Bỏ dấu tiếng Việt → slug URL: "APEC GLOBAL" → "apec-global" */
+function slugifyVi(name: string): string {
+  const base =
+    name
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/đ/g, "d")
+      .replace(/Đ/g, "D")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "") || "cong-ty";
+  return base;
+}
+
+async function uniqueSlug(name: string, ignoreId?: string): Promise<string> {
+  const base = slugifyVi(name);
+  const { data } = await supabase
+    .from("customers")
+    .select("id, slug")
+    .ilike("slug", `${base}%`);
+  const taken = new Set(
+    (data || []).filter((c) => c.id !== ignoreId).map((c) => c.slug)
+  );
+  if (!taken.has(base)) return base;
+  let i = 2;
+  while (taken.has(`${base}-${i}`)) i++;
+  return `${base}-${i}`;
+}
+
+/**
+ * Tra cứu khách hàng theo slug (URL /{slug}). Guard: chỉ cần đăng nhập —
+ * dùng cho trang workspace /[slug] của cả admin lẫn user khách.
+ */
+export async function getCustomerBySlug(slug: string): Promise<Customer | null> {
+  const { data, error } = await supabase
+    .from("customers")
+    .select("*, industry:industry_id(id, name)")
+    .eq("slug", slug)
+    .single();
+  if (error) return null;
+  return data || null;
+}
+
+/** Công ty mà một user thuộc về (user khách): customer_id + slug. */
+export async function resolveCustomerForUser(
+  userId: string
+): Promise<{ customer_id: string | null; slug: string | null; name: string | null }> {
+  const { data } = await supabase
+    .from("users")
+    .select("customer_id")
+    .eq("id", userId)
+    .single();
+  if (!data?.customer_id) {
+    return { customer_id: null, slug: null, name: null };
+  }
+  const { data: c } = await supabase
+    .from("customers")
+    .select("id, slug, name")
+    .eq("id", data.customer_id)
+    .single();
+  return {
+    customer_id: c?.id ?? null,
+    slug: c?.slug ?? null,
+    name: c?.name ?? null,
+  };
+}
+
 export async function createCustomer(
   payload: Omit<Customer, "id" | "created_at" | "updated_at" | "industry">
 ): Promise<Customer> {
   const { industry, ...fields } = payload as Customer;
+  const slug = fields.slug || (await uniqueSlug(fields.name));
   const { data, error } = await supabase
     .from("customers")
-    .insert({ ...fields, id: genId() })
+    .insert({ ...fields, slug, id: genId() })
     .select()
     .single();
   if (error) {
@@ -333,6 +402,44 @@ export async function deleteSubscription(id: string): Promise<void> {
   const { error } = await supabase.from("subscriptions").delete().eq("id", id);
   if (error) {
     console.error("Error deleting subscription:", error);
+    throw error;
+  }
+}
+
+// ---------- QUYỀN THEO GÓI ----------
+export async function getPackagePermissions(
+  packageId: string
+): Promise<string[]> {
+  const { data, error } = await supabase
+    .from("package_permissions")
+    .select("permission_id")
+    .eq("package_id", packageId);
+  if (error) {
+    console.error("Error fetching package permissions:", error);
+    throw error;
+  }
+  return (data || []).map((r) => r.permission_id);
+}
+
+export async function setPackagePermissions(
+  packageId: string,
+  permissionIds: string[]
+): Promise<void> {
+  // Ghi đè toàn bộ: xóa cũ → insert mới (gói ít quyền, đơn giản là tốt)
+  const { error: delErr } = await supabase
+    .from("package_permissions")
+    .delete()
+    .eq("package_id", packageId);
+  if (delErr) {
+    console.error("Error clearing package permissions:", delErr);
+    throw delErr;
+  }
+  if (permissionIds.length === 0) return;
+  const { error } = await supabase
+    .from("package_permissions")
+    .insert(permissionIds.map((permission_id) => ({ package_id: packageId, permission_id })));
+  if (error) {
+    console.error("Error setting package permissions:", error);
     throw error;
   }
 }
