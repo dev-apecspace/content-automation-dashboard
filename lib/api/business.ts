@@ -1,6 +1,7 @@
 "use server";
 
 import { supabase } from "@/lib/supabase";
+import { getCurrentUser } from "@/lib/auth/permissions";
 import { createActivityLog } from "@/lib/api/activity-logs";
 
 // ============================================================
@@ -254,6 +255,105 @@ export async function resolveCustomerForUser(
     slug: c?.slug ?? null,
     name: c?.name ?? null,
   };
+}
+
+/**
+ * Công ty mà user hiện tại được thấy:
+ *  - Admin: tất cả
+ *  - User khách: đúng công ty của mình
+ *  - Nhân viên: chỉ các công ty được admin phân (user_companies)
+ */
+export async function getAccessibleCompanies(): Promise<Customer[]> {
+  const me = await getCurrentUser();
+  if (!me) throw new Error("Chưa đăng nhập");
+
+  const select = "*, industry:industry_id(id, name)";
+
+  if (me.role === "customer") {
+    const mine = await resolveCustomerForUser(me.userId);
+    if (!mine.customer_id) return [];
+    const { data } = await supabase
+      .from("customers")
+      .select(select)
+      .eq("id", mine.customer_id);
+    return data || [];
+  }
+
+  if (me.role === "admin") {
+    const { data } = await supabase
+      .from("customers")
+      .select(select)
+      .order("created_at", { ascending: false });
+    return data || [];
+  }
+
+  // Nhân viên: các công ty được phân quyền
+  try {
+    const { data: grants } = await supabase
+      .from("user_companies")
+      .select("customer_id")
+      .eq("user_id", me.userId);
+    const ids = (grants || []).map((g) => g.customer_id);
+    if (ids.length === 0) return [];
+    const { data } = await supabase
+      .from("customers")
+      .select(select)
+      .in("id", ids)
+      .order("created_at", { ascending: false });
+    return data || [];
+  } catch {
+    return []; // bảng chưa có (chưa chạy SQL mục 7) → nhân viên chưa được phân công ty nào
+  }
+}
+
+/** Nhân viên có được vào 1 công ty? (fail-open nếu bảng chưa tồn tại) */
+export async function checkUserCompanyAccess(
+  userId: string,
+  customerId: string
+): Promise<boolean> {
+  try {
+    const { data } = await supabase
+      .from("user_companies")
+      .select("customer_id")
+      .eq("user_id", userId)
+      .eq("customer_id", customerId)
+      .maybeSingle();
+    return !!data;
+  } catch {
+    return true; // bảng chưa tồn tại (pre-SQL) → giữ hành vi cũ
+  }
+}
+
+/** Danh sách công ty được phân cho 1 nhân viên (modal Người dùng) */
+export async function getUserCompanyIds(userId: string): Promise<string[]> {
+  try {
+    const { data } = await supabase
+      .from("user_companies")
+      .select("customer_id")
+      .eq("user_id", userId);
+    return (data || []).map((r) => r.customer_id);
+  } catch {
+    return [];
+  }
+}
+
+/** Gán lại toàn bộ công ty cho 1 nhân viên (nixtech phân quyền) */
+export async function setUserCompanyIds(
+  userId: string,
+  customerIds: string[]
+): Promise<void> {
+  const { error: delErr } = await supabase
+    .from("user_companies")
+    .delete()
+    .eq("user_id", userId);
+  if (delErr) throw delErr;
+  if (customerIds.length === 0) return;
+  const { error } = await supabase
+    .from("user_companies")
+    .insert(
+      customerIds.map((customer_id) => ({ user_id: userId, customer_id }))
+    );
+  if (error) throw error;
 }
 
 export async function createCustomer(

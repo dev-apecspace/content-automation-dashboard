@@ -179,3 +179,19 @@ INSERT INTO package_permissions (package_id, permission_id) VALUES
   ('pkg-doanh-nghiep', 'prompts.view'),
   ('pkg-doanh-nghiep', 'users.view')
 ON CONFLICT (package_id, permission_id) DO NOTHING;
+
+-- ---------- 7. PHÂN QUYỀN NHÂN VIÊN VÀO CÔNG TY ----------
+-- Nhân viên hệ thống (editor/viewer/social_manager...) mặc định KHÔNG vào
+-- được workspace công ty nào. Chỉ admin cao nhất (nixtech) vào được tất cả
+-- và PHÂN quyền cho nhân viên qua bảng này (modal Người dùng).
+-- User khách (role=customer) không cần bảng này — mặc định chỉ vào công ty
+-- của chính mình (users.customer_id).
+
+CREATE TABLE IF NOT EXISTS user_companies (
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  customer_id TEXT NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
+  PRIMARY KEY (user_id, customer_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_user_companies_user ON user_companies(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_companies_customer ON user_companies(customer_id);

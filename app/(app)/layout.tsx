@@ -3,6 +3,7 @@
 import type React from "react";
 import { useState } from "react";
 import { Sidebar } from "@/components/layout/sidebar";
+import { CompanyBanner } from "@/components/layout/company-banner";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { Toaster } from "sonner";
 
@@ -29,7 +30,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         />
         <main className="flex-1 flex flex-col overflow-hidden">
           <div className="flex-1 overflow-auto">
-            <div className="p-6">{children}</div>
+            <div className="p-6">
+              <CompanyBanner />
+              {children}
+            </div>
           </div>
         </main>
       </div>

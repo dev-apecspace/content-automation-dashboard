@@ -1,6 +1,7 @@
 "use server";
 
 import { supabase } from "@/lib/supabase";
+import { getDataScopeProjectIds } from "@/lib/api/scope";
 import { encrypt } from "@/lib/server/encryption";
 import { Account } from "@/lib/types";
 import { requirePermission, getCurrentUser } from "@/lib/auth/permissions";
@@ -27,11 +28,18 @@ const maskAccount = (acc: any): Account => ({
 });
 
 export async function getAccounts(): Promise<Account[]> {
-  const { data, error } = await supabase
+  // Scope theo công ty (như content/video/schedules)
+  const scopeIds = await getDataScopeProjectIds();
+  if (scopeIds && scopeIds.size === 0) return [];
+
+  let query = supabase
     .from("accounts")
     .select("*, projects(name)")
     .order("project_id", { ascending: false })
     .order("created_at", { ascending: false });
+  if (scopeIds) query = query.in("project_id", Array.from(scopeIds));
+
+  const { data, error } = await query;
 
   if (error) {
     throw new Error(error.message);

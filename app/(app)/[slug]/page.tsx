@@ -3,6 +3,7 @@ import { getCurrentUser } from "@/lib/auth/permissions";
 import {
   getCustomerBySlug,
   resolveCustomerForUser,
+  checkUserCompanyAccess,
 } from "@/lib/api/business";
 import { CompanyWorkspace } from "./workspace-client";
 
@@ -33,6 +34,10 @@ export default async function CompanySlugPage({
     // User khách chỉ được vào công ty của chính mình
     if (mine.slug && mine.slug !== slug) redirect(`/${mine.slug}`);
     if (!mine.slug) redirect("/dashboard");
+  } else if (me.role !== "admin") {
+    // Nhân viên: chỉ công ty được admin phân (nixtech gán qua modal Người dùng)
+    const ok = await checkUserCompanyAccess(me.userId, customer.id);
+    if (!ok) redirect("/companies");
   }
 
   return (

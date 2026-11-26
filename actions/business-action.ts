@@ -21,8 +21,14 @@ import {
   resolveCustomerForUser as apiResolveCustomerForUser,
   getPackagePermissions as apiGetPackagePermissions,
   setPackagePermissions as apiSetPackagePermissions,
+  getAccessibleCompanies as apiGetAccessibleCompanies,
+  checkUserCompanyAccess as apiCheckUserCompanyAccess,
+  getUserCompanyIds as apiGetUserCompanyIds,
+  setUserCompanyIds as apiSetUserCompanyIds,
 } from "@/lib/api/business";
 import { getCurrentUser } from "@/lib/auth/permissions";
+import { cookies } from "next/headers";
+import { supabase } from "@/lib/supabase";
 import { revalidatePath } from "next/cache";
 import { requirePermission } from "@/lib/auth/permissions";
 
@@ -158,4 +164,67 @@ export async function setPackagePermissions(
   await requirePermission("packages.edit");
   await apiSetPackagePermissions(packageId, permissionIds);
   revalidatePath("/packages");
+}
+
+// ---------- CHỌN CÔNG TY ĐANG QUẢN LÝ (cookie selected_company) ----------
+/**
+ * Chọn công ty để quản lý dữ liệu nghiệp vụ. Verify quyền vào công ty:
+ *  - Admin: tất cả
+ *  - User khách: chỉ công ty của mình
+ *  - Nhân viên: phải được phân qua user_companies
+ */
+export async function selectCompany(slug: string): Promise<boolean> {
+  const me = await getCurrentUser();
+  if (!me) throw new Error("Chưa đăng nhập");
+
+  const customer = await apiGetCustomerBySlug(slug);
+  if (!customer) return false;
+
+  if (me.role === "customer") {
+    const mine = await apiResolveCustomerForUser(me.userId);
+    if (mine.customer_id !== customer.id) return false;
+  } else if (me.role !== "admin") {
+    const ok = await apiCheckUserCompanyAccess(me.userId, customer.id);
+    if (!ok) return false;
+  }
+
+  (await cookies()).set("selected_company", slug, {
+    path: "/",
+    maxAge: 60 * 60 * 24 * 7,
+    sameSite: "lax",
+  });
+  return true;
+}
+
+/** Thoát khỏi xem công ty → dữ liệu nghiệp vụ trở về toàn bộ workspace */
+export async function clearSelectedCompany(): Promise<void> {
+  (await cookies()).delete("selected_company");
+}
+
+/** Công ty đang chọn (hiện banner tên công ty trên layout) */
+export async function getSelectedCompanyInfo() {
+  const me = await getCurrentUser();
+  if (!me || me.role === "customer") return null;
+  const slug = (await cookies()).get("selected_company")?.value;
+  if (!slug) return null;
+  const c = await apiGetCustomerBySlug(slug);
+  return c ? { slug: c.slug, name: c.name } : null;
+}
+
+// ---------- PHÂN QUYỀN NHÂN VIÊN VÀO CÔNG TY ----------
+export async function getAccessibleCompanies() {
+  const me = await getCurrentUser();
+  if (!me) throw new Error("Chưa đăng nhập");
+  return await apiGetAccessibleCompanies();
+}
+
+export async function getUserCompanies(userId: string) {
+  await requirePermission("users.view");
+  return await apiGetUserCompanyIds(userId);
+}
+
+export async function setUserCompanies(userId: string, customerIds: string[]) {
+  await requirePermission("users.edit");
+  await apiSetUserCompanyIds(userId, customerIds);
+  revalidatePath("/users");
 }

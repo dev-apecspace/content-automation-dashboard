@@ -22,12 +22,16 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { PasswordInput } from "@/components/ui/password-input";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Loader2 } from "lucide-react";
 import { User } from "@/lib/api/users"; // Import type only
 import type { Customer } from "@/lib/api/business";
 
 import { getRoles, Role } from "@/lib/api/roles";
-import { getCustomers } from "@/actions/business-action";
+import {
+  getCustomers,
+  getUserCompanies,
+} from "@/actions/business-action";
 
 const userSchema = z.object({
   email: z.string().email("Email không hợp lệ"),
@@ -35,6 +39,7 @@ const userSchema = z.object({
   role: z.string().min(1, "Vui lòng chọn vai trò"),
   password: z.string().optional(),
   customer_id: z.string().optional(),
+  company_ids: z.array(z.string()).optional(),
 });
 
 type UserFormValues = z.infer<typeof userSchema>;
@@ -56,6 +61,9 @@ export function UserFormModal({
 }: UserFormModalProps) {
   const [roles, setRoles] = useState<Role[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
+  // Công ty nhân viên được phân vào (chỉ áp dụng cho role hệ thống, không
+  // phải admin/customer). Admin cao nhất gán qua các checkbox này.
+  const [companyIds, setCompanyIds] = useState<string[]>([]);
 
   const {
     register,
@@ -81,10 +89,18 @@ export function UserFormModal({
     const fetchData = async () => {
       const data = await getRoles();
       setRoles(data);
-      // Danh sách công ty cho user khách (rỗng nếu chưa chạy SQL mới)
+      // Danh sách công ty cho user khách + phân quyền nhân viên
       getCustomers()
         .then(setCustomers)
         .catch(() => setCustomers([]));
+      // Công ty đã phân cho user đang sửa
+      if (initialData?.id) {
+        getUserCompanies(initialData.id)
+          .then(setCompanyIds)
+          .catch(() => setCompanyIds([]));
+      } else {
+        setCompanyIds([]);
+      }
     };
     if (isOpen) {
       fetchData();
@@ -113,7 +129,15 @@ export function UserFormModal({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="bg-slate-900/90 backdrop-blur-xl border-white/10 text-slate-100 sm:max-w-[425px] p-0 gap-0 overflow-hidden flex flex-col">
         <form
-          onSubmit={handleSubmit(onSubmit)}
+          onSubmit={handleSubmit((values) => {
+            // Kèm danh sách công ty được phân (nhân viên hệ thống)
+            const isStaffRole =
+              values.role !== "admin" && values.role !== "customer";
+            onSubmit({
+              ...values,
+              company_ids: isStaffRole ? companyIds : [],
+            });
+          })}
           className="flex flex-col flex-1 min-h-0"
         >
           <DialogHeader className="p-8 pb-0 shrink-0">
@@ -204,6 +228,44 @@ export function UserFormModal({
                 <p className="text-xs text-slate-400">
                   User này đăng nhập sẽ thấy đúng công ty của mình, quyền theo
                   gói đang hiệu lực.
+                </p>
+              </div>
+            )}
+
+            {selectedRole !== "admin" && selectedRole !== "customer" && (
+              <div className="space-y-2">
+                <Label className="text-slate-300">
+                  Công ty được phép vào
+                </Label>
+                <div className="space-y-1.5 rounded-lg border border-white/10 bg-black/20 p-3">
+                  {customers.length === 0 ? (
+                    <p className="text-xs text-slate-400">
+                      Chưa có công ty nào hoặc chưa chạy SQL mục 7
+                    </p>
+                  ) : (
+                    customers.map((c) => (
+                      <label
+                        key={c.id}
+                        className="flex cursor-pointer items-center gap-2 text-sm text-slate-200"
+                      >
+                        <Checkbox
+                          checked={companyIds.includes(c.id)}
+                          onCheckedChange={(v) =>
+                            setCompanyIds((prev) =>
+                              v
+                                ? [...prev, c.id]
+                                : prev.filter((x) => x !== c.id),
+                            )
+                          }
+                        />
+                        {c.name}
+                      </label>
+                    ))
+                  )}
+                </div>
+                <p className="text-xs text-slate-400">
+                  Nhân viên chỉ vào được workspace các công ty được tick. Admin
+                  và user khách không cần phân mục này.
                 </p>
               </div>
             )}

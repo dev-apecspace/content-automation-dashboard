@@ -21,6 +21,8 @@ import {
   getSchedules,
   getVideoItems,
 } from "@/lib/api";
+import { selectCompany } from "@/actions/business-action";
+import { useRouter } from "next/navigation";
 import { AccountService } from "@/lib/services/account-service";
 
 /**
@@ -68,9 +70,17 @@ export function CompanyWorkspace({
     }
   }, [customer.id]);
 
+  const router = useRouter();
+
   useEffect(() => {
     loadData();
-  }, [loadData]);
+    // Đánh dấu công ty đang quản lý → các trang nghiệp vụ khác cũng scope
+    // theo công ty này cho đến khi thoát/chọn công ty khác
+    selectCompany(customer.slug || "").then((ok) => {
+      if (ok) router.refresh();
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [customer.slug]);
 
   return (
     <div className="space-y-6 p-6">

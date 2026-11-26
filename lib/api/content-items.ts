@@ -5,6 +5,7 @@ import camelcaseKeys from "camelcase-keys";
 import type { ContentItem, Status } from "@/lib/types";
 import { requirePermission, getCurrentUser } from "@/lib/auth/permissions";
 import { createActivityLog } from "@/lib/api/activity-logs";
+import { getDataScopeProjectIds } from "@/lib/api/scope";
 
 export async function getContentItems(filters?: {
   status?: Status | "all" | "overdue";
@@ -26,6 +27,14 @@ export async function getContentItems(filters?: {
 
   if (filters?.projectId && filters.projectId !== "all") {
     query = query.eq("project_id", filters.projectId);
+  }
+
+  // Scope theo công ty: user khách → công ty của mình;
+  // admin/nhân viên → công ty đang chọn (cookie selected_company)
+  const scopeIds = await getDataScopeProjectIds();
+  if (scopeIds) {
+    if (scopeIds.size === 0) return { data: [], total: 0 };
+    query = query.in("project_id", Array.from(scopeIds));
   }
 
   const page = filters?.page || 1;

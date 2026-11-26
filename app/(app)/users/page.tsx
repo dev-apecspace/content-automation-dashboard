@@ -27,6 +27,14 @@ import {
   deleteUser,
 } from "@/actions/users-action";
 import { UserFormModal } from "@/components/users/user-form-modal";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { setUserCompanies } from "@/actions/business-action";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { usePermissions } from "@/hooks/use-permissions";
@@ -41,6 +49,8 @@ export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  // Lọc theo công ty: "all" = tất cả | "internal" = nhân viên nội bộ | id công ty
+  const [companyFilter, setCompanyFilter] = useState("all");
   const { hasPermission } = usePermissions();
 
   // Modal states
@@ -73,6 +83,11 @@ export default function UsersPage() {
     try {
       setIsSubmitting(true);
       const newUser = await createUser(formData);
+      try {
+        await setUserCompanies(newUser.id, formData.company_ids || []);
+      } catch {
+        toast.error("Không lưu được phân quyền công ty (cần chạy SQL mục 7)");
+      }
       setUsers((prev) => [newUser, ...prev]);
       setIsModalOpen(false);
       toast.success("Tạo người dùng thành công");
@@ -92,6 +107,11 @@ export default function UsersPage() {
       if (!updateData.password) delete updateData.password;
 
       const updatedUser = await updateUser(editingUser.id, updateData);
+      try {
+        await setUserCompanies(editingUser.id, updateData.company_ids || []);
+      } catch {
+        toast.error("Không lưu được phân quyền công ty (cần chạy SQL mục 7)");
+      }
       setUsers((prev) =>
         prev.map((u) => (u.id === updatedUser.id ? updatedUser : u)),
       );
@@ -154,11 +174,17 @@ export default function UsersPage() {
     }
   };
 
-  const filteredUsers = users.filter(
-    (user) =>
+  const filteredUsers = users.filter((user) => {
+    if (
+      companyFilter === "internal" ? !!user.customer_id : companyFilter !== "all" && user.customer_id !== companyFilter
+    ) {
+      return false;
+    }
+    return (
       user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchTerm.toLowerCase()),
-  );
+      user.email.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  });
 
   return (
     <div className="space-y-6">
@@ -182,6 +208,33 @@ export default function UsersPage() {
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-9 w-[250px] bg-white/50 border-0 focus-visible:ring-0 focus-visible:bg-white transition-colors h-9"
             />
+            <Select value={companyFilter} onValueChange={setCompanyFilter}>
+              <SelectTrigger className="w-56 bg-white/50 border-0 h-9">
+                <SelectValue placeholder="Lọc theo công ty" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Mọi công ty</SelectItem>
+                <SelectItem value="internal">Nội bộ hệ thống</SelectItem>
+                <SelectItem value="__companies__" disabled hidden>
+                  ——— Công ty ———
+                </SelectItem>
+                {users
+                  .filter((u) => u.customer)
+                  .map(
+                    (u, i, arr) =>
+                      arr.findIndex(
+                        (x) => x.customer?.id === u.customer?.id,
+                      ) === i && (
+                      <SelectItem
+                        key={u.customer!.id}
+                        value={u.customer!.id}
+                      >
+                        {u.customer!.name}
+                      </SelectItem>
+                    ),
+                  )}
+              </SelectContent>
+            </Select>
           </div>
           {hasPermission("users.create") && (
             <Button

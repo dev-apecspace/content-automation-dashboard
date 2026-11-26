@@ -4,6 +4,8 @@ import { supabase } from "@/lib/supabase";
 import type { Project } from "@/lib/types";
 import { requirePermission, getCurrentUser } from "@/lib/auth/permissions";
 import { createActivityLog } from "@/lib/api/activity-logs";
+import { resolveCustomerForUser } from "@/lib/api/business";
+import { getDataScopeProjectIds } from "@/lib/api/scope";
 
 export async function getProjects(): Promise<Project[]> {
   // Join tên khách hàng; nếu cột customer_id chưa tồn tại (chưa chạy bản SQL
@@ -13,7 +15,11 @@ export async function getProjects(): Promise<Project[]> {
     .select("*, customer:customer_id(id, name)")
     .order("created_at", { ascending: false });
 
-  if (!joined.error) return joined.data || [];
+  const scope = await getDataScopeProjectIds();
+  if (!joined.error) {
+    const list = joined.data || [];
+    return scope ? list.filter((p) => scope.has(p.id)) : list;
+  }
 
   const plain = await supabase
     .from("projects")
@@ -25,7 +31,8 @@ export async function getProjects(): Promise<Project[]> {
     throw plain.error;
   }
 
-  return plain.data || [];
+  const list = plain.data || [];
+  return scope ? list.filter((p) => scope.has(p.id)) : list;
 }
 
 export async function getProjectById(id: string): Promise<Project | null> {
@@ -49,10 +56,20 @@ export async function createProject(
   await requirePermission("projects.create");
   // Không ghi trường join `customer` (chỉ có customer_id là cột thật)
   const { customer: _customer, ...fields } = project as Project;
+
+  // User khách luôn tạo dự án cho đúng công ty của mình (không tin form)
+  let customerId = fields.customer_id ?? null;
+  const me = await getCurrentUser();
+  if (me?.role === "customer") {
+    const mine = await resolveCustomerForUser(me.userId);
+    customerId = mine.customer_id;
+  }
+
   const { data, error } = await supabase
     .from("projects")
     .insert({
       ...fields,
+      customer_id: customerId,
       id: Date.now().toString(), // sinh lại id đúng (fields có thể còn mang id cũ)
     })
     .select()

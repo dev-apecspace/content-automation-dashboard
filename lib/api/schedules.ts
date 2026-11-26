@@ -6,12 +6,19 @@ import camelcaseKeys from "camelcase-keys";
 import snakecaseKeys from "snakecase-keys";
 import { requirePermission, getCurrentUser } from "@/lib/auth/permissions";
 import { createActivityLog } from "@/lib/api/activity-logs";
+import { getDataScopeProjectIds } from "@/lib/api/scope";
 
 export async function getSchedules(): Promise<Schedule[]> {
-  const { data, error } = await supabase
-    .from("schedules")
-    .select("*")
-    .order("project_name", { ascending: true });
+  // Scope theo công ty (như content/video)
+  const scopeIds = await getDataScopeProjectIds();
+  if (scopeIds && scopeIds.size === 0) return [];
+
+  let query = supabase.from("schedules").select("*");
+  if (scopeIds) query = query.in("project_id", Array.from(scopeIds));
+
+  const { data, error } = await query.order("project_name", {
+    ascending: true,
+  });
 
   if (error) {
     console.error("Error fetching schedules:", error);
