@@ -21,6 +21,7 @@ import { PlatformPieChart, StatusBarChart } from "./analytics-components";
 import { CostAnalytics } from "./cost-analytics";
 import { StatsCard, GlassContainer } from "./dashboard-atoms";
 import {
+  Building2,
   FileText,
   PlayCircle,
   BarChart3,
@@ -32,21 +33,32 @@ import {
   Calendar,
 } from "lucide-react";
 
-export function DashboardOverview() {
+export function DashboardOverview({
+  company,
+  scopeIds,
+}: {
+  company?: { slug: string; name: string } | null;
+  scopeIds?: string[] | null;
+}) {
+  // null = toàn hệ thống (dashboard tổng); mảng = dashboard theo công ty
+  const scope = scopeIds ?? null;
+
   // Initialize real-time updates
   useDashboardRealtime();
 
-  // Fetch data
-  const { data: stats, isLoading: statsLoading } = useDashboardStats();
+  // Fetch data — có scope → mọi số liệu chỉ tính dự án của công ty
+  const { data: stats, isLoading: statsLoading } = useDashboardStats(scope);
   const { data: activity, isLoading: activityLoading } = useRecentActivity();
-  const { data: metrics, isLoading: metricsLoading } = usePerformanceMetrics();
+  const { data: metrics, isLoading: metricsLoading } =
+    usePerformanceMetrics(7, scope);
 
   const { data: contentStats, isLoading: contentStatsLoading } =
-    useContentStats();
-  const { data: videoStats, isLoading: videoStatsLoading } = useVideoStats();
+    useContentStats(scope);
+  const { data: videoStats, isLoading: videoStatsLoading } =
+    useVideoStats(scope);
   const { data: costStats, isLoading: costStatsLoading } = useCostStats();
   const { data: scheduleStats, isLoading: scheduleStatsLoading } =
-    useScheduleStats();
+    useScheduleStats(scope);
 
   // Mock initial stats if undefined
   const defaultStats = {
@@ -60,14 +72,48 @@ export function DashboardOverview() {
 
   return (
     <div className="space-y-8 pb-10">
-      <div>
-        <h1 className="text-3xl font-bold text-slate-900 tracking-tight">
-          Dashboard
-        </h1>
-        <p className="text-slate-500 mt-1">
-          Tổng quan hoạt động và hiệu suất nội dung
-        </p>
-      </div>
+      {company ? (
+        <div className="rounded-2xl bg-gradient-to-r from-indigo-600 to-violet-600 p-6 text-white shadow-lg">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <p className="flex items-center gap-2 text-sm font-medium text-indigo-100">
+                <Building2 size={16} /> Dashboard công ty
+              </p>
+              <h1 className="mt-1 text-3xl font-bold tracking-tight">
+                {company.name}
+              </h1>
+              <p className="mt-1 text-sm text-indigo-100">
+                Số liệu dưới đây CHỈ tính của công ty này — khác dashboard tổng
+                của admin
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <a
+                href={`/${company.slug}`}
+                className="rounded-lg bg-white/15 px-4 py-2 text-sm font-medium transition-colors hover:bg-white/25"
+              >
+                Mở workspace /{company.slug}
+              </a>
+              <a
+                href="/companies"
+                className="rounded-lg bg-white px-4 py-2 text-sm font-semibold text-indigo-700 transition-colors hover:bg-indigo-50"
+              >
+                Về dashboard tổng
+              </a>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div>
+          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">
+            Dashboard
+          </h1>
+          <p className="text-slate-500 mt-1">
+            Tổng quan TOÀN HỆ THỐNG (tất cả công ty) — chọn một công ty ở trang
+            "Công ty" để xem dashboard riêng của công ty đó
+          </p>
+        </div>
+      )}
 
       {/* 1. High Level Stats */}
       <section>
@@ -78,7 +124,7 @@ export function DashboardOverview() {
       <section>
         <h2 className="text-xl font-bold text-slate-800 mb-4 flex items-center">
           <Calendar className="mr-2 text-indigo-500" size={24} />
-          Thống kê Lịch Đăng
+          {company ? "Thống Kê Lịch Đăng (công ty này)" : "Thống Kê Lịch Đăng"}
         </h2>
         <ScheduleStatsGrid
           stats={scheduleStats || { week: 0, month: 0, year: 0 }}
@@ -90,13 +136,15 @@ export function DashboardOverview() {
       <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
           <h2 className="text-xl font-bold text-slate-800 mb-4">
-            Hiệu Suất Tổng Thể
+            {company ? "Hiệu Suất Công Ty" : "Hiệu Suất Tổng Thể"}
           </h2>
           <DashboardCharts data={metrics || []} loading={metricsLoading} />
         </div>
         <div className="lg:col-span-1">
           <h2 className="text-xl font-bold text-slate-800 mb-4">
-            Hoạt Động Gần Đây
+            {company
+              ? "Hoạt Động Gần Đây (nhật ký toàn hệ thống)"
+              : "Hoạt Động Gần Đây"}
           </h2>
           <RecentActivityList
             activities={activity || []}
@@ -254,14 +302,17 @@ export function DashboardOverview() {
           </div>
         </div>
       </section>
-      {/* 2. Cost Analysis Section */}
-      <section>
-        <h2 className="text-xl font-bold text-slate-800 mb-4 flex items-center">
-          <Activity className="mr-2 text-indigo-500" size={24} />
-          Phân Tích Chi Phí AI
-        </h2>
-        <CostAnalytics data={costStats} loading={costStatsLoading} />
-      </section>
+      {/* 2. Cost Analysis Section — chỉ dashboard tổng (cost_logs không
+          gắn project_id nên không lọc được theo công ty) */}
+      {!company && (
+        <section>
+          <h2 className="text-xl font-bold text-slate-800 mb-4 flex items-center">
+            <Activity className="mr-2 text-indigo-500" size={24} />
+            Phân Tích Chi Phí AI (toàn hệ thống)
+          </h2>
+          <CostAnalytics data={costStats} loading={costStatsLoading} />
+        </section>
+      )}
     </div>
   );
 }

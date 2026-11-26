@@ -26,9 +26,24 @@ import {
   getMonth,
 } from "date-fns";
 
+// Scope dashboard: null = TOÀN HỆ THỐNG (dashboard tổng của admin);
+// [] = công ty chưa có dự án nào (trả số 0);
+// [ids...] = dashboard THEO CÔNG TY (chỉ tính dự án của công ty đang chọn)
+export type DashScope = string[] | null;
+
+const scopedRows = (
+  rows: any[] | null,
+  scope: DashScope,
+): any[] =>
+  scope
+    ? (rows || []).filter(
+        (r) => !!r.project_id && scope.includes(r.project_id),
+      )
+    : rows || [];
+
 export const DashboardService = {
   // Schedule Statistics (Week, Month, Year)
-  getScheduleStats: async (): Promise<{
+  getScheduleStats: async (scope: DashScope = null): Promise<{
     week: number;
     month: number;
     year: number;
@@ -40,19 +55,22 @@ export const DashboardService = {
     // We only care about items that are NOT in error or removed state
     const { data: contentData } = await supabase
       .from("content_items")
-      .select("status, posting_time")
+      .select("status, posting_time, project_id")
       .not("status", "in", '("post_removed","error")')
       .not("posting_time", "is", null);
 
     const { data: videoData } = await supabase
       .from("video_items")
-      .select("status, posting_time")
+      .select("status, posting_time, project_id")
       .not("status", "in", '("post_removed","error")')
       .not("posting_time", "is", null);
 
     const allItems = [
-      ...(contentData || []).map((c) => ({ ...c, type: "content" })),
-      ...(videoData || []).map((v) => ({ ...v, type: "video" })),
+      ...scopedRows(contentData, scope).map((c) => ({
+        ...c,
+        type: "content",
+      })),
+      ...scopedRows(videoData, scope).map((v) => ({ ...v, type: "video" })),
     ];
 
     const now = new Date();
@@ -113,46 +131,72 @@ export const DashboardService = {
   },
 
   // Aggregate stats from multiple tables
-  getOverviewStats: async (): Promise<DashboardStats> => {
+  getOverviewStats: async (scope: DashScope = null): Promise<DashboardStats> => {
     // supabase client is already initialized
 
-    // Parallel fetch for efficiency
+    // Công ty chưa có dự án nào → trả số 0 (tránh .in([]) của PostgREST)
+    if (scope && scope.length === 0) {
+      return {
+        totalProjects: 0,
+        totalPosts: 0,
+        pendingApprovals: 0,
+        scheduledPosts: 0,
+        totalViews: 0,
+        totalReactions: 0,
+      };
+    }
+
+    // Parallel fetch for efficiency (có scope → chỉ tính dự án công ty)
     const [
       { count: projectsCount },
       { data: contentData },
       { data: videoData },
       { data: postsData },
     ] = await Promise.all([
-      supabase.from("projects").select("*", { count: "exact", head: true }),
-      supabase.from("content_items").select("status"),
-      supabase.from("video_items").select("status"),
+      scope
+        ? supabase
+            .from("projects")
+            .select("*", { count: "exact", head: true })
+            .in("id", scope)
+        : supabase.from("projects").select("*", { count: "exact", head: true }),
+      supabase.from("content_items").select("status, project_id"),
+      supabase.from("video_items").select("status, project_id"),
       supabase
         .from("posts")
-        .select("views, reactions, comments, shares, status"),
+        .select(
+          "views, reactions, comments, shares, status, item_id, item_type",
+        ),
     ]);
 
-    const activeContentsCount =
-      (contentData?.length || 0) + (videoData?.length || 0);
+    const contents = scopedRows(contentData, scope);
+    const videos = scopedRows(videoData, scope);
+    // posts không có project_id → lọc qua item thuộc phạm vi
+    const scopedItemIds = new Set(
+      [...contents, ...videos].map((r) => r.id as string),
+    );
+    const posts = scope
+      ? (postsData || []).filter((p: any) => scopedItemIds.has(p.item_id))
+      : postsData || [];
+
+    const activeContentsCount = contents.length + videos.length;
 
     const pendingApprovalsCount =
-      (contentData?.filter((c) =>
+      contents.filter((c) =>
         ["idea", "awaiting_content_approval", "media_edited"].includes(c.status)
-      ).length || 0) +
-      (videoData?.filter((v) =>
+      ).length +
+      videos.filter((v) =>
         ["idea", "awaiting_content_approval", "media_edited"].includes(v.status)
-      ).length || 0);
+      ).length;
 
     const scheduledPostsCount =
-      (contentData?.filter((c) => c.status === "posted_successfully").length ||
-        0) +
-      (videoData?.filter((v) => v.status === "posted_successfully").length ||
-        0);
+      contents.filter((c) => c.status === "posted_successfully").length +
+      videos.filter((v) => v.status === "posted_successfully").length;
 
     // Sum stats from posts table
     let totalViews = 0;
     let totalReactions = 0;
 
-    postsData?.forEach((post) => {
+    (posts as any[]).forEach((post) => {
       totalViews += post.views || 0;
       totalReactions +=
         (post.reactions || 0) + (post.comments || 0) + (post.shares || 0);
@@ -182,16 +226,39 @@ export const DashboardService = {
   },
 
   // Mock performance metrics for charts (since we might not have historical tracking yet)
-  getPerformanceMetrics: async (days = 7): Promise<ChartDataPoint[]> => {
+  getPerformanceMetrics: async (
+    days = 7,
+    scope: DashScope = null,
+  ): Promise<ChartDataPoint[]> => {
     // Real data fetching and aggregation
     const startDate = subDays(startOfDay(new Date()), days).toISOString();
 
+    // posts không có project_id → lấy id items thuộc phạm vi để lọc
+    let scopedIds: Set<string> | null = null;
+    if (scope) {
+      const [{ data: cIds }, { data: vIds }] = await Promise.all([
+        supabase
+          .from("content_items")
+          .select("id, project_id")
+          .in("project_id", scope),
+        supabase
+          .from("video_items")
+          .select("id, project_id")
+          .in("project_id", scope),
+      ]);
+      scopedIds = new Set(
+        [...(cIds || []), ...(vIds || [])].map((r) => r.id as string),
+      );
+    }
+
     const { data: postsData } = await supabase
       .from("posts")
-      .select("created_at, views, reactions, comments, shares, status")
+      .select("created_at, views, reactions, comments, shares, status, item_id")
       .gte("created_at", startDate);
 
-    const posts = (postsData || []) as any[];
+    const posts = ((postsData || []) as any[]).filter(
+      (p) => !scopedIds || scopedIds.has(p.item_id),
+    );
 
     // Initialize map with all dates in range
     const groupedData = new Map<string, ChartDataPoint>();
@@ -226,16 +293,41 @@ export const DashboardService = {
   },
 
   // Detailed Content Analytics
-  getContentStats: async (): Promise<ContentStats> => {
+  getContentStats: async (scope: DashScope = null): Promise<ContentStats> => {
+    // Công ty chưa có dự án → thống kê rỗng
+    if (scope && scope.length === 0) {
+      return {
+        totalItems: 0,
+        pendingApproval: 0,
+        readyToPost: 0,
+        overdue: 0,
+        byPlatform: [],
+        byStatus: [],
+        byProject: [],
+        topPerforming: [],
+      };
+    }
+
     const [{ data: contentData }, { data: postsData }] = await Promise.all([
       supabase.from("content_items").select("*"),
       supabase.from("posts").select("*").eq("item_type", "content"),
     ]);
 
-    const items = camelcaseKeys(contentData || [], {
+    // Lọc items theo dự án công ty; posts lọc theo item thuộc phạm vi
+    const scopedContentIds = scope
+      ? new Set(
+          scopedRows(contentData, scope).map((r) => r.id as string),
+        )
+      : null;
+    const items = camelcaseKeys(scopedRows(contentData, scope), {
       deep: true,
     }) as ContentItem[];
-    const posts = camelcaseKeys(postsData || [], { deep: true }) as Post[];
+    const posts = camelcaseKeys(
+      (postsData || []).filter(
+        (p: any) => !scopedContentIds || scopedContentIds.has(p.item_id),
+      ),
+      { deep: true },
+    ) as Post[];
 
     // Map posts to items
     const postsMap = new Map<string, Post[]>();
@@ -393,16 +485,41 @@ export const DashboardService = {
   },
 
   // Detailed Video Analytics
-  getVideoStats: async (): Promise<VideoStats> => {
+  getVideoStats: async (scope: DashScope = null): Promise<VideoStats> => {
+    // Công ty chưa có dự án → thống kê rỗng
+    if (scope && scope.length === 0) {
+      return {
+        totalVideos: 0,
+        totalViews: 0,
+        avgDuration: 0,
+        pendingApproval: 0,
+        readyToPost: 0,
+        overdue: 0,
+        posted: 0,
+        byPlatform: [],
+        byProject: [],
+        topPerforming: [],
+      };
+    }
+
     const [{ data: videoData }, { data: postsData }] = await Promise.all([
       supabase.from("video_items").select("*"),
       supabase.from("posts").select("*").eq("item_type", "video"),
     ]);
 
-    const videos = camelcaseKeys(videoData || [], {
+    // Lọc videos theo dự án công ty; posts lọc theo item thuộc phạm vi
+    const scopedVideoIds = scope
+      ? new Set(scopedRows(videoData, scope).map((r) => r.id as string))
+      : null;
+    const videos = camelcaseKeys(scopedRows(videoData, scope), {
       deep: true,
     }) as VideoItem[];
-    const posts = camelcaseKeys(postsData || [], { deep: true }) as Post[];
+    const posts = camelcaseKeys(
+      (postsData || []).filter(
+        (p: any) => !scopedVideoIds || scopedVideoIds.has(p.item_id),
+      ),
+      { deep: true },
+    ) as Post[];
 
     // Map posts to videos
     const postsMap = new Map<string, Post[]>();

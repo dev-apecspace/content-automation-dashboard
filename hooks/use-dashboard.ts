@@ -3,10 +3,14 @@ import { DashboardService } from "@/lib/services/dashboard-service";
 import { useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 
-export function useDashboardStats() {
+// Key phân biệt cache giữa dashboard tổng (all) và theo công ty (ids)
+const scopeKey = (scope?: string[] | null) =>
+  scope && scope.length > 0 ? scope.join(",") : scope ? "empty" : "all";
+
+export function useDashboardStats(scope?: string[] | null) {
   return useQuery({
-    queryKey: ["dashboard-stats"],
-    queryFn: DashboardService.getOverviewStats,
+    queryKey: ["dashboard-stats", scopeKey(scope)],
+    queryFn: () => DashboardService.getOverviewStats(scope ?? null),
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
 }
@@ -20,10 +24,13 @@ export function useRecentActivity() {
   });
 }
 
-export function usePerformanceMetrics(days: number = 7) {
+export function usePerformanceMetrics(
+  days: number = 7,
+  scope?: string[] | null,
+) {
   return useQuery({
-    queryKey: ["dashboard-metrics", days],
-    queryFn: () => DashboardService.getPerformanceMetrics(days),
+    queryKey: ["dashboard-metrics", days, scopeKey(scope)],
+    queryFn: () => DashboardService.getPerformanceMetrics(days, scope ?? null),
     staleTime: 1000 * 60 * 60, // 1 hour
   });
 }
@@ -82,18 +89,18 @@ export function useDashboardRealtime() {
   }, [queryClient]);
 }
 
-export function useContentStats() {
+export function useContentStats(scope?: string[] | null) {
   return useQuery({
-    queryKey: ["dashboard-content-stats"],
-    queryFn: DashboardService.getContentStats,
+    queryKey: ["dashboard-content-stats", scopeKey(scope)],
+    queryFn: () => DashboardService.getContentStats(scope ?? null),
     staleTime: 1000 * 60 * 5,
   });
 }
 
-export function useVideoStats() {
+export function useVideoStats(scope?: string[] | null) {
   return useQuery({
-    queryKey: ["dashboard-video-stats"],
-    queryFn: DashboardService.getVideoStats,
+    queryKey: ["dashboard-video-stats", scopeKey(scope)],
+    queryFn: () => DashboardService.getVideoStats(scope ?? null),
     staleTime: 1000 * 60 * 5,
   });
 }
@@ -106,10 +113,10 @@ export function useCostStats() {
   });
 }
 
-export function useScheduleStats() {
+export function useScheduleStats(scope?: string[] | null) {
   return useQuery({
-    queryKey: ["dashboard-schedule-stats"],
-    queryFn: DashboardService.getScheduleStats,
+    queryKey: ["dashboard-schedule-stats", scopeKey(scope)],
+    queryFn: () => DashboardService.getScheduleStats(scope ?? null),
     staleTime: 1000 * 60 * 5,
   });
 }
