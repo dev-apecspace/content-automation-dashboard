@@ -5,7 +5,9 @@ import { createActivityLog } from "@/lib/api/activity-logs";
 
 export async function POST(req: NextRequest) {
   try {
-    const token = req.cookies.get("auth_token")?.value;
+    const token =
+      req.cookies.get("auth_token")?.value ??
+      req.cookies.get("auth_token_fb")?.value;
     if (token) {
       try {
         const payload = verifyToken(token);
@@ -31,16 +33,21 @@ export async function POST(req: NextRequest) {
   const host = (req.headers.get("host") ?? "").split(":")[0];
   const isHttps =
     proto === "https" || host === "localhost" || host === "127.0.0.1";
-  const cookie = serialize("auth_token", "", {
-    httpOnly: true,
-    secure: isHttps,
-    maxAge: -1,
-    path: "/",
-    sameSite: isHttps ? "none" : "lax",
-  });
+  const clear = (name: string, secure: boolean, sameSite: "none" | "lax") =>
+    serialize(name, "", {
+      httpOnly: true,
+      secure,
+      maxAge: -1,
+      path: "/",
+      sameSite,
+    });
 
+  // Xóa cả 2 cookie (chính + fallback) với cả 2 biến thể flag để chắc chắn
   const response = NextResponse.json({ success: true });
-  response.headers.append("Set-Cookie", cookie);
+  response.headers.append("Set-Cookie", clear("auth_token", isHttps, isHttps ? "none" : "lax"));
+  response.headers.append("Set-Cookie", clear("auth_token", false, "lax"));
+  response.headers.append("Set-Cookie", clear("auth_token_fb", false, "lax"));
+  response.headers.append("Set-Cookie", clear("auth_token_fb", true, "none"));
 
   return response;
 }

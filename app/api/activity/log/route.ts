@@ -5,7 +5,9 @@ import { createActivityLog } from "@/lib/api/activity-logs";
 export async function POST(req: NextRequest) {
   try {
     // 1. Get token from cookies
-    const token = req.cookies.get("auth_token")?.value;
+    const token =
+      req.cookies.get("auth_token")?.value ??
+      req.cookies.get("auth_token_fb")?.value;
 
     if (!token) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

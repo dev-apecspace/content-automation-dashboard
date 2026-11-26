@@ -12,7 +12,9 @@ import { verifyToken } from "@/lib/server/encryption";
 
 export async function getMyProfile() {
   const cookieStore = await cookies();
-  const token = cookieStore.get("auth_token")?.value;
+  const token =
+    cookieStore.get("auth_token")?.value ??
+    cookieStore.get("auth_token_fb")?.value;
 
   if (!token) return null;
 

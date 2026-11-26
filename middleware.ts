@@ -8,7 +8,11 @@ const JWT_SECRET = new TextEncoder().encode(
 );
 
 export async function middleware(request: NextRequest) {
-  const token = request.cookies.get("auth_token")?.value;
+  // Cookie chính (None+Secure cho iframe https) + fallback (Lax cho http):
+  // browser từ chối Secure cookie trên http thuần → chỉ fallback còn sống
+  const token =
+    request.cookies.get("auth_token")?.value ??
+    request.cookies.get("auth_token_fb")?.value;
   const { pathname } = request.nextUrl;
 
   // Public routes that don't need auth
@@ -44,6 +48,7 @@ export async function middleware(request: NextRequest) {
       console.error("Token verification failed:", error);
       const unauthorized = json401("Phiên đăng nhập không hợp lệ, vui lòng đăng nhập lại");
       unauthorized.cookies.delete("auth_token");
+      unauthorized.cookies.delete("auth_token_fb");
       return unauthorized;
     }
   }
@@ -66,6 +71,7 @@ export async function middleware(request: NextRequest) {
     url.pathname = "/login";
     const response = NextResponse.redirect(url);
     response.cookies.delete("auth_token");
+    response.cookies.delete("auth_token_fb");
     return response;
   }
 }

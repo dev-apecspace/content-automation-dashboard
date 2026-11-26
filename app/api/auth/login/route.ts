@@ -64,24 +64,41 @@ export async function POST(req: NextRequest) {
       name: user.name,
     });
 
-    // 4. Set Cookie
-    // Cookie policy: LUÔN SameSite=None + Secure.
-    // - Preview/publish của platform: browser nhận https từ edge, iframe
-    //   cross-origin của preview panel CHỈ chấp nhận cookie None+Secure
-    //   (SameSite=Lax sẽ bị iframe bỏ qua → đăng nhập xong bị đá về /login).
-    //   Hop nội bộ (edge → Caddy:81 → Next) là http nhưng KHÔNG đại diện cho
-    //   context của browser, và X-Forwarded-* không đáng tin (Next dev tự
-    //   inject x-forwarded-for ::ffff:127.0.0.1 cho cả request trực tiếp).
-    // - Localhost http: browser coi là secure context nên vẫn chấp nhận
-    //   Secure cookie.
-    // - Http thuần qua domain thật (không qua edge https): không tồn tại trong
-    //   môi trường platform này.
-    const cookie = serialize("auth_token", token, {
+    // 4. Set Cookie — thích ứng theo giao thức mà BROWSER thực sự thấy:
+    // - Browser nhận https (edge preview, kể cả iframe cross-origin):
+    //   SameSite=None + Secure — iframe preview CHỈ chấp nhận combo này,
+    //   SameSite=Lax sẽ bị iframe bỏ qua → đăng nhập xong bị đá về /login.
+    // - Browser nhận http thuần (preview :81, dev trực tiếp, localhost):
+    //   SameSite=Lax KHÔNG Secure — cookie Secure bị browser VỨT trên http,
+    //   gây vòng lặp chuyển hướng đăng nhập vô tận (lỗi "chuyển hướng"
+    //   của run dev server). Header x-forwarded-proto do edge/Caddy ghi.
+    const proto = (
+      req.headers.get("x-forwarded-proto") ??
+      req.nextUrl.protocol.replace(":", "")
+    )
+      .split(",")[0]
+      .trim();
+    const host = (req.headers.get("host") ?? "").split(":")[0];
+    const isHttps =
+      proto === "https" || host === "localhost" || host === "127.0.0.1";
+    const base = {
       httpOnly: true,
-      secure: true,
       maxAge: 60 * 60 * 24 * 7, // 1 week
       path: "/",
-      sameSite: "none",
+    } as const;
+    // Cookie chính: None+Secure trên https (iframe preview bắt buộc), Lax trên http
+    const cookie = serialize("auth_token", token, {
+      ...base,
+      secure: isHttps,
+      sameSite: isHttps ? "none" : "lax",
+    });
+    // Cookie fallback: Lax KHÔNG Secure — trường hợp browser đang ở http
+    // thuần mà chuỗi proxy báo https (Secure cookie bị vứt → vòng lặp
+    // chuyển hướng đăng nhập). Trên https cookie này vô hại, luôn được set.
+    const fallbackCookie = serialize("auth_token_fb", token, {
+      ...base,
+      secure: false,
+      sameSite: "lax",
     });
 
     const response = NextResponse.json({
@@ -95,6 +112,7 @@ export async function POST(req: NextRequest) {
     });
 
     response.headers.append("Set-Cookie", cookie);
+    response.headers.append("Set-Cookie", fallbackCookie);
 
     // Log login activity
     await createActivityLog("login", "auth", user.id, {
