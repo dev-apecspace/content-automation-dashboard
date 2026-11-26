@@ -25,6 +25,7 @@ import {
   checkUserCompanyAccess as apiCheckUserCompanyAccess,
   getUserCompanyIds as apiGetUserCompanyIds,
   setUserCompanyIds as apiSetUserCompanyIds,
+  getCompanyMainAccounts as apiGetCompanyMainAccounts,
 } from "@/lib/api/business";
 import { getCurrentUser } from "@/lib/auth/permissions";
 import { cookies } from "next/headers";
@@ -227,4 +228,10 @@ export async function setUserCompanies(userId: string, customerIds: string[]) {
   await requirePermission("users.edit");
   await apiSetUserCompanyIds(userId, customerIds);
   revalidatePath("/users");
+}
+
+/** Tài khoản chính của các công ty (admin) — email/sđt công ty = tk này */
+export async function getCompanyMainAccounts(customerIds: string[]) {
+  await requirePermission("users.view");
+  return await apiGetCompanyMainAccounts(customerIds);
 }

@@ -258,6 +258,33 @@ export async function resolveCustomerForUser(
 }
 
 /**
+ * Tài khoản chính của từng công ty (user role=customer gắn customer_id).
+ * Trả về map customer_id -> { id, email, is_active }. Quy tắc "mỗi công ty
+ * ít nhất 1 tk": email/sđt công ty chính là thông tin tk này.
+ */
+export async function getCompanyMainAccounts(
+  customerIds: string[]
+): Promise<Record<string, { id: string; email: string; is_active: boolean }>> {
+  if (customerIds.length === 0) return {};
+  try {
+    const { data } = await supabase
+      .from("users")
+      .select("id, email, is_active, customer_id")
+      .eq("role", "customer")
+      .in("customer_id", customerIds);
+    const map: Record<string, { id: string; email: string; is_active: boolean }> = {};
+    for (const u of data || []) {
+      if (u.customer_id && !map[u.customer_id]) {
+        map[u.customer_id] = { id: u.id, email: u.email, is_active: u.is_active };
+      }
+    }
+    return map;
+  } catch {
+    return {};
+  }
+}
+
+/**
  * Công ty mà user hiện tại được thấy:
  *  - Admin: tất cả
  *  - User khách: đúng công ty của mình

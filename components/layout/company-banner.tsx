@@ -39,7 +39,7 @@ export function CompanyBanner() {
     <div className="mb-4 flex items-center justify-between rounded-lg border border-indigo-200 bg-indigo-50 px-4 py-2 dark:border-indigo-500/30 dark:bg-indigo-500/10">
       <p className="flex items-center gap-2 text-sm font-medium text-indigo-700 dark:text-indigo-300">
         <Building2 className="h-4 w-4" />
-        Đang quản lý công ty: <strong>{company.name}</strong>
+        Bạn đang ở công ty: <strong>{company.name}</strong>
         <span className="font-mono text-xs opacity-70">/{company.slug}</span>
         <span className="text-xs opacity-70">
           — dữ liệu nghiệp vụ đang lọc theo công ty này

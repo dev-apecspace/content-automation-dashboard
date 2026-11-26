@@ -28,6 +28,9 @@ import {
   Plus,
   Edit2,
   Trash2,
+  Phone,
+  Mail,
+  UserRound,
 } from "lucide-react";
 import { toast } from "sonner";
 import type { Customer } from "@/lib/api/business";
@@ -38,8 +41,10 @@ import {
   updateCustomer,
   deleteCustomer,
   createIndustry,
+  getCompanyMainAccounts,
   selectCompany,
 } from "@/actions/business-action";
+import { createUser, updateUser } from "@/actions/users-action";
 import { formatDateVi } from "@/lib/utils/format";
 import { usePermissions } from "@/hooks/use-permissions";
 
@@ -65,7 +70,16 @@ export default function CompaniesPage() {
     name: "",
     status: "active",
     industry_id: "",
+    phone: "",
+    email: "",
+    mainPassword: "",
   });
+  // Tk chính của từng công ty (email/sđt công ty = tk này)
+  const [mainAccounts, setMainAccounts] = useState<
+    Record<string, { id: string; email: string; is_active: boolean }>
+  >({});
+  // Công ty đang quản lý (cookie selected_company) → tô sáng thẻ
+  const [selectedSlug, setSelectedSlug] = useState<string | null>(null);
   // Thêm nhanh ngành hàng ngay trong modal (không phải sang trang Ngành hàng)
   const [addingIndustry, setAddingIndustry] = useState(false);
   const [newIndustryName, setNewIndustryName] = useState("");
@@ -80,6 +94,14 @@ export default function CompaniesPage() {
       ]);
       setCompanies(cs);
       setIndustries(inds);
+      setMainAccounts(
+        cs.length > 0
+          ? await getCompanyMainAccounts(cs.map((c) => c.id)).catch(() => ({}))
+          : {},
+      );
+      // Cookie không httpOnly → đọc được client-side để tô sáng thẻ đang chọn
+      const m = document.cookie.match(/(?:^|;\s*)selected_company=([^;]*)/);
+      setSelectedSlug(m ? decodeURIComponent(m[1]) : null);
     } catch {
       toast.error("Không tải được danh sách công ty");
     } finally {
@@ -117,7 +139,14 @@ export default function CompaniesPage() {
 
   const openCreate = () => {
     setEditing(null);
-    setForm({ name: "", status: "active", industry_id: "" });
+    setForm({
+      name: "",
+      status: "active",
+      industry_id: "",
+      phone: "",
+      email: "",
+      mainPassword: "",
+    });
     setIsModalOpen(true);
   };
 
@@ -127,6 +156,9 @@ export default function CompaniesPage() {
       name: c.name,
       status: c.status || "active",
       industry_id: c.industry_id || "",
+      phone: c.phone || "",
+      email: c.email || "",
+      mainPassword: "",
     });
     setIsModalOpen(true);
   };
@@ -136,6 +168,28 @@ export default function CompaniesPage() {
       toast.error("Nhập tên công ty");
       return;
     }
+    const phone = form.phone.trim();
+    const email = form.email.trim();
+    if (!phone) {
+      toast.error("Nhập số điện thoại của công ty");
+      return;
+    }
+    if (!email || !email.includes("@")) {
+      toast.error("Nhập email hợp lệ của công ty");
+      return;
+    }
+    // Quy tắc: mỗi công ty có ít nhất 1 tài khoản chính (email + sđt công ty)
+    const main = editing ? mainAccounts[editing.id] : undefined;
+    const needPassword = !main || !!form.mainPassword.trim();
+    if (!editing && !form.mainPassword.trim()) {
+      toast.error("Đặt mật khẩu cho tài khoản chính của công ty");
+      return;
+    }
+    if (needPassword && !main && editing && !form.mainPassword.trim()) {
+      toast.error("Đặt mật khẩu để tạo tài khoản chính cho công ty");
+      return;
+    }
+
     try {
       setIsSaving(true);
       if (editing) {
@@ -143,17 +197,46 @@ export default function CompaniesPage() {
           name: form.name.trim(),
           status: form.status,
           industry_id: form.industry_id || null,
+          phone,
+          email,
         });
+        if (main) {
+          // Đồng bộ email tk chính + đổi mật khẩu nếu có nhập
+          const patch: Record<string, string> = { email };
+          if (form.mainPassword.trim())
+            patch.password = form.mainPassword.trim();
+          await updateUser(main.id, patch);
+        } else if (form.mainPassword.trim()) {
+          // Công ty cũ chưa có tk chính → tạo luôn
+          await createUser({
+            name: form.name.trim(),
+            email,
+            password: form.mainPassword.trim(),
+            role: "customer",
+            customer_id: editing.id,
+            is_active: true,
+          });
+        }
         toast.success("Đã cập nhật công ty!");
       } else {
         // Slug workspace tự sinh bỏ dấu tiếng Việt ("APEC GLOBAL" → apec-global)
-        await createCustomer({
+        const created = await createCustomer({
           name: form.name.trim(),
           company: form.name.trim(),
           status: form.status,
           industry_id: form.industry_id || null,
+          phone,
+          email,
         });
-        toast.success("Đã thêm công ty!");
+        await createUser({
+          name: form.name.trim(),
+          email,
+          password: form.mainPassword.trim(),
+          role: "customer",
+          customer_id: created.id,
+          is_active: true,
+        });
+        toast.success(`Đã thêm công ty + tk chính (${email})!`);
       }
       setIsModalOpen(false);
       await load();
@@ -232,7 +315,10 @@ export default function CompaniesPage() {
                 "group flex flex-col gap-3 p-5 transition-all " +
                 (c.slug
                   ? "cursor-pointer hover:border-indigo-300 hover:shadow-md"
-                  : "opacity-70")
+                  : "opacity-70") +
+                (selectedSlug && selectedSlug === c.slug
+                  ? " border-indigo-400 ring-2 ring-indigo-300"
+                  : "")
               }
               onClick={() => handleSelect(c)}
             >
@@ -242,7 +328,14 @@ export default function CompaniesPage() {
                     <Building2 className="h-5 w-5 text-indigo-600" />
                   </div>
                   <div>
-                    <h3 className="font-semibold">{c.name}</h3>
+                    <h3 className="flex items-center gap-2 font-semibold">
+                      {c.name}
+                      {selectedSlug && selectedSlug === c.slug && (
+                        <Badge className="bg-indigo-600 text-white">
+                          Đang quản lý
+                        </Badge>
+                      )}
+                    </h3>
                     <p className="font-mono text-xs text-muted-foreground">
                       /{c.slug || "chưa-có-slug"}
                     </p>
@@ -253,7 +346,7 @@ export default function CompaniesPage() {
                     <ExternalLink className="h-4 w-4 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
                   )}
                   {isAdmin && (
-                    <div className="flex gap-1">
+                    <div className="flex gap-1 opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100">
                       <Button
                         variant="ghost"
                         size="icon"
@@ -297,6 +390,37 @@ export default function CompaniesPage() {
                 </Badge>
               </div>
 
+              <div className="space-y-0.5 text-xs text-muted-foreground">
+                {c.phone && (
+                  <p className="flex items-center gap-1.5">
+                    <Phone className="h-3 w-3" /> {c.phone}
+                  </p>
+                )}
+                {c.email && (
+                  <p className="flex items-center gap-1.5">
+                    <Mail className="h-3 w-3" /> {c.email}
+                  </p>
+                )}
+              </div>
+
+              {isAdmin &&
+                (mainAccounts[c.id] ? (
+                  <Badge
+                    variant="outline"
+                    className="w-fit border-emerald-500/20 bg-emerald-500/10 text-emerald-600"
+                  >
+                    <UserRound className="mr-1 h-3 w-3" />
+                    Tk chính: {mainAccounts[c.id].email}
+                  </Badge>
+                ) : (
+                  <Badge
+                    variant="outline"
+                    className="w-fit border-amber-500/20 bg-amber-500/10 text-amber-600"
+                  >
+                    Chưa có tk chính — bấm Sửa để tạo
+                  </Badge>
+                ))}
+
               <p className="mt-auto text-xs text-muted-foreground">
                 Tham gia từ {formatDateVi(c.created_at)}
               </p>
@@ -327,6 +451,52 @@ export default function CompaniesPage() {
                   Slug workspace tự sinh từ tên (bỏ dấu tiếng Việt)
                 </p>
               )}
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label htmlFor="c-phone">Số điện thoại *</Label>
+                <Input
+                  id="c-phone"
+                  value={form.phone}
+                  onChange={(e) =>
+                    setForm({ ...form, phone: e.target.value })
+                  }
+                  placeholder="VD: 0901234567"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="c-email">Email *</Label>
+                <Input
+                  id="c-email"
+                  type="email"
+                  value={form.email}
+                  onChange={(e) =>
+                    setForm({ ...form, email: e.target.value })
+                  }
+                  placeholder="vd@congty.com"
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="c-mainpass">
+                {editing && mainAccounts[editing.id]
+                  ? "Mật khẩu tk chính (để trống = giữ nguyên)"
+                  : "Mật khẩu tài khoản chính *"}
+              </Label>
+              <Input
+                id="c-mainpass"
+                type="password"
+                value={form.mainPassword}
+                onChange={(e) =>
+                  setForm({ ...form, mainPassword: e.target.value })
+                }
+                placeholder="Đăng nhập portal của công ty bằng email trên"
+              />
+              <p className="text-xs text-muted-foreground">
+                Mỗi công ty có 1 tài khoản chính: email + sđt công ty chính
+                là thông tin đăng nhập (role Khách hàng, chỉ vào đúng công ty
+                mình).
+              </p>
             </div>
             <div className="space-y-2">
               <Label>Ngành hàng</Label>
