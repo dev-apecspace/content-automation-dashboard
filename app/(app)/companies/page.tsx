@@ -37,6 +37,7 @@ import {
   createCustomer,
   updateCustomer,
   deleteCustomer,
+  createIndustry,
   selectCompany,
 } from "@/actions/business-action";
 import { formatDateVi } from "@/lib/utils/format";
@@ -65,6 +66,10 @@ export default function CompaniesPage() {
     status: "active",
     industry_id: "",
   });
+  // Thêm nhanh ngành hàng ngay trong modal (không phải sang trang Ngành hàng)
+  const [addingIndustry, setAddingIndustry] = useState(false);
+  const [newIndustryName, setNewIndustryName] = useState("");
+  const [savingIndustry, setSavingIndustry] = useState(false);
 
   const load = useCallback(async () => {
     setIsLoading(true);
@@ -85,6 +90,30 @@ export default function CompaniesPage() {
   useEffect(() => {
     load();
   }, [load]);
+
+  const quickAddIndustry = async () => {
+    const name = newIndustryName.trim();
+    if (!name) return;
+    try {
+      setSavingIndustry(true);
+      const created = await createIndustry({
+        name,
+        description: null,
+        is_active: true,
+      });
+      setIndustries((prev) =>
+        prev.some((i) => i.id === created.id) ? prev : [...prev, created],
+      );
+      setForm((f) => ({ ...f, industry_id: created.id }));
+      setAddingIndustry(false);
+      setNewIndustryName("");
+      toast.success(`Đã thêm ngành "${created.name}" và chọn luôn`);
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : "Thêm ngành thất bại");
+    } finally {
+      setSavingIndustry(false);
+    }
+  };
 
   const openCreate = () => {
     setEditing(null);
@@ -303,9 +332,13 @@ export default function CompaniesPage() {
               <Label>Ngành hàng</Label>
               <Select
                 value={form.industry_id || "none"}
-                onValueChange={(v) =>
-                  setForm({ ...form, industry_id: v === "none" ? "" : v })
-                }
+                onValueChange={(v) => {
+                  if (v === "__add__") {
+                    setAddingIndustry(true);
+                    return;
+                  }
+                  setForm({ ...form, industry_id: v === "none" ? "" : v });
+                }}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Chọn ngành" />
@@ -317,8 +350,60 @@ export default function CompaniesPage() {
                       {i.name}
                     </SelectItem>
                   ))}
+                  <SelectItem
+                    value="__add__"
+                    className="font-medium text-indigo-600"
+                  >
+                    + Thêm ngành mới...
+                  </SelectItem>
                 </SelectContent>
               </Select>
+              {addingIndustry && (
+                <div className="flex gap-2">
+                  <Input
+                    autoFocus
+                    value={newIndustryName}
+                    onChange={(e) =>
+                      setNewIndustryName(e.target.value)
+                    }
+                    placeholder="Tên ngành mới (VD: Công nghệ)"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        quickAddIndustry();
+                      }
+                      if (e.key === "Escape") {
+                        setAddingIndustry(false);
+                        setNewIndustryName("");
+                      }
+                    }}
+                    className="h-8"
+                  />
+                  <Button
+                    type="button"
+                    size="sm"
+                    className="h-8 bg-indigo-600 text-white"
+                    onClick={quickAddIndustry}
+                    disabled={
+                      savingIndustry || !newIndustryName.trim()
+                    }
+                  >
+                    {savingIndustry ? "Đang lưu..." : "Lưu"}
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="h-8"
+                    onClick={() => {
+                      setAddingIndustry(false);
+                      setNewIndustryName("");
+                    }}
+                  >
+                    Hủy
+                  </Button>
+                </div>
+              )}
             </div>
             <div className="space-y-2">
               <Label>Trạng thái</Label>
