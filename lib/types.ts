@@ -134,6 +134,7 @@ export type Status =
   | "ai_generating_content"
   | "awaiting_content_approval"
   | "content_approved"
+  | "posting"
   | "posted_successfully"
   | "ai_editing_media"
   | "media_edited"
@@ -160,6 +161,10 @@ export const statusConfig: Record<
   content_approved: {
     label: "Đã duyệt nội dung",
     className: "bg-green-100 text-green-700 border-green-300",
+  },
+  posting: {
+    label: "Đang đăng bài…",
+    className: "bg-indigo-100 text-indigo-700 border-indigo-300",
   },
   posted_successfully: {
     label: "Đã đăng thành công",

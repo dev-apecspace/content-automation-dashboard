@@ -772,23 +772,8 @@ export const ContentFormModal: React.FC<ContentFormModalProps> = ({
         if (mode === "now") {
           await postContentNow(id);
         } else {
-          // 1. Call Schedule Webhook
-          const scheduleRes = await fetch("/api/webhook/schedule-post", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              posting_time: itemData.postingTime,
-              platform: itemData.platform?.[0],
-            }),
-          });
-
-          if (!scheduleRes.ok) {
-            throw new Error(
-              "Lỗi gọi webhook lên lịch: " + (await scheduleRes.text()),
-            );
-          }
-
-          // 2. Approve Content
+          // Lên lịch: item đã có posting_time → auto-post engine trong app
+          // tự quét và đăng đúng giờ (không cần webhook ngoài như trước)
           await approveContent(id);
         }
       };

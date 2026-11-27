@@ -511,22 +511,8 @@ export const VideoFormModal: React.FC<VideoFormModalProps> = ({
     if (mode === "now") {
       await postVideoNow(itemId);
     } else {
-      // Schedule
-      const scheduleRes = await fetch("/api/webhook/schedule-post", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          posting_time: itemData.postingTime,
-          platform: itemData.platform?.[0], // Should be single platform now
-        }),
-      });
-
-      if (!scheduleRes.ok) {
-        throw new Error(
-          "Lỗi gọi webhook lên lịch: " + (await scheduleRes.text()),
-        );
-      }
-
+      // Lên lịch: video đã có posting_time → auto-post engine trong app
+      // tự quét và đăng đúng giờ (không cần webhook ngoài như trước)
       await approveVideoContent(itemId);
     }
   };

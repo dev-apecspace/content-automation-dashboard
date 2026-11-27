@@ -6,6 +6,7 @@ import type { VideoItem, Status, Platform } from "@/lib/types";
 import { requirePermission, getCurrentUser } from "@/lib/auth/permissions";
 import { createActivityLog } from "@/lib/api/activity-logs";
 import { getDataScopeProjectIds } from "@/lib/api/scope";
+import { runAutoPostSweep, formatVnPostingTime } from "@/lib/auto-post/engine";
 
 export async function getVideoItems(filters?: {
   status?: Status | "all" | "overdue";
@@ -405,52 +406,43 @@ export async function postVideoNow(id: string): Promise<VideoItem> {
     .eq("id", id)
     .single();
 
-  // 1. Cập nhật status -> content_approved
-  const { data, error } = await supabase
+  // 1. Duyệt + đặt posting_time = bây giờ → auto-post engine sẽ đăng ngay
+  //    (video Facebook đăng trực tiếp; Youtube engine chưa hỗ trợ — item giữ
+  //    status content_approved để đăng thủ công)
+  const { error } = await supabase
     .from("video_items")
     .update({
       status: "content_approved",
+      posting_time: formatVnPostingTime(new Date()),
       updated_at: new Date().toISOString(),
     })
-    .eq("id", id)
-    .select()
-    .single();
+    .eq("id", id);
 
   if (error) {
     console.error("Error posting video now:", error);
     throw error;
   }
 
-  // 2. Gọi Webhook Post Now
-  const webhookUrl = process.env.NEXT_PUBLIC_POST_NOW_WEBHOOK;
+  // 2. Chạy quét ngay để đăng liền (không đợi timer 60s)
+  await runAutoPostSweep();
 
-  if (webhookUrl) {
-    // Fire-and-forget
-    fetch(webhookUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        item_id: id,
-      }),
-    }).catch((webhookError) => {
-      console.error("Failed to send post_now webhook:", webhookError);
-    });
-  } else {
-    console.warn("WEBHOOK not configured.");
-  }
+  // 3. Đọc lại trạng thái sau khi engine xử lý
+  const { data: fresh } = await supabase
+    .from("video_items")
+    .select("*")
+    .eq("id", id)
+    .single();
 
-  // 3. Log activity
+  // 4. Log activity
   const user = await getCurrentUser();
   if (user) {
     await createActivityLog("publish", "video", id, {
       userId: user.userId,
       oldValues: oldData,
-      newValues: { status: "content_approved", action: "post_now" },
-      description: `Đăng ngay video "${oldData.idea}"`,
+      newValues: { status: fresh?.status ?? "content_approved", action: "post_now" },
+      description: `Đăng ngay video "${oldData?.idea ?? id}"`,
     });
   }
 
-  return camelcaseKeys(data || null, { deep: true }) as VideoItem;
+  return camelcaseKeys(fresh || null, { deep: true }) as VideoItem;
 }
