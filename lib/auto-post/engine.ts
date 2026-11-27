@@ -55,6 +55,8 @@ type AccountRow = {
   channel_id: string;
   channel_name: string;
   token: string;
+  client_id?: string | null;
+  client_secret?: string | null;
 };
 
 export type EngineStats = {
@@ -154,13 +156,131 @@ async function postVideoToFacebook(
   return { ok: true, postId: r.data?.id || "" };
 }
 
+// --- YouTube (OAuth2 refresh token → resumable upload videos.insert) ---
+
+type GoogleTokenCache = { access: string; expiresAt: number };
+// globalThis như engineStats: chống chênh lệch module instance giữa các bundle
+const gt = globalThis as { __autoPostGoogleTokens?: Map<string, GoogleTokenCache> };
+const googleTokens = gt.__autoPostGoogleTokens ?? (gt.__autoPostGoogleTokens = new Map());
+
+function decryptMaybe(text?: string | null): string {
+  if (!text) return "";
+  if (!text.includes(":")) return text;
+  try {
+    return decrypt(text);
+  } catch {
+    return text;
+  }
+}
+
+/** Đổi refresh token lấy access token (cache ~50 phút, token sống 1 giờ) */
+async function getGoogleAccessToken(account: AccountRow): Promise<string> {
+  const cached = googleTokens.get(account.id);
+  if (cached && cached.expiresAt > Date.now() + 60_000) return cached.access;
+
+  const res = await fetch("https://oauth2.googleapis.com/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      client_id: account.client_id || "",
+      client_secret: decryptMaybe(account.client_secret),
+      refresh_token: decrypt(account.token),
+      grant_type: "refresh_token",
+    }).toString(),
+    signal: AbortSignal.timeout(20_000),
+  });
+  const j = await res.json().catch(() => ({}));
+  if (!j.access_token) {
+    throw new Error(
+      `YouTube token thất bại: ${j.error_description || j.error || "HTTP " + res.status} (token kênh đã hết — cập nhật lại refresh token trong Quản lý tài khoản)`,
+    );
+  }
+  googleTokens.set(account.id, {
+    access: j.access_token,
+    expiresAt: Date.now() + ((j.expires_in || 3600) - 120) * 1000,
+  });
+  return j.access_token;
+}
+
+/**
+ * Upload video lên YouTube (resumable upload — chuẩn của videos.insert):
+ * 1. Khởi tạo → nhận upload URL (header Location)
+ * 2. Tải file từ Cloudinary rồi PUT nguyên bytes lên upload URL
+ * privacyStatus mặc định "public"; có thể đổi bằng env YOUTUBE_UPLOAD_PRIVACY
+ * (dùng "private" khi test để không công khai video ra kênh).
+ */
+async function uploadYoutubeVideo(
+  account: AccountRow,
+  videoUrl: string,
+  title: string,
+  description: string,
+  shorts: boolean,
+): Promise<{ ok: true; videoId: string } | { ok: false; error: string }> {
+  try {
+    const access = await getGoogleAccessToken(account);
+    const privacy = process.env.YOUTUBE_UPLOAD_PRIVACY || "public";
+    const desc =
+      shorts && !`${description}`.includes("#Shorts")
+        ? `${description}\n\n#Shorts`.trim()
+        : description;
+    const meta = {
+      snippet: {
+        title: (title || "Video").slice(0, 100),
+        description: desc.slice(0, 5000),
+        categoryId: "22", // People & Blogs
+      },
+      status: { privacyStatus: privacy, selfDeclaredMadeForKids: false },
+    };
+    const init = await fetch(
+      "https://www.googleapis.com/upload/youtube/v3/videos?uploadType=resumable&part=snippet,status",
+      {
+        method: "POST",
+        headers: {
+          Authorization: "Bearer " + access,
+          "Content-Type": "application/json; charset=UTF-8",
+          "X-Upload-Content-Type": "video/mp4",
+        },
+        body: JSON.stringify(meta),
+        signal: AbortSignal.timeout(30_000),
+      },
+    );
+    const uploadUrl = init.headers.get("location");
+    if (!init.ok || !uploadUrl) {
+      const t = await init.text().catch(() => "");
+      return { ok: false, error: `YouTube khởi tạo upload lỗi HTTP ${init.status}: ${t.slice(0, 160)}` };
+    }
+
+    const fileRes = await fetch(videoUrl, { signal: AbortSignal.timeout(120_000) });
+    if (!fileRes.ok) {
+      return { ok: false, error: `Tải video nguồn (Cloudinary) lỗi HTTP ${fileRes.status}` };
+    }
+    const buf = Buffer.from(await fileRes.arrayBuffer());
+    if (buf.length === 0) {
+      return { ok: false, error: "File video nguồn rỗng (0 bytes)" };
+    }
+    const up = await fetch(uploadUrl, {
+      method: "PUT",
+      headers: { "Content-Type": "video/mp4", "Content-Length": String(buf.length) },
+      body: new Uint8Array(buf),
+      signal: AbortSignal.timeout(300_000),
+    });
+    const j = await up.json().catch(() => ({}));
+    if (!up.ok || !j.id) {
+      return { ok: false, error: `YouTube upload lỗi HTTP ${up.status}: ${JSON.stringify(j).slice(0, 160)}` };
+    }
+    return { ok: true, videoId: j.id };
+  } catch (e: unknown) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
 async function loadAccounts(ids: string[]): Promise<Map<string, AccountRow>> {
   const client = getServiceClient();
   const map = new Map<string, AccountRow>();
   if (!client || ids.length === 0) return map;
   const { data } = await client
     .from("accounts")
-    .select("id,platform,channel_id,channel_name,token")
+    .select("id,platform,channel_id,channel_name,token,client_id,client_secret")
     .in("id", ids);
   for (const row of data || []) map.set(row.id, row as AccountRow);
   return map;
@@ -258,43 +378,76 @@ async function processVideoItem(
     ? item.account_ids
     : [];
   const accounts = await loadAccounts(accountIds);
+  const shorts = (item.platform || []).some((p: string) =>
+    (p || "").includes("Shorts"),
+  );
   let anySuccess = false;
   let lastError = "";
 
   for (const accId of accountIds) {
     const account = accounts.get(accId);
-    if (!account || account.platform !== "Facebook" || !account.channel_id) {
-      lastError = `Tài khoản không hợp lệ/không phải Facebook: ${accId}`;
+    if (!account || !account.channel_id) {
+      lastError = `Tài khoản không hợp lệ: ${accId}`;
       continue;
     }
     if (!item.video_link) {
       lastError = "Video chưa có file (video_link trống)";
       continue;
     }
-    const r = await postVideoToFacebook(
-      account,
-      item.video_link,
-      item.title || "",
-      item.caption || "",
-    );
-    if (r.ok && r.postId) {
-      anySuccess = true;
-      const pageId = account.channel_id;
-      const suffix = r.postId.includes("_") ? r.postId.split("_")[1] : r.postId;
-      await client.from("posts").insert({
-        id: r.postId,
-        item_id: item.id,
-        item_type: "video",
-        platform: "Facebook Video",
-        post_url: `https://facebook.com/${pageId}/videos/${suffix}`,
-        published_at: new Date().toISOString(),
-        account_id: account.id,
-        status: "published",
-      });
-    } else if (!r.ok) {
-      lastError = r.error;
+
+    if (account.platform === "Youtube") {
+      // YouTube: refresh token → resumable upload
+      const r = await uploadYoutubeVideo(
+        account,
+        item.video_link,
+        item.title || "",
+        item.caption || "",
+        shorts,
+      );
+      if (r.ok) {
+        anySuccess = true;
+        await client.from("posts").insert({
+          id: r.videoId,
+          item_id: item.id,
+          item_type: "video",
+          platform: (item.platform || ["Youtube"])[0],
+          post_url: `https://www.youtube.com/watch?v=${r.videoId}`,
+          published_at: new Date().toISOString(),
+          account_id: account.id,
+          status: "published",
+        });
+      } else {
+        lastError = r.error;
+      }
+    } else if (account.platform === "Facebook") {
+      // Facebook: video upload qua Graph file_url
+      const r = await postVideoToFacebook(
+        account,
+        item.video_link,
+        item.title || "",
+        item.caption || "",
+      );
+      if (r.ok && r.postId) {
+        anySuccess = true;
+        const pageId = account.channel_id;
+        const suffix = r.postId.includes("_") ? r.postId.split("_")[1] : r.postId;
+        await client.from("posts").insert({
+          id: r.postId,
+          item_id: item.id,
+          item_type: "video",
+          platform: "Facebook Video",
+          post_url: `https://facebook.com/${pageId}/videos/${suffix}`,
+          published_at: new Date().toISOString(),
+          account_id: account.id,
+          status: "published",
+        });
+      } else if (!r.ok) {
+        lastError = r.error;
+      } else {
+        lastError = "Facebook không trả về post id";
+      }
     } else {
-      lastError = "Facebook không trả về post id";
+      lastError = `Platform tài khoản chưa hỗ trợ đăng tự động: ${account.platform}`;
     }
   }
 
@@ -304,7 +457,7 @@ async function processVideoItem(
       .update({ status: "posted_successfully", updated_at: new Date().toISOString() })
       .eq("id", item.id);
     engineStats.postedCount += 1;
-    engineStats.lastPostedSummary = `Video "${(item.idea || "").slice(0, 60)}" đã đăng Facebook`;
+    engineStats.lastPostedSummary = `Video "${(item.idea || "").slice(0, 60)}" đã đăng ${shorts ? "YouTube Shorts/Facebook" : "Facebook"}`;
     return true;
   }
 
@@ -320,6 +473,12 @@ async function processVideoItem(
 
 function isFacebookPlatform(platform?: string[] | null): boolean {
   return (platform || []).some((p) => (p || "").startsWith("Facebook"));
+}
+
+function isSupportedVideoPlatform(platform?: string[] | null): boolean {
+  return (platform || []).some(
+    (p) => (p || "").startsWith("Facebook") || (p || "").startsWith("Youtube"),
+  );
 }
 
 /** Quét + đăng tất cả item đến hạn. Gọi từ timer và từ "Đăng ngay". */
@@ -355,7 +514,7 @@ export async function runAutoPostSweep(): Promise<SweepResult> {
   for (const item of videos || []) {
     const due = parseVnPostingTime(item.posting_time);
     if (!due || due.getTime() > now) continue;
-    if (!isFacebookPlatform(item.platform)) {
+    if (!isSupportedVideoPlatform(item.platform)) {
       result.skippedUnsupported += 1;
       continue;
     }
