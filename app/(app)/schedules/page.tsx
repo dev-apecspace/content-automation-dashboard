@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { ScheduleTab } from "@/components/schedule/schedule-tab";
+import { AutoPostHealthBanner } from "@/components/schedule/auto-post-health-banner";
 import {
   getSchedules,
   getProjects,
@@ -46,6 +47,7 @@ export default function SchedulesPage() {
 
   return (
     <div className="space-y-6">
+      <AutoPostHealthBanner />
       <ScheduleTab
         schedules={schedules}
         projects={projects}
