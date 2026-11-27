@@ -54,6 +54,9 @@ interface MenuItem {
   // business: quản trị kinh doanh (chỉ admin) | operational: nghiệp vụ
   // (user khách theo gói, admin chỉ thấy khi đang xem 1 công ty /{slug})
   kind?: "business" | "operational";
+  // adminOnly: menu quản trị hệ thống — chỉ hiển thị ở khu vực admin gốc,
+  // KHÔNG hiện trong workspace công ty /{slug} dù đang login admin hệ thống
+  adminOnly?: boolean;
 }
 
 const menuItems: MenuItem[] = [
@@ -139,6 +142,7 @@ const menuItems: MenuItem[] = [
     icon: Users,
     permission: "users.view",
     kind: "operational",
+    adminOnly: true,
   },
   {
     route: "/roles",
@@ -146,6 +150,7 @@ const menuItems: MenuItem[] = [
     icon: ShieldCheck,
     permission: "roles.view",
     kind: "operational",
+    adminOnly: true,
   },
   {
     route: "/activity-logs",
@@ -153,6 +158,7 @@ const menuItems: MenuItem[] = [
     icon: LogsIcon,
     permission: "activity_logs.view",
     kind: "operational",
+    adminOnly: true,
   },
   {
     route: "/prompts",
@@ -160,6 +166,7 @@ const menuItems: MenuItem[] = [
     icon: FilePenLine,
     permission: "prompts.view",
     kind: "operational",
+    adminOnly: true,
   },
   // {
   //   route: "/guide",
@@ -220,13 +227,18 @@ export function Sidebar({
   }, [user, fetchUser]);
 
   const filteredMenuItems = menuItems.filter((item) => {
-    // Admin: chỉ mục kinh doanh; đang xem công ty /{slug} thì thêm mục nghiệp vụ
+    // Admin hệ thống
     if (role === "admin") {
-      if (item.kind === "operational" && !inCompanyContext) return false;
-      if (item.kind === "business") return true;
-      return inCompanyContext;
+      if (inCompanyContext) {
+        // Workspace công ty /{slug}: CHỈ menu nghiệp vụ của công ty —
+        // ẩn cả menu kinh doanh lẫn menu quản trị hệ thống
+        return item.kind === "operational" && !item.adminOnly;
+      }
+      // Khu vực admin gốc: quản trị kinh doanh + quản trị hệ thống
+      return item.kind === "business" || !!item.adminOnly;
     }
-    // User khách / nhân viên: không thấy mục kinh doanh
+    // User khách / nhân viên: không thấy mục kinh doanh; mục adminOnly
+    // (Người dùng/Phân quyền/Nhật ký/Prompts) tự ẩn theo permission
     if (item.kind === "business") return false;
     if (!item.permission) return true;
     return hasPermission(item.permission);
